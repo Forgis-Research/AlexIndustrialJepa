@@ -1,3 +1,8 @@
+# Environment variables (secrets)
+.env
+.env.*
+!.env.example
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -73,4 +78,13 @@ site/
 .DS_Store
 
 # System files
-Thumbs.db 
+Thumbs.db
+
+# Project-specific
+checkpoints/
+data/
+wandb/
+outputs/
+*.pt
+*.pth
+*.ckpt

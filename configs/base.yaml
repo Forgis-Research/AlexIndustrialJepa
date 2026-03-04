@@ -4,14 +4,30 @@
 # Base configuration for Industrial World Model training
 
 # =============================================================================
-# Data Configuration
+# Data Configuration (FactoryNet)
 # =============================================================================
-data_dir: "./data"
+# Dataset source on HuggingFace
+dataset_name: "Forgis/factorynet-hackathon"
+
+# Available subsets (can train on multiple for transfer learning)
+# - aursad: UR3e 6-DOF cobot, screwdriving, 6.2M rows, 5 fault types
+# - voraus-ad: Yu-Cobot 6-DOF, pick-and-place, 2.3M rows, 12 fault types
+# - nasa-milling: CNC 3-axis, milling, 1.5M rows, tool wear
+# - rh20t: Franka 7-DOF, manipulation, 1.2M rows
+# - reassemble: Franka 7-DOF, assembly, 1.0M rows
 datasets:
-  - cmapss
-  - bearing
-  - tep
-  - swat
+  - aursad  # Primary dataset for Experiment 1
+
+# Unified schema dimensions (handles heterogeneous data)
+unified_setpoint_dim: 14  # 7 joints × 2 (pos + vel)
+unified_effort_dim: 7     # 7 joints max
+
+# Sequence parameters
+window_size: 256
+stride: 128
+
+# Only train on healthy data (one-class anomaly detection)
+train_healthy_only: true
 
 # =============================================================================
 # Model Configuration
@@ -82,8 +98,9 @@ save_total_limit: 5
 # =============================================================================
 # Logging
 # =============================================================================
-wandb: false
-wandb_project: "industrial-world-lm"
+wandb: true
+wandb_project: "industrialjepa"
+wandb_entity: "forgis"  # https://wandb.ai/forgis/industrialjepa
 wandb_run_name: null  # Auto-generated if null
 
 tensorboard: true

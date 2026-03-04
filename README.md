@@ -78,7 +78,7 @@ We use [FactoryNet](https://huggingface.co/datasets/Forgis/factorynet-hackathon)
 
 See [`paper/EXECUTION_PLAN.md`](paper/EXECUTION_PLAN.md) for the full experiment plan:
 
-1. **JEPA vs Baselines**: Prove JEPA > MAE on fault detection
+1. **JEPA vs Baselines**: Prove JEPA > MAE (masked autoencoder) on fault detection
 2. **Causal Ablation**: Prove Setpoint matters
 3. **Cross-Machine Transfer**: Train on UR3e, test on Yu-Cobot (zero-shot)
 4. **Multi-Dataset Pretraining**: Does combining datasets help?
