@@ -1,0 +1,100 @@
+# SPDX-FileCopyrightText: 2025 Industrial World Model Authors
+# SPDX-License-Identifier: MIT
+
+# Base configuration for Industrial World Model training
+
+# =============================================================================
+# Data Configuration
+# =============================================================================
+data_dir: "./data"
+datasets:
+  - cmapss
+  - bearing
+  - tep
+  - swat
+
+# =============================================================================
+# Model Configuration
+# =============================================================================
+model_size: "large"  # base, large, xl
+input_channels: 24   # Adjust based on your data
+
+# =============================================================================
+# Training Configuration
+# =============================================================================
+# Stage: tokenizer → dynamics → full → finetune
+stage: "full"
+
+# Optimization
+learning_rate: 1.0e-4
+weight_decay: 0.01
+adam_beta1: 0.9
+adam_beta2: 0.95
+max_grad_norm: 1.0
+
+# Schedule
+scheduler: "cosine"  # cosine, linear, constant, restart
+warmup_ratio: 0.05
+min_lr_ratio: 0.1
+
+# Training loop
+epochs: 100
+batch_size: 32
+gradient_accumulation: 1
+eval_steps: 1000
+save_steps: 5000
+log_steps: 100
+
+# Mixed precision
+amp: true
+amp_dtype: "bfloat16"  # float16 or bfloat16
+
+# =============================================================================
+# Stage-Specific Configuration
+# =============================================================================
+# Stage 1: Tokenizer (VQ-VAE) training
+tokenizer_epochs: 20
+tokenizer_lr: 1.0e-4
+
+# Stage 2: Dynamics training (freeze tokenizer)
+dynamics_epochs: 30
+dynamics_lr: 5.0e-5
+
+# Stage 3: Full training
+freeze_tokenizer_after: 10  # Freeze tokenizer after this epoch
+
+# =============================================================================
+# Loss Weights
+# =============================================================================
+loss_weights:
+  dynamics: 1.0       # Next state prediction
+  recon: 1.0          # VQ-VAE reconstruction
+  kl: 0.1             # KL divergence (stochastic latent)
+  contrastive: 0.1    # Domain-aware contrastive
+  mtp: 0.0            # Masked token prediction (0 = disabled)
+
+# =============================================================================
+# Output Configuration
+# =============================================================================
+output_dir: "./checkpoints"
+save_total_limit: 5
+
+# =============================================================================
+# Logging
+# =============================================================================
+wandb: false
+wandb_project: "industrial-world-lm"
+wandb_run_name: null  # Auto-generated if null
+
+tensorboard: true
+
+# =============================================================================
+# Hardware
+# =============================================================================
+device: "cuda"
+num_workers: 4
+
+# =============================================================================
+# Resume
+# =============================================================================
+resume: null  # Path to checkpoint to resume from

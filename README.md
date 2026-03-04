@@ -1,57 +1,99 @@
-# Base Repository
+# IndustrialJEPA
 
-This is a base repository for Xelerit projects.
+**JEPA-based fault detection and cross-machine transfer for industrial robotics.**
 
-## Getting Started
+> By predicting Effort from Setpoint in latent space, JEPA learns the physics of machine behavior rather than hardware-specific statistics, enabling fault detection that transfers across different robot types.
 
-### Prerequisites
+## Key Idea
 
-- [uv](https://github.com/astral-sh/uv)
+Traditional industrial fault detection learns sensor statistics specific to one machine. When deployed on a different machine, it fails because it learned hardware fingerprints, not physics.
 
-### Installation
+IndustrialJEPA exploits **causal structure** in industrial data:
+- **Setpoint**: What the controller commanded (target position, velocity)
+- **Effort**: What the machine expended (motor current, torque)
+- **Feedback**: What actually happened (measured position)
 
-1.  Clone the repository:
-    ```bash
-    git clone <repository-url>
-    cd <repository-name>
-    ```
+Under healthy operation, Effort is a predictable function of Setpoint. Faults break this relationship. By learning to predict Effort from Setpoint in latent space (JEPA), the model learns transferable physics.
 
-2.  Create a virtual environment and install dependencies:
-    ```bash
-    uv venv
-    uv pip install -r requirements.txt
-    ```
-
-## Documentation
-
-To view the documentation, run:
-
-```bash
-mkdocs serve
+```
+Traditional: Sensors → Fault Label (hardware-specific)
+Ours:        Setpoint → Effort prediction (physics-based, transferable)
 ```
 
-Then open your browser to `http://127.0.0.1:8000`. 
+## Installation
 
-## Code Style and Pre-commit Hooks
+```bash
+git clone https://github.com/ForgisX/IndustrialJEPA.git
+cd IndustrialJEPA
+pip install -e .
+```
 
-This repository uses [pre-commit](https://pre-commit.com/) to enforce code style with Black, isort, and flake8.
+## Quick Start
 
-### Setup pre-commit
+```python
+from industrialjepa.training import Trainer, TrainingConfig
+from industrialjepa.model import ModelConfig
 
-1. Install pre-commit and style tools:
-    ```bash
-    uv pip install -r requirements.txt
-    ```
-2. Install the pre-commit hooks:
-    ```bash
-    pre-commit install
-    ```
+# Load FactoryNet dataset
+# TODO: Add FactoryNet dataloader
 
-### Usage
-- Hooks will run automatically on `git commit`.
-- To run checks manually on all files:
-    ```bash
-    pre-commit run --all-files
-    ``` 
+# Train JEPA
+config = TrainingConfig(...)
+trainer = Trainer(config)
+trainer.train()
+```
 
-For more details on code style and pre-commit hooks, see the [documentation](docs/index.md). 
+## Project Structure
+
+```
+IndustrialJEPA/
+├── src/industrialjepa/
+│   ├── model/          # JEPA architecture
+│   │   ├── backbone/   # Mamba-Transformer hybrid
+│   │   └── config.py   # Model configuration
+│   ├── data/           # FactoryNet dataloader (TODO)
+│   ├── training/       # Training loop, JEPA loss
+│   └── evaluation/     # Fault detection benchmarks
+├── scripts/
+│   ├── train_jepa.py   # Main training script
+│   └── evaluate_jepa.py
+├── configs/            # YAML configurations
+├── paper/              # Paper draft and figures
+└── tests/
+```
+
+## Datasets
+
+We use [FactoryNet](https://huggingface.co/datasets/Forgis/factorynet-hackathon), a causally-structured dataset with:
+
+| Dataset | Robot | Task | Rows |
+|---------|-------|------|------|
+| AURSAD | UR3e (6-DOF) | Screwdriving | 6.2M |
+| voraus-AD | Yu-Cobot (6-DOF) | Pick-and-place | 2.3M |
+| NASA Milling | CNC (3-axis) | Milling | 1.5M |
+| RH20T | Franka (7-DOF) | Manipulation | 4.1M |
+| REASSEMBLE | Franka (7-DOF) | Assembly | 4.1M |
+
+## Experiments
+
+See [`paper/EXECUTION_PLAN.md`](paper/EXECUTION_PLAN.md) for the full experiment plan:
+
+1. **JEPA vs Baselines**: Prove JEPA > MAE on fault detection
+2. **Causal Ablation**: Prove Setpoint matters
+3. **Cross-Machine Transfer**: Train on UR3e, test on Yu-Cobot (zero-shot)
+4. **Multi-Dataset Pretraining**: Does combining datasets help?
+5. **Q&A Evaluation**: Test machine understanding (Tiers 1-2)
+
+## Citation
+
+```bibtex
+@article{industrialjepa2026,
+  title={JEPA Learns Physics, Not Hardware: Causal Structure Enables Cross-Machine Transfer in Industrial Time Series},
+  author={Petersen, Jonas and Othman, Karim},
+  year={2026}
+}
+```
+
+## License
+
+MIT License - see [LICENSE](LICENSE) for details.

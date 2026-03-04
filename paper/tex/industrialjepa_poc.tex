@@ -1,0 +1,344 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+
+\title{\textbf{JEPA Learns Physics, Not Hardware:\\Causal Structure Enables Cross-Machine Transfer\\in Industrial Time Series}}
+
+\author{
+  Anonymous Authors\\
+  \texttt{anonymous@institution.edu}
+}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Industrial fault detection models learn hardware-specific sensor statistics, failing when deployed on different machines. We argue this brittleness stems from a data structure problem: existing datasets record sensor outcomes without the commands that caused them. Without knowing what was \emph{commanded}, a model cannot distinguish ``moving slowly because told to'' from ``moving slowly because failing.''
+
+We introduce \textbf{IndustrialJEPA}, which learns fault detection by predicting Effort from Setpoint in latent space using the Joint Embedding Predictive Architecture (JEPA). By leveraging FactoryNet's causal schema—where every episode records the full control loop (Setpoint $\rightarrow$ Effort $\rightarrow$ Feedback)—our model learns the \emph{physics} of how machines respond to commands rather than memorizing hardware-specific patterns.
+
+On FactoryNet (18M rows across 5 robot types), IndustrialJEPA achieves [X]\% AUC on fault detection, outperforming reconstruction-based approaches by [Y]\%. More importantly, a model trained on UR3e screwdriving transfers to Yu-Cobot pick-and-place with [Z]\% of supervised performance—without seeing any Yu-Cobot training data. This suggests the Setpoint$\rightarrow$Effort relationship captures transferable physics rather than machine-specific statistics.
+
+We release our code and evaluation framework, which includes a Q\&A benchmark testing machine understanding at four levels: State recognition, Intervention prediction, Counterfactual reasoning, and Decision-making.
+\end{abstract}
+
+%=============================================================================
+\section{Introduction}
+%=============================================================================
+
+Industrial fault detection is dominated by a simple paradigm: train a classifier on sensor data from one machine, label faults, deploy. This works—until you need to monitor a different machine. Models trained on UR robot vibration patterns fail on ABB robots. Models trained on one CNC spindle don't generalize to another. The community calls this ``negative transfer,'' but we argue it's better understood as \textbf{embodiment overfitting}: models learn the statistical fingerprint of specific hardware rather than the physics governing all machines.
+
+\paragraph{The Root Cause: Missing Commands.} Consider a robot arm moving slowly. Is this normal or a fault? Without knowing the \emph{commanded} speed, the question is unanswerable. Yet most industrial datasets—CWRU bearings, C-MAPSS turbofans, Paderborn—record only sensor outcomes (vibration, temperature, current) with fault labels attached. They never capture what the controller \emph{told} the machine to do.
+
+This missing causal information forces models into pattern matching. A classifier learns ``high vibration at 1500 RPM = bearing fault'' for one specific test rig. On a different rig with different bearings, motor constants, and sensor placement, these patterns don't transfer.
+
+\paragraph{Our Approach.} We propose learning fault detection through the lens of control theory: a fault is a deviation in the relationship between what was commanded (Setpoint) and what the machine did (Effort). This relationship—$f(\text{Setpoint}) \rightarrow \text{Effort}$—is governed by physics (Newton's laws, friction, inertia) that generalizes across machines of the same type.
+
+To learn this relationship robustly, we adopt JEPA (Joint Embedding Predictive Architecture), which predicts in latent space rather than raw sensor space. This naturally filters measurement noise while capturing the underlying dynamics.
+
+\paragraph{Contributions.}
+\begin{enumerate}
+    \item We adapt JEPA to causally-structured industrial time series, showing that predicting Effort embeddings from Setpoint outperforms reconstruction-based approaches by [Y]\% on fault detection.
+
+    \item We demonstrate cross-machine transfer: a model trained on UR3e achieves [Z]\% of supervised performance on Yu-Cobot without any target-domain training data.
+
+    \item We introduce a Q\&A evaluation framework with four tiers (State, Intervention, Counterfactual, Decision-Making) that tests machine understanding beyond classification accuracy.
+
+    \item We provide the first systematic study of JEPA on multi-machine industrial data, analyzing when transfer succeeds and fails.
+\end{enumerate}
+
+%=============================================================================
+\section{Related Work}
+%=============================================================================
+
+\paragraph{Industrial Fault Detection.} Deep learning for fault detection has progressed from CNNs \cite{} to transformers \cite{}, but remains single-machine focused. The CWRU bearing dataset \cite{cwru} and C-MAPSS turbofan dataset \cite{cmapss} are ubiquitous benchmarks, yet both record sensor outcomes without commanded setpoints, preventing causal analysis.
+
+\paragraph{JEPA.} The Joint Embedding Predictive Architecture \cite{lecun2022path} learns representations by predicting masked embeddings rather than raw inputs. I-JEPA \cite{ijepa} demonstrated this for images; V-JEPA \cite{vjepa} extended it to video. Recent work applies JEPA to time series: TS-JEPA \cite{tsjepa} for general forecasting, MTS-JEPA \cite{mtsjepa} for anomaly prediction. Most relevant, Yan et al. \cite{yan2025industrial} apply JEPA to injection molding with action conditioning. Our work differs in scope: we study \emph{cross-machine} transfer across a unified multi-robot dataset.
+
+\paragraph{Transfer Learning in Industrial AI.} Cross-machine transfer remains challenging. Domain adaptation methods \cite{} help when source and target are similar, but fail across machine types. Recent robotics work (Open X-Embodiment \cite{openx}) shows positive transfer across 22 robot types for manipulation policies—we investigate whether similar transfer is possible for fault detection.
+
+%=============================================================================
+\section{FactoryNet: Causally-Structured Industrial Data}
+%=============================================================================
+
+FactoryNet \cite{factorynet} provides the causal structure our approach requires. Every episode records the full control loop:
+
+\begin{tcolorbox}[colback=blue!5,colframe=blue!40!black,title=FactoryNet Causal Schema]
+\begin{itemize}
+    \item \textbf{Setpoint:} What the controller commanded (target position, velocity)
+    \item \textbf{Effort:} How the machine responded (motor current, torque)
+    \item \textbf{Feedback:} What actually happened (measured position, velocity)
+\end{itemize}
+\end{tcolorbox}
+
+\paragraph{Key Insight.} Under healthy operation, Effort is a \emph{lawful function} of Setpoint—determined by physics (inertia, friction, gravity). Faults manifest as deviations in this relationship. A bearing fault increases friction; a phantom load changes the gravity term. Both cause Effort to deviate from what Setpoint would predict.
+
+\paragraph{Dataset Statistics.} We use the FactoryNet Hackathon dataset:
+
+\begin{table}[h]
+\centering
+\caption{FactoryNet Dataset Summary}
+\begin{tabular}{llrrr}
+\toprule
+\textbf{Dataset} & \textbf{Robot} & \textbf{Episodes} & \textbf{Rows} & \textbf{Faults} \\
+\midrule
+AURSAD & UR3e (6-DOF) & 4,094 & 6.2M & 5 types \\
+voraus-AD & Yu-Cobot (6-DOF) & 2,122 & 2.3M & 12 types \\
+RH20T & Franka (7-DOF) & 500 & 1.2M & — \\
+REASSEMBLE & Franka (7-DOF) & 100 & 1.0M & Task fail \\
+\midrule
+\textbf{Total (robots)} & & \textbf{6,816} & \textbf{10.7M} & \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We exclude NASA Milling (CNC) as it lacks dynamic setpoints—machining parameters are constant per episode.
+
+%=============================================================================
+\section{Method: IndustrialJEPA}
+%=============================================================================
+
+\subsection{Architecture}
+
+IndustrialJEPA consists of three components:
+
+\begin{enumerate}
+    \item \textbf{Setpoint Encoder} $E_\theta$: Processes commanded trajectory (setpoint positions, velocities) into context embeddings.
+
+    \item \textbf{Target Encoder} $E_{\bar{\theta}}$: Encodes Effort signals into target embeddings. Updated via exponential moving average (EMA) of $E_\theta$.
+
+    \item \textbf{Predictor} $P_\phi$: Predicts target Effort embeddings from Setpoint context.
+\end{enumerate}
+
+\paragraph{Input Representation.} We extract windows of length $T$ from each episode:
+\begin{align}
+    \mathbf{s}_t &= [\text{setpoint\_pos}_0, \ldots, \text{setpoint\_pos}_5, \text{setpoint\_vel}_0, \ldots]_t \\
+    \mathbf{e}_t &= [\text{effort\_torque}_0, \ldots, \text{effort\_torque}_5]_t
+\end{align}
+
+\paragraph{Multi-Scale Patching.} Following V-JEPA, we embed inputs at multiple temporal scales to capture both fast dynamics (control loops) and slow trends (degradation):
+\begin{equation}
+    \mathbf{h}^{(s)} = \text{PatchEmbed}^{(s)}(\mathbf{x}), \quad s \in \{8, 32\}
+\end{equation}
+
+\subsection{JEPA Training Objective}
+
+Given visible Setpoint patches $\mathbf{s}_{\text{vis}}$ and masked Effort patches $\mathbf{e}_{\text{mask}}$:
+
+\begin{align}
+    \mathbf{z}_{\text{ctx}} &= E_\theta(\mathbf{s}_{\text{vis}}) \\
+    \mathbf{z}_{\text{tgt}} &= \text{sg}[E_{\bar{\theta}}(\mathbf{e}_{\text{mask}})] \\
+    \hat{\mathbf{z}} &= P_\phi(\mathbf{z}_{\text{ctx}}, \text{mask\_positions})
+\end{align}
+
+The loss minimizes prediction error in embedding space:
+\begin{equation}
+    \mathcal{L}_{\text{JEPA}} = \frac{1}{|\mathcal{M}|} \sum_{t \in \mathcal{M}} \|\hat{\mathbf{z}}_t - \mathbf{z}^{\text{tgt}}_t\|_1
+\end{equation}
+
+\paragraph{Why JEPA over Reconstruction?} Reconstructing raw Effort values forces the model to predict measurement noise. JEPA sidesteps this by predicting in latent space where noise is naturally filtered—the encoder learns to discard unpredictable components.
+
+\subsection{Fault Detection}
+
+After training, faults are detected as anomalies in prediction error:
+\begin{equation}
+    \text{score}(t) = \|\hat{\mathbf{z}}_t - \mathbf{z}^{\text{tgt}}_t\|_2
+\end{equation}
+
+High scores indicate the Setpoint$\rightarrow$Effort relationship has deviated from the learned healthy pattern.
+
+%=============================================================================
+\section{Q\&A Evaluation Framework}
+%=============================================================================
+
+Beyond fault detection AUC, we evaluate whether JEPA representations support genuine machine understanding through a four-tier Q\&A framework:
+
+\begin{table}[h]
+\centering
+\caption{Q\&A Evaluation Tiers}
+\small
+\begin{tabular}{llll}
+\toprule
+\textbf{Tier} & \textbf{Question Type} & \textbf{Example} & \textbf{Implementation} \\
+\midrule
+1. State & Current state recognition & ``Is there a payload?'' & Binary classifier \\
+2. Intervention & Predict effect of change & ``What if speed $\uparrow$ 20\%?'' & Conditional predictor \\
+3. Counterfactual & Hypothetical reasoning & ``If payload were 3kg...'' & Future work \\
+4. Decision & Action recommendation & ``Should we stop?'' & Future work \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Tier 1: State.} We train a linear classifier on frozen JEPA embeddings to predict binary states (payload present, fault type, etc.). High accuracy indicates embeddings capture relevant state information.
+
+\paragraph{Tier 2: Intervention.} We condition the predictor on modified setpoints and evaluate whether predicted Effort changes appropriately. For example, does predicted effort decrease when setpoint velocity decreases?
+
+Tiers 3-4 require generative modeling and are left for future work with LLM integration.
+
+%=============================================================================
+\section{Experiments}
+%=============================================================================
+
+\subsection{Experimental Setup}
+
+\paragraph{Data.} AURSAD (UR3e) for primary experiments; voraus-AD (Yu-Cobot) for transfer evaluation. We use 80\% healthy episodes for training, 20\% mixed (healthy + faults) for testing.
+
+\paragraph{Baselines.}
+\begin{itemize}
+    \item \textbf{MAE:} Masked Autoencoder reconstructing raw Effort from Setpoint
+    \item \textbf{Autoencoder:} Reconstruct Effort without Setpoint input
+    \item \textbf{Contrastive:} InfoNCE with same-episode positive pairs
+\end{itemize}
+
+\paragraph{Metrics.} Fault detection AUC-ROC, F1 score; Q\&A accuracy for Tiers 1-2.
+
+\subsection{Results}
+
+\paragraph{Experiment 1: JEPA vs Baselines.}
+
+\begin{table}[h]
+\centering
+\caption{Fault Detection on AURSAD (UR3e)}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Method} & \textbf{AUC} & \textbf{F1} \\
+\midrule
+Autoencoder (no Setpoint) & [TBD] & [TBD] \\
+Contrastive & [TBD] & [TBD] \\
+MAE (reconstruction) & [TBD] & [TBD] \\
+\textbf{JEPA (ours)} & \textbf{[TBD]} & \textbf{[TBD]} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Experiment 2: Setpoint Ablation.}
+
+\begin{table}[h]
+\centering
+\caption{Ablation: Does Setpoint Matter?}
+\begin{tabular}{lc}
+\toprule
+\textbf{Configuration} & \textbf{AUC} \\
+\midrule
+JEPA: Setpoint $\rightarrow$ Effort (full causal) & \textbf{[TBD]} \\
+JEPA: Effort only (no command) & [TBD] \\
+JEPA: Feedback $\rightarrow$ Effort (wrong direction) & [TBD] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Experiment 3: Cross-Machine Transfer (Hero Result).}
+
+\begin{table}[h]
+\centering
+\caption{Transfer: UR3e $\rightarrow$ Yu-Cobot}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Training} & \textbf{Test AUC} & \textbf{\% of Supervised} \\
+\midrule
+Yu-Cobot supervised (upper bound) & [TBD] & 100\% \\
+UR3e $\rightarrow$ Yu-Cobot (zero-shot) & [TBD] & [TBD]\% \\
+UR3e $\rightarrow$ Yu-Cobot (10\% fine-tune) & [TBD] & [TBD]\% \\
+Random init (lower bound) & [TBD] & — \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Experiment 4: Q\&A Evaluation.}
+
+\begin{table}[h]
+\centering
+\caption{Q\&A Tier 1-2 Results}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Task} & \textbf{JEPA} & \textbf{MAE} \\
+\midrule
+Tier 1: Payload detection & [TBD]\% & [TBD]\% \\
+Tier 1: Fault type classification & [TBD]\% & [TBD]\% \\
+Tier 2: Speed intervention prediction & [TBD] MSE & [TBD] MSE \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%=============================================================================
+\section{Analysis}
+%=============================================================================
+
+\paragraph{What Does JEPA Learn?} [TBD: t-SNE visualization of embeddings, attention patterns]
+
+\paragraph{When Does Transfer Fail?} [TBD: Error analysis on Yu-Cobot failures]
+
+\paragraph{The Physics Argument.} [TBD: Show that Setpoint$\rightarrow$Effort relationship is similar across machines after normalization]
+
+%=============================================================================
+\section{Limitations and Future Work}
+%=============================================================================
+
+\paragraph{Limitations.}
+\begin{enumerate}
+    \item \textbf{Scale:} 10M rows across 4 robots is small by foundation model standards. Transfer results may not hold at larger scale or across more diverse machines.
+    \item \textbf{Task similarity:} Both AURSAD and voraus-AD involve manipulation tasks. Transfer to fundamentally different tasks (e.g., welding, painting) is untested.
+    \item \textbf{Q\&A scope:} We only evaluate Tiers 1-2. Counterfactual and decision-making require more sophisticated architectures.
+\end{enumerate}
+
+\paragraph{Future Work.}
+\begin{enumerate}
+    \item \textbf{LLM Integration:} Connect JEPA embeddings to language models for natural language Q\&A (Tiers 3-4).
+    \item \textbf{Scaling:} Extend FactoryNet with more machines and domains.
+    \item \textbf{Real Deployment:} Validate on production equipment with naturally occurring faults.
+\end{enumerate}
+
+%=============================================================================
+\section{Conclusion}
+%=============================================================================
+
+We showed that JEPA, trained on causally-structured industrial data, learns representations that transfer across robot types. The key enabler is FactoryNet's Setpoint$\rightarrow$Effort$\rightarrow$Feedback schema, which provides the causal structure needed to learn physics rather than hardware statistics.
+
+Our results suggest that the decades-old dream of cross-machine transfer in industrial AI may be achievable—not through bigger models, but through better data structure. A model that knows what was commanded can reason about whether the response was appropriate, regardless of which machine produced it.
+
+%=============================================================================
+\bibliographystyle{plain}
+\begin{thebibliography}{99}
+
+\bibitem{lecun2022path}
+LeCun, Y. (2022). A Path Towards Autonomous Machine Intelligence. \textit{OpenReview}.
+
+\bibitem{ijepa}
+Assran, M., et al. (2023). Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture. \textit{CVPR 2023}.
+
+\bibitem{vjepa}
+Bardes, A., et al. (2024). V-JEPA: Latent Video Prediction for Visual Representation Learning. \textit{ICLR 2024}.
+
+\bibitem{tsjepa}
+Ennadir, S., et al. (2024). TS-JEPA: Joint Embeddings Go Temporal. \textit{NeurIPS 2024 Workshop}.
+
+\bibitem{mtsjepa}
+He, Y., et al. (2026). MTS-JEPA: Multi-Resolution JEPA for Time-Series Anomaly Prediction. \textit{arXiv:2602.04643}.
+
+\bibitem{yan2025industrial}
+Yan, P., et al. (2025). Learning Actionable World Models for Industrial Process Control. \textit{SDS 2025}.
+
+\bibitem{cwru}
+Case Western Reserve University Bearing Data Center. \url{https://engineering.case.edu/bearingdatacenter}
+
+\bibitem{cmapss}
+Saxena, A., et al. (2008). Damage Propagation Modeling for Aircraft Engine Run-to-Failure Simulation. \textit{PHM 2008}.
+
+\bibitem{openx}
+Open X-Embodiment Collaboration (2023). Open X-Embodiment: Robotic Learning Datasets and RT-X Models. \textit{CoRL 2023}.
+
+\bibitem{factorynet}
+FactoryNet (2026). A Causally-Structured Dataset for Cross-Machine Transfer. \url{https://huggingface.co/datasets/Forgis/factorynet-hackathon}
+
+\end{thebibliography}
+
+\end{document}

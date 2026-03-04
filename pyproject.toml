@@ -1,6 +1,75 @@
+# SPDX-FileCopyrightText: 2025-2026 Forgis AG
+# SPDX-License-Identifier: MIT
+
 [project]
-name = "xelerit-base"
+name = "industrialjepa"
 version = "0.1.0"
-description = "A base repository for Xelerit projects."
-authors = ["Xelerit"]
-requires-python = ">=3.8" 
+description = "JEPA-based fault detection and cross-machine transfer for industrial robotics"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    {name = "Jonas Petersen"},
+    {name = "Karim Othman"},
+]
+keywords = [
+    "time-series",
+    "jepa",
+    "fault-detection",
+    "industrial-robotics",
+    "cross-machine-transfer",
+    "world-models",
+    "anomaly-detection"
+]
+
+dependencies = [
+    "numpy>=1.21",
+    "pandas>=2.0",
+    "torch>=2.0",
+    "tqdm>=4.62",
+    "matplotlib>=3.5",
+    "scikit-learn>=1.0",
+    "huggingface-hub>=0.16",
+    "datasets>=2.0",
+    "pyarrow>=14.0",
+    "einops>=0.6",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "ruff>=0.1.0",
+    "pre-commit>=3.0",
+    "black>=23.0",
+    "isort>=5.12",
+]
+notebook = [
+    "jupyter>=1.0",
+    "ipython>=8.0",
+    "seaborn>=0.12",
+]
+
+[project.urls]
+Repository = "https://github.com/ForgisX/IndustrialJEPA"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/industrialjepa"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 120
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
+line_length = 120
