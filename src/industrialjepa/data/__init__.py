@@ -1,4 +1,18 @@
+# SPDX-FileCopyrightText: 2025-2026 Forgis AG
+# SPDX-License-Identifier: MIT
+
 """Data loading utilities for FactoryNet datasets."""
 
-# TODO: Import FactoryNet dataloader once implemented
-# from .factorynet import FactoryNetDataset
+from industrialjepa.data.factorynet import (
+    FactoryNetConfig,
+    FactoryNetDataset,
+    create_dataloaders,
+    load_aursad,
+)
+
+__all__ = [
+    "FactoryNetConfig",
+    "FactoryNetDataset",
+    "create_dataloaders",
+    "load_aursad",
+]
