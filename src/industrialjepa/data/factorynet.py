@@ -47,11 +47,11 @@ from huggingface_hub import hf_hub_download
 logger = logging.getLogger(__name__)
 
 
-# Metadata file paths per subset
+# Metadata file paths per subset (keys must match data_dir values)
 METADATA_FILES = {
     "aursad": "metadata/aursad_metadata.json",
-    "voraus-ad": "metadata/voraus_metadata.json",
-    "nasa-milling": "nasa_milling/nasa_milling_metadata.json",
+    "voraus": "metadata/voraus_metadata.json",
+    "nasa_milling": "nasa_milling/nasa_milling_metadata.json",
     "rh20t": "rh20t/rh20t_metadata.json",
     "reassemble": "reassemble/reassemble_metadata.json",
 }
@@ -175,14 +175,16 @@ class FactoryNetDataset(Dataset):
 
     def _load_data(self):
         """Load data from HuggingFace datasets."""
-        # Map subset names to data_dir paths (lowercase)
+        # Map subset names to data_dir paths (must match HuggingFace repo folders)
         subset_to_datadir = {
             "AURSAD": "aursad",
             "aursad": "aursad",
-            "voraus-AD": "voraus-ad",
-            "voraus-ad": "voraus-ad",
-            "NASA": "nasa-milling",
-            "nasa-milling": "nasa-milling",
+            "voraus-AD": "voraus",
+            "voraus-ad": "voraus",
+            "voraus": "voraus",
+            "NASA": "nasa_milling",
+            "nasa-milling": "nasa_milling",
+            "nasa_milling": "nasa_milling",
             "RH20T": "rh20t",
             "rh20t": "rh20t",
             "REASSEMBLE": "reassemble",
@@ -256,15 +258,24 @@ class FactoryNetDataset(Dataset):
                     is_loosening = (fault_label == "loosening" or original_label == 5)
                     phase = "loosening" if is_loosening else "tightening"
 
-                    # For anomaly detection:
-                    # - Loosening phase: always "normal" (different motion, no faults)
-                    # - Tightening phase: fault_label indicates anomaly type
-                    is_healthy = is_loosening or (fault_label == "normal")
+                    # Handle different label formats across datasets:
+                    # - AURSAD: fault_label = "normal", "damaged_screw", etc.
+                    # - voraus-AD: fault_label = "true" (anomaly) or "false" (normal)
+                    if fault_label in ("true", "True"):
+                        normalized_fault = "anomaly"
+                        is_healthy = False
+                    elif fault_label in ("false", "False"):
+                        normalized_fault = "normal"
+                        is_healthy = True
+                    else:
+                        # AURSAD-style labels
+                        is_healthy = is_loosening or (fault_label == "normal")
+                        normalized_fault = "normal" if is_healthy else fault_label
 
                     self.episode_metadata[ep_id] = {
-                        "fault_type": "normal" if is_healthy else fault_label,
-                        "fault_label": fault_label,
-                        "phase": phase,  # "loosening" or "tightening"
+                        "fault_type": normalized_fault,
+                        "fault_label": fault_label,  # Original label
+                        "phase": phase,  # "loosening" or "tightening" (AURSAD-specific)
                         "machine_type": ep.get("machine_type"),
                         "machine_model": ep.get("machine_model"),
                         "task_type": ep.get("task_type"),
