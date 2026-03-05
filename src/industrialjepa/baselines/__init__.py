@@ -12,7 +12,12 @@ Implements several self-supervised learning approaches:
 
 from .base import BaselineModel, BaselineConfig
 from .mae import MAE, MAEConfig
-from .autoencoder import Autoencoder, AutoencoderConfig
+from .autoencoder import (
+    EffortAutoencoder,
+    SetpointToEffort,
+    AutoencoderConfig,
+    Autoencoder,  # Alias for EffortAutoencoder
+)
 from .contrastive import ContrastiveModel, ContrastiveConfig
 
 __all__ = [
@@ -20,7 +25,9 @@ __all__ = [
     "BaselineConfig",
     "MAE",
     "MAEConfig",
-    "Autoencoder",
+    "EffortAutoencoder",
+    "SetpointToEffort",
+    "Autoencoder",  # Alias for EffortAutoencoder
     "AutoencoderConfig",
     "ContrastiveModel",
     "ContrastiveConfig",

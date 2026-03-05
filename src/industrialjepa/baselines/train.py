@@ -32,10 +32,9 @@ from tqdm import tqdm
 from industrialjepa.data.factorynet import FactoryNetDataset, FactoryNetConfig
 from industrialjepa.baselines import (
     MAE, MAEConfig,
-    Autoencoder, AutoencoderConfig,
+    EffortAutoencoder, SetpointToEffort, AutoencoderConfig,
     ContrastiveModel, ContrastiveConfig,
 )
-from industrialjepa.baselines.autoencoder import VariationalAutoencoder
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -84,7 +83,8 @@ def get_model_and_config(model_name: str, args):
         )
         model = MAE(config)
 
-    elif model_name == "autoencoder":
+    elif model_name == "effort_ae":
+        # Effort-only autoencoder (tests if causal structure matters)
         config = AutoencoderConfig(
             decoder_hidden_dim=args.hidden_dim,
             decoder_num_layers=args.num_layers,
@@ -92,17 +92,18 @@ def get_model_and_config(model_name: str, args):
             latent_dim=args.latent_dim,
             **base_kwargs,
         )
-        model = Autoencoder(config)
+        model = EffortAutoencoder(config)
 
-    elif model_name == "vae":
+    elif model_name == "s2e":
+        # Setpoint-to-Effort (direct prediction baseline)
         config = AutoencoderConfig(
             decoder_hidden_dim=args.hidden_dim,
             decoder_num_layers=args.num_layers,
-            use_bottleneck=True,
+            use_bottleneck=args.use_bottleneck,
             latent_dim=args.latent_dim,
             **base_kwargs,
         )
-        model = VariationalAutoencoder(config)
+        model = SetpointToEffort(config)
 
     elif model_name == "contrastive":
         config = ContrastiveConfig(
@@ -306,7 +307,7 @@ def main():
     # Model selection
     parser.add_argument(
         "--model", type=str, required=True,
-        choices=["mae", "autoencoder", "vae", "contrastive"],
+        choices=["mae", "effort_ae", "s2e", "contrastive"],
         help="Model type to train",
     )
 
