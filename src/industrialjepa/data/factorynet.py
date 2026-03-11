@@ -586,6 +586,11 @@ class FactoryNetDataset(Dataset):
         # Split episodes (not rows) into train/val/test
         np.random.seed(42)  # Reproducibility
 
+        # Fallback: if no healthy episodes, use all episodes
+        if self.config.train_healthy_only and len(healthy_episodes) == 0:
+            logger.warning("No healthy episodes found! Falling back to training on all episodes.")
+            self.config.train_healthy_only = False
+
         if self.config.train_healthy_only:
             # Train only on healthy, test on both
             n_healthy = len(healthy_episodes)
