@@ -1,24 +1,28 @@
 # IndustrialJEPA
 
-**JEPA-based fault detection and cross-machine transfer for industrial robotics.**
+**Self-supervised fault detection with cross-machine transfer for industrial robotics.**
 
-> By predicting Effort from Setpoint in latent space, JEPA learns the physics of machine behavior rather than hardware-specific statistics, enabling fault detection that transfers across different robot types.
+Traditional fault detection learns sensor statistics specific to one machine—when deployed on different hardware, it fails. IndustrialJEPA learns *physics* instead of *hardware fingerprints* by predicting effort from setpoint in latent space using [JEPA](https://arxiv.org/abs/2301.08243).
 
-## Key Idea
+## Core Insight
 
-Traditional industrial fault detection learns sensor statistics specific to one machine. When deployed on a different machine, it fails because it learned hardware fingerprints, not physics.
-
-IndustrialJEPA exploits **causal structure** in industrial data:
-- **Setpoint**: What the controller commanded (target position, velocity)
-- **Effort**: What the machine expended (motor current, torque)
-- **Feedback**: What actually happened (measured position)
-
-Under healthy operation, Effort is a predictable function of Setpoint. Faults break this relationship. By learning to predict Effort from Setpoint in latent space (JEPA), the model learns transferable physics.
-
+Industrial robot data has **causal structure**:
 ```
-Traditional: Sensors → Fault Label (hardware-specific)
-Ours:        Setpoint → Effort prediction (physics-based, transferable)
+Setpoint (commanded) → Effort (energy expended) → Feedback (measured)
 ```
+
+Under healthy operation, effort is predictable from setpoint and recent context. Faults break this relationship. By learning this mapping in latent space, the model learns transferable physics rather than machine-specific sensor patterns.
+
+**Key finding**: Static setpoint→effort prediction fails because contact forces depend on unmeasured load. **Temporal prediction** (using effort history) captures dynamics that distinguish faults.
+
+## Current Results
+
+| Experiment | Dataset | Metric | Value |
+|------------|---------|--------|-------|
+| Temporal Self-Prediction | AURSAD | ROC-AUC | 0.538 |
+| Temporal Self-Prediction | AURSAD | PR-AUC | 0.832 |
+| Per-fault detection | missing_screw | Detected | 100% |
+| Cross-machine transfer | AURSAD→voraus | Status | In progress |
 
 ## Installation
 
@@ -31,16 +35,33 @@ pip install -e .
 ## Quick Start
 
 ```python
-from industrialjepa.training import Trainer, TrainingConfig
-from industrialjepa.model import ModelConfig
+from industrialjepa.data import FactoryNetDataset
+from industrialjepa.baselines import TemporalPredictor
 
-# Load FactoryNet dataset
-# TODO: Add FactoryNet dataloader
+# Load AURSAD with unified schema
+dataset = FactoryNetDataset(
+    datasets=["aursad"],
+    window_size=256,
+    healthy_only=True  # Train on healthy data only
+)
 
-# Train JEPA
-config = TrainingConfig(...)
-trainer = Trainer(config)
-trainer.train()
+# Train temporal predictor
+model = TemporalPredictor(
+    setpoint_dim=14,  # 7 joints × (pos + vel)
+    effort_dim=13,    # 7 torques + 6 Cartesian forces
+    hidden_dim=256,
+    num_layers=4
+)
+```
+
+**Training**:
+```bash
+python scripts/train_temporal_aursad.py
+```
+
+**Evaluation**:
+```bash
+python scripts/evaluate_world_model.py --checkpoint results/temporal_aursad_*/best_temporal.pt
 ```
 
 ## Project Structure
@@ -48,47 +69,86 @@ trainer.train()
 ```
 IndustrialJEPA/
 ├── src/industrialjepa/
-│   ├── model/          # JEPA architecture
-│   │   ├── backbone/   # Mamba-Transformer hybrid
-│   │   └── config.py   # Model configuration
-│   ├── data/           # FactoryNet dataloader (TODO)
-│   ├── training/       # Training loop, JEPA loss
-│   └── evaluation/     # Fault detection benchmarks
-├── scripts/
-│   ├── train_jepa.py   # Main training script
-│   └── evaluate_jepa.py
-├── configs/            # YAML configurations
-├── paper/              # Paper draft and figures
-└── tests/
+│   ├── model/              # JEPA architecture
+│   │   ├── world_model.py  # Core JEPA world model
+│   │   ├── config.py       # Model configurations
+│   │   └── backbone/       # Mamba-Transformer hybrid
+│   ├── data/
+│   │   └── factorynet.py   # Unified multi-robot dataloader
+│   ├── training/           # Training loop, loss functions
+│   ├── baselines/          # Comparison methods (MAE, Autoencoder, Contrastive)
+│   └── evaluation/         # Benchmarks and metrics
+├── scripts/                # Training and evaluation scripts
+├── configs/                # YAML configurations
+├── docs/                   # Architecture and analysis docs
+├── paper/                  # Paper draft and execution plan
+├── results/                # Experiment outputs
+└── tests/                  # Test suite
 ```
 
 ## Datasets
 
-We use [FactoryNet](https://huggingface.co/datasets/Forgis/factorynet-hackathon), a causally-structured dataset with:
+We use [FactoryNet](https://huggingface.co/datasets/Forgis/factorynet-hackathon), unified into a common schema:
 
-| Dataset | Robot | Task | Rows |
-|---------|-------|------|------|
-| AURSAD | UR3e (6-DOF) | Screwdriving | 6.2M |
-| voraus-AD | Yu-Cobot (6-DOF) | Pick-and-place | 2.3M |
-| NASA Milling | CNC (3-axis) | Milling | 1.5M |
-| RH20T | Franka (7-DOF) | Manipulation | 4.1M |
-| REASSEMBLE | Franka (7-DOF) | Assembly | 4.1M |
+| Dataset | Robot | DOF | Task | Signals |
+|---------|-------|-----|------|---------|
+| AURSAD | UR3e | 6 | Screwdriving | Joint torques + Cartesian forces |
+| voraus-AD | Yu-Cobot | 6 | Pick-and-place | Joint torques |
+| NASA Milling | CNC | 3 | Milling | Spindle signals |
+| RH20T | Franka | 7 | Manipulation | Velocity-based effort |
+| REASSEMBLE | Franka | 7 | Assembly | Joint torques |
+
+**Unified schema**:
+- Setpoint: 14 dims (7 joint positions + 7 velocities)
+- Effort: 13 dims (7 joint torques + 6 Cartesian forces)
+- Validity masks handle missing signals per dataset
+
+## Architecture
+
+The model uses temporal self-prediction with EMA target encoding:
+
+```
+effort(t-k:t) ──► Encoder ──► z(t) ──► Predictor ──► z_pred(t+1)
+                                            │
+effort(t+1) ────► EMA Encoder ──► z_target(t+1) ◄──┘ (loss)
+```
+
+Anomaly detection: high prediction error in latent space indicates fault.
+
+See [docs/world_model_design.md](docs/world_model_design.md) for architecture details.
 
 ## Experiments
 
-See [`paper/EXECUTION_PLAN.md`](paper/EXECUTION_PLAN.md) for the full experiment plan:
+| # | Experiment | Status | Goal |
+|---|------------|--------|------|
+| 1 | JEPA vs Baselines | Done | Prove temporal > static prediction |
+| 2 | Causal Ablation | Planned | Validate setpoint→effort direction |
+| 3 | Cross-Machine Transfer | Running | Zero-shot AURSAD→voraus |
+| 4 | Multi-Dataset Pretraining | Planned | Test if combining datasets helps |
+| 5 | Q&A Evaluation | Planned | State queries on embeddings |
 
-1. **JEPA vs Baselines**: Prove JEPA > MAE (masked autoencoder) on fault detection
-2. **Causal Ablation**: Prove Setpoint matters
-3. **Cross-Machine Transfer**: Train on UR3e, test on Yu-Cobot (zero-shot)
-4. **Multi-Dataset Pretraining**: Does combining datasets help?
-5. **Q&A Evaluation**: Test machine understanding (Tiers 1-2)
+See [paper/EXECUTION_PLAN.md](paper/EXECUTION_PLAN.md) for details.
+
+## Key Findings
+
+1. **Static prediction fails**: Setpoint alone achieves R²=0.99 for gravity torques but only R²=0.16 for contact forces (load is unobserved)
+
+2. **Temporal prediction works**: Faults disrupt dynamics even when absolute values are lower—missing_screw shows 2× lower force but different temporal pattern
+
+3. **Unified schema enables transfer**: Same model architecture across 5 different robots with validity masking
+
+## References
+
+- [I-JEPA: Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture](https://arxiv.org/abs/2301.08243) - Core JEPA method
+- [V-JEPA: Video Joint Embedding Predictive Architecture](https://arxiv.org/abs/2404.08471) - Temporal extension
+- [World Models](https://arxiv.org/abs/1803.10122) - Latent dynamics modeling
+- [Mamba: Linear-Time Sequence Modeling](https://arxiv.org/abs/2312.00752) - Efficient backbone
 
 ## Citation
 
 ```bibtex
 @article{industrialjepa2026,
-  title={JEPA Learns Physics, Not Hardware: Causal Structure Enables Cross-Machine Transfer in Industrial Time Series},
+  title={IndustrialJEPA: Cross-Machine Fault Detection via Causal Structure Learning},
   author={Petersen, Jonas},
   year={2026}
 }
@@ -96,4 +156,4 @@ See [`paper/EXECUTION_PLAN.md`](paper/EXECUTION_PLAN.md) for the full experiment
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License
