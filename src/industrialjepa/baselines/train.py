@@ -34,6 +34,7 @@ from industrialjepa.baselines import (
     MAE, MAEConfig,
     EffortAutoencoder, SetpointToEffort, AutoencoderConfig,
     ContrastiveModel, ContrastiveConfig,
+    TemporalPredictor, TemporalConfig,
 )
 
 logging.basicConfig(level=logging.INFO)
@@ -115,6 +116,19 @@ def get_model_and_config(model_name: str, args):
         )
         model = ContrastiveModel(config)
 
+    elif model_name == "temporal":
+        # Temporal self-prediction (predict future effort from past context)
+        config = TemporalConfig(
+            context_ratio=args.context_ratio,
+            prediction_mode=args.temporal_mode,
+            ema_decay=args.ema_decay,
+            predictor_hidden_dim=args.hidden_dim,
+            decoder_hidden_dim=args.hidden_dim // 2,
+            decoder_num_layers=2,
+            **base_kwargs,
+        )
+        model = TemporalPredictor(config)
+
     else:
         raise ValueError(f"Unknown model: {model_name}")
 
@@ -129,6 +143,8 @@ def create_dataloaders(args) -> tuple:
         subset=args.dataset,
         window_size=args.window_size,
         stride=args.stride,
+        normalize=True,
+        norm_mode=args.norm_mode,  # 'global' preserves magnitude info for anomaly detection
         train_healthy_only=True,  # One-class anomaly detection
         aursad_phase_handling=args.aursad_phase,
         train_ratio=0.8,
@@ -205,6 +221,10 @@ def train_epoch(
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
         optimizer.step()
+
+        # Update EMA for temporal predictor
+        if hasattr(model, 'update_ema'):
+            model.update_ema()
 
         # Track metrics
         total_loss += loss.item()
@@ -307,7 +327,7 @@ def main():
     # Model selection
     parser.add_argument(
         "--model", type=str, required=True,
-        choices=["mae", "effort_ae", "s2e", "contrastive"],
+        choices=["mae", "effort_ae", "s2e", "contrastive", "temporal"],
         help="Model type to train",
     )
 
@@ -326,6 +346,11 @@ def main():
         choices=["both", "tightening_only", "merge"],
         help="AURSAD phase handling",
     )
+    parser.add_argument(
+        "--norm-mode", type=str, default="global",
+        choices=["episode", "global", "none"],
+        help="Normalization mode: 'global' preserves magnitude info (recommended for anomaly detection)"
+    )
 
     # Model architecture
     parser.add_argument("--hidden-dim", type=int, default=256)
@@ -336,7 +361,7 @@ def main():
 
     # Data dimensions (FactoryNet unified)
     parser.add_argument("--setpoint-dim", type=int, default=14)
-    parser.add_argument("--effort-dim", type=int, default=7)
+    parser.add_argument("--effort-dim", type=int, default=13)  # 7 joint + 6 Cartesian
     parser.add_argument("--window-size", type=int, default=256)
     parser.add_argument("--stride", type=int, default=128)
 
@@ -350,6 +375,21 @@ def main():
     # Contrastive-specific
     parser.add_argument("--temperature", type=float, default=0.07)
     parser.add_argument("--use-effort-pairs", action="store_true", default=True)
+
+    # Temporal-specific
+    parser.add_argument(
+        "--context-ratio", type=float, default=0.5,
+        help="Fraction of window used as context (rest is prediction target)"
+    )
+    parser.add_argument(
+        "--temporal-mode", type=str, default="jepa",
+        choices=["jepa", "direct"],
+        help="Temporal prediction mode: 'jepa' (predict embeddings) or 'direct' (predict raw values)"
+    )
+    parser.add_argument(
+        "--ema-decay", type=float, default=0.996,
+        help="EMA decay for JEPA target encoder"
+    )
 
     # Training
     parser.add_argument("--batch-size", type=int, default=64)

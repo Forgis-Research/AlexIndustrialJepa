@@ -250,17 +250,64 @@ class InterventionPredictor(nn.Module):
 
 ---
 
-## 8. Compute Budget
+## 8. Compute Budget & GPU Requirements
 
-| Task | GPU Hours | Cost @ $2/hr |
-|------|-----------|--------------|
-| Experiment 1 (4 models × 3 runs) | 12 | $24 |
-| Experiment 2 (3 variants × 3 runs) | 9 | $18 |
-| Experiment 3 (3 configs × 3 runs) | 9 | $18 |
-| Experiment 4 (3 configs × 3 runs) | 15 | $30 |
-| Experiment 5 (Q&A training) | 6 | $12 |
-| Debugging/iteration | 20 | $40 |
-| **Total** | **~70** | **~$140** |
+### GPU vs CPU Analysis
+
+Based on initial CPU training on AURSAD hackathon subset (6.2M rows, 32K windows):
+- **Batch time:** ~2.7 seconds per batch (batch_size=32, seq_len=256)
+- **Epoch time:** ~45 minutes per epoch on CPU
+- **Model size:** 14.2M trainable parameters
+
+| Dataset | Rows | Est. Windows | CPU Time/Epoch | GPU Time/Epoch |
+|---------|------|--------------|----------------|----------------|
+| AURSAD (hackathon) | 6.2M | ~32K | ~45 min | ~3-5 min |
+| Full FactoryNet | 17.9M | ~100K+ | ~2.5 hours | ~10-15 min |
+
+### AWS SageMaker Recommendations
+
+| Instance | GPU | VRAM | Cost/hr | Best For |
+|----------|-----|------|---------|----------|
+| ml.g4dn.xlarge | T4 | 16GB | $0.74 | Development, debugging |
+| ml.g5.xlarge | A10G | 24GB | $1.41 | Standard training |
+| ml.p3.2xlarge | V100 | 16GB | $3.82 | Fast iteration |
+
+**Recommendation:** `ml.g5.xlarge` for production training - good balance of speed and cost.
+
+### Estimated Costs
+
+| Task | GPU Hours | Cost @ $1.41/hr |
+|------|-----------|-----------------|
+| Experiment 1 (4 models × 3 runs) | 8 | $11 |
+| Experiment 2 (3 variants × 3 runs) | 6 | $8 |
+| Experiment 3 (3 configs × 3 runs) | 6 | $8 |
+| Experiment 4 (3 configs × 3 runs) | 10 | $14 |
+| Experiment 5 (Q&A training) | 4 | $6 |
+| Debugging/iteration | 15 | $21 |
+| **Total** | **~50** | **~$70** |
+
+### Quick Start (No GPU)
+
+For validation and debugging, CPU training works but is slow:
+```bash
+# Quick validation (CPU, ~30 min)
+python scripts/train_world_model.py --epochs 5 --batch_size 16 --window_size 128 --subset AURSAD
+
+# With wandb tracking
+python scripts/train_world_model.py --epochs 5 --wandb --wandb_project industrialjepa --subset AURSAD
+```
+
+### Production Training (GPU)
+
+```bash
+# Full FactoryNet training (GPU recommended)
+python scripts/train_world_model.py \
+    --dataset Forgis/FactoryNet_Dataset \
+    --epochs 100 \
+    --batch_size 64 \
+    --wandb \
+    --wandb_project industrialjepa
+```
 
 ---
 

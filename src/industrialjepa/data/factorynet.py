@@ -73,6 +73,8 @@ SETPOINT_PATTERNS = {
 # Effort signals - semantically equivalent (energy/force expended)
 # The model should learn that torque ≈ current × motor_constant
 EFFORT_PATTERNS = {
+    # Joint torques only (common across all robots with torque sensing)
+    "joint_torque": [f"effort_torque_{i}" for i in range(MAX_DOF)],
     # Joint torques + Cartesian forces (for screwdriving, force_z is critical!)
     "torque": [f"effort_torque_{i}" for i in range(MAX_DOF)] + [
         "effort_force_x", "effort_force_y", "effort_force_z",
@@ -83,6 +85,11 @@ EFFORT_PATTERNS = {
     # Velocity-based effort (RH20T uses this)
     "velocity": [f"effort_vel_{i}" for i in range(MAX_DOF)],
     # Cartesian forces only (for CNC/end-effector)
+    "cartesian_force": [
+        "effort_force_x", "effort_force_y", "effort_force_z",
+        "effort_torque_x", "effort_torque_y", "effort_torque_z",
+    ],
+    # Legacy alias
     "force": ["effort_force_x", "effort_force_y", "effort_force_z"],
 }
 
@@ -100,7 +107,14 @@ class FactoryNetConfig:
     """Configuration for FactoryNet dataset loading."""
 
     # Dataset source
-    dataset_name: str = "Forgis/factorynet-hackathon"
+    # Use "Forgis/FactoryNet_Dataset" for full dataset (17.9M rows, all machines)
+    # Use "Forgis/factorynet-hackathon" for hackathon subset (smaller, faster iteration)
+    dataset_name: str = "Forgis/FactoryNet_Dataset"
+
+    # For FactoryNet_Dataset: "normalized" (default) or "raw"
+    # For factorynet-hackathon: ignored (uses data_dir based loading)
+    config_name: Optional[str] = "normalized"
+
     subset: Optional[str] = None  # None = all, or "AURSAD", "voraus-AD", etc.
 
     # Sequence parameters
@@ -182,8 +196,13 @@ class FactoryNetDataset(Dataset):
         )
 
     def _load_data(self):
-        """Load data from HuggingFace datasets."""
-        # Map subset names to data_dir paths (must match HuggingFace repo folders)
+        """Load data from HuggingFace datasets.
+
+        Supports two loading patterns:
+        1. Full FactoryNet (Forgis/FactoryNet_Dataset): config-based ("normalized"/"raw")
+        2. Hackathon subset (Forgis/factorynet-hackathon): data_dir based ("aursad", etc.)
+        """
+        # Map subset names to data_dir paths (for hackathon dataset)
         subset_to_datadir = {
             "AURSAD": "aursad",
             "aursad": "aursad",
@@ -203,29 +222,65 @@ class FactoryNetDataset(Dataset):
         if self.config.subset:
             data_dir = subset_to_datadir.get(self.config.subset, self.config.subset.lower())
 
+        is_full_dataset = "FactoryNet_Dataset" in self.config.dataset_name
+
         try:
-            # Load with data_dir for subset selection (required for Forgis/factorynet-hackathon)
-            logger.info(f"Loading {self.config.dataset_name}" + (f" subset={data_dir}" if data_dir else ""))
-            self.hf_dataset = load_dataset(
-                self.config.dataset_name,
-                data_dir=data_dir,
-                split="train",
-            )
+            if is_full_dataset:
+                # Full FactoryNet uses config-based loading (normalized/raw)
+                config_name = self.config.config_name or "normalized"
+                logger.info(f"Loading {self.config.dataset_name} config={config_name}")
+                self.hf_dataset = load_dataset(
+                    self.config.dataset_name,
+                    config_name,
+                    split="train",
+                )
+            else:
+                # Hackathon dataset uses data_dir based loading
+                logger.info(f"Loading {self.config.dataset_name}" + (f" subset={data_dir}" if data_dir else ""))
+                self.hf_dataset = load_dataset(
+                    self.config.dataset_name,
+                    data_dir=data_dir,
+                    split="train",
+                )
         except Exception as e:
             logger.warning(f"Failed to load {self.config.dataset_name}: {e}")
-            logger.info("Falling back to karimm6/FactoryNet_Dataset")
+            logger.info("Falling back to Forgis/FactoryNet_Dataset with normalized config")
             self.hf_dataset = load_dataset(
-                "karimm6/FactoryNet_Dataset",
+                "Forgis/FactoryNet_Dataset",
                 "normalized",
                 split="train",
             )
+            is_full_dataset = True
 
         # Convert to pandas for easier manipulation
         self.df = self.hf_dataset.to_pandas()
         logger.info(f"Loaded {len(self.df)} rows, columns: {list(self.df.columns)[:10]}...")
 
-        # Load metadata JSON for fault labels
-        self._load_metadata(data_dir)
+        # Filter by subset if using full dataset (has dataset_source column)
+        if is_full_dataset and self.config.subset and "dataset_source" in self.df.columns:
+            subset_lower = self.config.subset.lower()
+            # Map subset names to dataset_source values in full dataset
+            subset_mapping = {
+                "aursad": "aursad",
+                "voraus-ad": "voraus-ad",
+                "voraus": "voraus-ad",
+                "nasa": "nasa-milling",
+                "nasa-milling": "nasa-milling",
+                "nasa_milling": "nasa-milling",
+                "rh20t": "rh20t",
+                "reassemble": "reassemble",
+            }
+            source_filter = subset_mapping.get(subset_lower, subset_lower)
+            original_len = len(self.df)
+            self.df = self.df[self.df["dataset_source"] == source_filter].reset_index(drop=True)
+            logger.info(f"Filtered to {source_filter}: {len(self.df)} rows (from {original_len})")
+
+        # Load metadata JSON for fault labels (only for hackathon dataset)
+        if not is_full_dataset:
+            self._load_metadata(data_dir)
+        else:
+            # Full dataset has fault info in ctx_anomaly_label column
+            self._load_metadata_from_columns()
 
     def _load_metadata(self, data_dir: Optional[str]):
         """Load metadata JSON with fault labels for each episode."""
@@ -303,6 +358,56 @@ class FactoryNetDataset(Dataset):
         except Exception as e:
             logger.warning(f"Failed to load metadata: {e}")
             self.episode_metadata = {}
+
+    def _load_metadata_from_columns(self):
+        """Load metadata from dataset columns (for full FactoryNet dataset).
+
+        The full dataset has ctx_anomaly_label and other context columns directly
+        in the data, so we extract episode metadata from there.
+        """
+        self.episode_metadata = {}
+
+        if "episode_id" not in self.df.columns:
+            logger.warning("No episode_id column found")
+            return
+
+        # Get unique episodes and their metadata
+        for ep_id in self.df["episode_id"].unique():
+            ep_data = self.df[self.df["episode_id"] == ep_id].iloc[0]
+
+            # Extract fault/anomaly label
+            fault_label = "normal"
+            if "ctx_anomaly_label" in self.df.columns:
+                label = ep_data.get("ctx_anomaly_label")
+                if label and str(label).lower() not in ["none", "null", "nan", ""]:
+                    fault_label = str(label)
+
+            # Extract dataset source (machine type)
+            dataset_source = None
+            if "dataset_source" in self.df.columns:
+                dataset_source = ep_data.get("dataset_source")
+
+            # Determine if healthy
+            is_healthy = str(fault_label).lower() in ["normal", "none", "null", "healthy", ""]
+
+            self.episode_metadata[ep_id] = {
+                "fault_type": "normal" if is_healthy else fault_label,
+                "fault_label": fault_label,
+                "phase": "unknown",  # Full dataset doesn't have phase info
+                "machine_type": dataset_source,
+                "machine_model": None,
+                "task_type": None,
+                "success": is_healthy,
+            }
+
+        logger.info(f"Loaded metadata for {len(self.episode_metadata)} episodes from columns")
+
+        # Log fault distribution
+        fault_counts = {}
+        for ep_meta in self.episode_metadata.values():
+            ft = ep_meta["fault_type"]
+            fault_counts[ft] = fault_counts.get(ft, 0) + 1
+        logger.info(f"Fault distribution: {fault_counts}")
 
     def _setup_columns(self):
         """Identify available columns and create unified schema mapping.
