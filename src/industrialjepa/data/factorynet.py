@@ -102,6 +102,16 @@ FEEDBACK_PATTERNS = {
 METADATA_COLS = ["dataset_source", "machine_type", "episode_id", "ctx_anomaly_label"]
 
 
+# Data source to file pattern mapping for full FactoryNet dataset
+# Each source has a different schema, so we can only load one at a time
+DATA_SOURCE_PATTERNS = {
+    "aursad": "data/normalized/aursad_*.parquet",
+    "voraus": "data/normalized/voraus_*.parquet",
+    "cnc": "data/normalized/cnc_*.parquet",
+    "hackathon": "data/normalized/ur3_hackathon_*.parquet",
+}
+
+
 @dataclass
 class FactoryNetConfig:
     """Configuration for FactoryNet dataset loading."""
@@ -116,6 +126,11 @@ class FactoryNetConfig:
     config_name: Optional[str] = "normalized"
 
     subset: Optional[str] = None  # None = all, or "AURSAD", "voraus-AD", etc.
+
+    # Data source filter for full FactoryNet (avoids schema mismatch)
+    # Options: "aursad", "voraus", "cnc", "hackathon", or None for all (may fail)
+    # Different sources have different schemas, so loading all at once may fail
+    data_source: Optional[str] = None
 
     # Sequence parameters
     window_size: int = 256
@@ -228,12 +243,33 @@ class FactoryNetDataset(Dataset):
             if is_full_dataset:
                 # Full FactoryNet uses config-based loading (normalized/raw)
                 config_name = self.config.config_name or "normalized"
+
+                # Check if we need to filter by data source (to avoid schema mismatch)
+                data_files = None
+                if self.config.data_source:
+                    source_lower = self.config.data_source.lower()
+                    if source_lower in DATA_SOURCE_PATTERNS:
+                        data_files = DATA_SOURCE_PATTERNS[source_lower]
+                        logger.info(f"Filtering to data source: {source_lower} ({data_files})")
+                    else:
+                        logger.warning(f"Unknown data source: {source_lower}, loading all data")
+
                 logger.info(f"Loading {self.config.dataset_name} config={config_name}")
-                self.hf_dataset = load_dataset(
-                    self.config.dataset_name,
-                    config_name,
-                    split="train",
-                )
+
+                if data_files:
+                    # Load specific files only (avoids schema mismatch between sources)
+                    self.hf_dataset = load_dataset(
+                        self.config.dataset_name,
+                        data_files=data_files,
+                        split="train",
+                    )
+                else:
+                    # Load all data (may fail if schemas don't match)
+                    self.hf_dataset = load_dataset(
+                        self.config.dataset_name,
+                        config_name,
+                        split="train",
+                    )
             else:
                 # Hackathon dataset uses data_dir based loading
                 logger.info(f"Loading {self.config.dataset_name}" + (f" subset={data_dir}" if data_dir else ""))

@@ -71,6 +71,8 @@ def parse_args():
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--effort_type", type=str, default="torque",
                         help="Effort signal type: torque, current, velocity")
+    parser.add_argument("--data-source", type=str, default="aursad",
+                        help="Data source filter: aursad, voraus, cnc, hackathon (avoids schema mismatch)")
 
     # Model
     parser.add_argument("--latent_dim", type=int, default=256, help="Latent space dimension")
@@ -407,6 +409,7 @@ def main():
         dataset_name=args.dataset,
         config_name=args.config_name,
         subset=args.subset,
+        data_source=getattr(args, 'data_source', 'aursad'),
         window_size=args.window_size,
         effort_signals=[args.effort_type, "current", "velocity"],
         train_healthy_only=True,
