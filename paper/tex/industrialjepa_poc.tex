@@ -60,11 +60,17 @@ To learn this relationship robustly, we adopt JEPA (Joint Embedding Predictive A
 \section{Related Work}
 %=============================================================================
 
-\paragraph{Industrial Fault Detection.} Deep learning for fault detection has progressed from CNNs \cite{} to transformers \cite{}, but remains single-machine focused. The CWRU bearing dataset \cite{cwru} and C-MAPSS turbofan dataset \cite{cmapss} are ubiquitous benchmarks, yet both record sensor outcomes without commanded setpoints, preventing causal analysis.
+\paragraph{Industrial Fault Detection.} Deep learning for fault detection has evolved from CNNs to transformers, but remains fundamentally \emph{single-machine} focused. The CWRU bearing dataset \cite{cwru} and C-MAPSS turbofan dataset \cite{cmapss} are ubiquitous benchmarks, yet both record sensor outcomes without commanded setpoints—preventing causal analysis of \emph{why} behavior changed. Recent surveys \cite{} identify cross-machine generalization as a critical open challenge.
 
-\paragraph{JEPA.} The Joint Embedding Predictive Architecture \cite{lecun2022path} learns representations by predicting masked embeddings rather than raw inputs. I-JEPA \cite{ijepa} demonstrated this for images; V-JEPA \cite{vjepa} extended it to video. Recent work applies JEPA to time series: TS-JEPA \cite{tsjepa} for general forecasting, MTS-JEPA \cite{mtsjepa} for anomaly prediction. Most relevant, Yan et al. \cite{yan2025industrial} apply JEPA to injection molding with action conditioning. Our work differs in scope: we study \emph{cross-machine} transfer across a unified multi-robot dataset.
+\paragraph{JEPA for Time Series.} The Joint Embedding Predictive Architecture \cite{lecun2022path} learns by predicting masked embeddings rather than raw inputs. I-JEPA \cite{ijepa} demonstrated this for images; V-JEPA \cite{vjepa} extended it to video with multi-scale temporal masking.
 
-\paragraph{Transfer Learning in Industrial AI.} Cross-machine transfer remains challenging. Domain adaptation methods \cite{} help when source and target are similar, but fail across machine types. Recent robotics work (Open X-Embodiment \cite{openx}) shows positive transfer across 22 robot types for manipulation policies—we investigate whether similar transfer is possible for fault detection.
+Recent work adapts JEPA to time series: \textbf{TS-JEPA} \cite{tsjepa} targets communication-efficient remote control by encoding sensory data into compact embeddings; \textbf{MTS-JEPA} \cite{mtsjepa} introduces multi-resolution prediction with soft codebook bottleneck for anomaly prediction. Most relevant, Yan et al. \cite{yan2025industrial} apply JEPA to injection molding with action conditioning.
+
+\textbf{Our key differentiation:} Prior work treats time series as observational—predicting $p(x_{t+1}|x_t)$. We exploit \emph{causal structure} of control systems, predicting $p(\text{effort}|\text{setpoint})$—the physics of how commands cause responses. This enables cross-machine transfer that observational models cannot achieve.
+
+\paragraph{Transfer Learning in Robotics.} Cross-embodiment transfer has shown remarkable success in manipulation: Open X-Embodiment \cite{openx} demonstrates positive transfer across 22 robot types by training on diverse data. We investigate whether similar principles apply to fault detection—can a model trained on one robot detect faults on another by learning shared physics?
+
+\paragraph{Causal Structure in Industrial Data.} FactoryNet \cite{factorynet} provides the first large-scale industrial dataset with explicit causal structure: every episode records Setpoint (command) $\rightarrow$ Effort (response) $\rightarrow$ Feedback (outcome). This mirrors the control-theoretic view where faults manifest as deviations in the command-response relationship, not in raw sensor statistics.
 
 %=============================================================================
 \section{FactoryNet: Causally-Structured Industrial Data}

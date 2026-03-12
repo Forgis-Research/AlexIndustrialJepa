@@ -168,6 +168,57 @@ python scripts/evaluate_transfer.py --checkpoint aursad_model.pt --test-data vor
 
 ---
 
+## Related Work (For NeurIPS Positioning)
+
+### JEPA for Time Series
+
+| Paper | Key Contribution | Our Differentiation |
+|-------|-----------------|---------------------|
+| [MTS-JEPA](https://arxiv.org/abs/2602.04643) | Multi-resolution JEPA with soft codebook for anomaly prediction | We focus on cross-machine transfer via causal structure, not multi-resolution |
+| [TS-JEPA](https://arxiv.org/abs/2406.04853) | JEPA for predictive remote control under limited networks | We target fault detection, not communication efficiency |
+| [V-JEPA](https://arxiv.org/abs/2310.03191) | Video JEPA for visual representation learning | We adapt JEPA principles to industrial time series with causal structure |
+
+### Industrial Anomaly Detection
+
+| Paper | Approach | Limitation We Address |
+|-------|----------|----------------------|
+| USAD | Adversarial autoencoder | No causal structure, doesn't transfer |
+| Deep SVDD | One-class classification | Learns hardware statistics, not physics |
+| CASPER | Context-aware IoT anomaly detection | Single machine, no transfer |
+
+### Key Insight for Originality
+
+**Existing gap:** All prior work treats industrial time series as purely observational data.
+They learn p(sensor_t+1 | sensor_t) - what sensors do next given what they did before.
+
+**Our contribution:** We exploit the causal structure of control systems:
+- Setpoint (command) → Effort (response) → Feedback (outcome)
+- We learn p(effort | setpoint) - the physics of how commands cause effects
+- This physics-based relationship transfers across machines of the same type
+
+### Theoretical Grounding
+
+The Setpoint→Effort relationship is governed by physics:
+```
+τ = J·α + b·ω + τ_gravity + τ_friction + τ_payload
+```
+Where:
+- τ = joint torque (effort)
+- J = inertia matrix (machine-specific but learnable)
+- α = commanded acceleration (from setpoint)
+- b = damping (friction)
+- τ_gravity = gravity compensation
+- τ_payload = external load
+
+**Key observation:** The functional form is the same across all 6-DOF robots.
+Only the parameters (J, b, etc.) differ. A model that learns this functional relationship
+should transfer - it just needs to adapt the parameters.
+
+JEPA in latent space naturally learns this functional relationship without
+explicitly modeling the physics equations.
+
+---
+
 ## Next Steps
 
 - [ ] Implement `scripts/evaluate_anomaly_detection.py`
