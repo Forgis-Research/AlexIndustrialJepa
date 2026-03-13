@@ -259,13 +259,12 @@ def train_epoch(
     for k in all_metrics:
         all_metrics[k] /= num_batches
 
-    # Log to wandb
+    # Log to wandb (step=epoch for cleaner charts)
     if wandb_run is not None:
         wandb_run.log({
             "train/loss": avg_loss,
             **{f"train/{k}": v for k, v in all_metrics.items()},
-            "epoch": epoch,
-        })
+        }, step=epoch)
 
     return {"loss": avg_loss, **all_metrics}
 
@@ -320,14 +319,13 @@ def validate(
     score_mean = all_scores.mean().item()
     score_std = all_scores.std().item()
 
-    # Log to wandb
+    # Log to wandb (step=epoch for cleaner charts)
     if wandb_run is not None:
         wandb_run.log({
             "val/loss": avg_loss,
             "val/anomaly_score_mean": score_mean,
             "val/anomaly_score_std": score_std,
-            "epoch": epoch,
-        })
+        }, step=epoch)
 
     return {
         "loss": avg_loss,
