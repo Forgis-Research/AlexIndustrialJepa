@@ -41,8 +41,9 @@ import json
 import numpy as np
 import torch
 from torch.utils.data import Dataset, DataLoader
+import pandas as pd
 from datasets import load_dataset
-from huggingface_hub import hf_hub_download
+from huggingface_hub import hf_hub_download, list_repo_files
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
@@ -105,11 +106,12 @@ METADATA_COLS = ["dataset_source", "machine_type", "episode_id", "ctx_anomaly_la
 
 # Data source to file pattern mapping for full FactoryNet dataset
 # Each source has a different schema, so we can only load one at a time
-DATA_SOURCE_PATTERNS = {
-    "aursad": "data/normalized/aursad_*.parquet",
-    "voraus": "data/normalized/voraus_*.parquet",
-    "cnc": "data/normalized/cnc_*.parquet",
-    "hackathon": "data/normalized/ur3_hackathon_*.parquet",
+# Using exact file prefixes to avoid glob pattern issues with fsspec
+DATA_SOURCE_PREFIXES = {
+    "aursad": "data/normalized/aursad_",
+    "voraus": "data/normalized/voraus_",
+    "cnc": "data/normalized/cnc_",
+    "hackathon": "data/normalized/ur3_hackathon_",
 }
 
 
@@ -231,93 +233,122 @@ class FactoryNetDataset(Dataset):
         }
 
     def _load_data(self):
-        """Load data from HuggingFace datasets.
+        """Load data from HuggingFace.
 
-        Supports two loading patterns:
-        1. Full FactoryNet (Forgis/FactoryNet_Dataset): config-based ("normalized"/"raw")
-        2. Hackathon subset (Forgis/factorynet-hackathon): data_dir based ("aursad", etc.)
+        Uses direct parquet file downloads to avoid fsspec glob pattern issues
+        that occur with newer versions of the datasets library.
         """
-        # Map subset names to data_dir paths (for hackathon dataset)
+        is_full_dataset = "FactoryNet_Dataset" in self.config.dataset_name
+
+        if is_full_dataset:
+            # Load directly from parquet files (bypasses fsspec glob issues)
+            self.df = self._load_parquet_direct()
+        else:
+            # Hackathon dataset - try standard loading
+            self.df = self._load_hackathon_dataset()
+
+        logger.info(f"Loaded {len(self.df)} rows, columns: {list(self.df.columns)[:10]}...")
+
+        # Optimize memory usage
+        self._optimize_memory()
+
+        # Load episode metadata
+        is_full_dataset = "FactoryNet_Dataset" in self.config.dataset_name
+        if is_full_dataset:
+            self._load_metadata_from_columns()
+        else:
+            data_dir = self.config.subset.lower() if self.config.subset else None
+            self._load_metadata(data_dir)
+
+    def _load_parquet_direct(self) -> pd.DataFrame:
+        """Load parquet files directly from HuggingFace Hub.
+
+        This bypasses the datasets library's glob pattern handling which
+        is incompatible with newer fsspec versions.
+        """
+        repo_id = self.config.dataset_name
+        data_source = self.config.data_source
+
+        # Get list of parquet files in the repo
+        logger.info(f"Listing files in {repo_id}...")
+        try:
+            all_files = list_repo_files(repo_id, repo_type="dataset")
+        except Exception as e:
+            logger.error(f"Failed to list repo files: {e}")
+            raise
+
+        # Filter to normalized parquet files for the requested data source
+        if data_source and data_source.lower() in DATA_SOURCE_PREFIXES:
+            prefix = DATA_SOURCE_PREFIXES[data_source.lower()]
+            parquet_files = [f for f in all_files if f.startswith(prefix) and f.endswith('.parquet')]
+            logger.info(f"Found {len(parquet_files)} parquet files for {data_source}")
+        else:
+            # Load all normalized parquet files
+            parquet_files = [f for f in all_files if f.startswith('data/normalized/') and f.endswith('.parquet')]
+            logger.info(f"Found {len(parquet_files)} normalized parquet files")
+
+        if not parquet_files:
+            raise ValueError(f"No parquet files found for data_source={data_source}")
+
+        # Download and concatenate parquet files
+        dfs = []
+        for pq_file in tqdm(parquet_files, desc="Downloading parquet files"):
+            local_path = hf_hub_download(
+                repo_id=repo_id,
+                filename=pq_file,
+                repo_type="dataset",
+            )
+            df = pd.read_parquet(local_path)
+            dfs.append(df)
+
+        return pd.concat(dfs, ignore_index=True)
+
+    def _load_hackathon_dataset(self) -> pd.DataFrame:
+        """Load hackathon dataset using standard datasets library."""
         subset_to_datadir = {
-            "AURSAD": "aursad",
-            "aursad": "aursad",
-            "voraus-AD": "voraus",
-            "voraus-ad": "voraus",
-            "voraus": "voraus",
-            "NASA": "nasa_milling",
-            "nasa-milling": "nasa_milling",
-            "nasa_milling": "nasa_milling",
-            "RH20T": "rh20t",
-            "rh20t": "rh20t",
-            "REASSEMBLE": "reassemble",
-            "reassemble": "reassemble",
+            "AURSAD": "aursad", "aursad": "aursad",
+            "voraus-AD": "voraus", "voraus-ad": "voraus", "voraus": "voraus",
+            "NASA": "nasa_milling", "nasa-milling": "nasa_milling", "nasa_milling": "nasa_milling",
+            "RH20T": "rh20t", "rh20t": "rh20t",
+            "REASSEMBLE": "reassemble", "reassemble": "reassemble",
         }
 
         data_dir = None
         if self.config.subset:
             data_dir = subset_to_datadir.get(self.config.subset, self.config.subset.lower())
 
-        is_full_dataset = "FactoryNet_Dataset" in self.config.dataset_name
+        logger.info(f"Loading {self.config.dataset_name}" + (f" subset={data_dir}" if data_dir else ""))
 
         try:
-            if is_full_dataset:
-                # Full FactoryNet uses config-based loading (normalized/raw)
-                config_name = self.config.config_name or "normalized"
-                logger.info(f"Loading {self.config.dataset_name} config={config_name}")
-
-                # Try loading with trust_remote_code to handle newer fsspec versions
-                try:
-                    self.hf_dataset = load_dataset(
-                        self.config.dataset_name,
-                        config_name,
-                        split="train",
-                        trust_remote_code=True,
-                    )
-                except (ValueError, OSError) as e:
-                    # fsspec glob pattern issue - try without config (auto-detect)
-                    logger.warning(f"Config-based loading failed: {e}")
-                    logger.info("Trying auto-detection mode...")
-                    self.hf_dataset = load_dataset(
-                        self.config.dataset_name,
-                        split="train",
-                        trust_remote_code=True,
-                    )
-            else:
-                # Hackathon dataset uses data_dir based loading
-                logger.info(f"Loading {self.config.dataset_name}" + (f" subset={data_dir}" if data_dir else ""))
-                self.hf_dataset = load_dataset(
-                    self.config.dataset_name,
-                    data_dir=data_dir,
-                    split="train",
-                    trust_remote_code=True,
-                )
-        except Exception as e:
-            logger.warning(f"Failed to load {self.config.dataset_name}: {e}")
-            logger.info("Falling back to Forgis/FactoryNet_Dataset with trust_remote_code")
-            self.hf_dataset = load_dataset(
-                "Forgis/FactoryNet_Dataset",
+            hf_dataset = load_dataset(
+                self.config.dataset_name,
+                data_dir=data_dir,
                 split="train",
-                trust_remote_code=True,
             )
-            is_full_dataset = True
+            return hf_dataset.to_pandas()
+        except Exception as e:
+            logger.warning(f"Standard loading failed: {e}")
+            # Fallback to direct parquet loading
+            logger.info("Falling back to direct parquet loading...")
+            self.config.dataset_name = "Forgis/FactoryNet_Dataset"
+            return self._load_parquet_direct()
 
-        # Convert to pandas for easier manipulation
-        self.df = self.hf_dataset.to_pandas()
-        logger.info(f"Loaded {len(self.df)} rows, columns: {list(self.df.columns)[:10]}...")
+    def _optimize_memory(self):
+        """Optimize DataFrame memory usage.
 
-        # === MEMORY OPTIMIZATION ===
-        # 1. Identify columns we actually need (reduces 105 cols to ~25)
+        1. Keep only needed columns (reduces 105 cols to ~25)
+        2. Convert float64 to float32 (halves memory)
+        """
+        # Identify columns we need
         essential_cols = {"episode_id", "dataset_source", "ctx_anomaly_label"}
         signal_cols = set()
         available = set(self.df.columns)
 
-        # Add setpoint columns
         for pattern_list in SETPOINT_PATTERNS.values():
             for col in pattern_list:
                 if col in available:
                     signal_cols.add(col)
 
-        # Add effort columns
         for pattern_list in EFFORT_PATTERNS.values():
             for col in pattern_list:
                 if col in available:
@@ -328,39 +359,18 @@ class FactoryNetDataset(Dataset):
         self.df = self.df[keep_cols]
         logger.info(f"Memory optimization: kept {len(keep_cols)}/{original_cols} columns")
 
-        # 2. Convert float64 to float32 (halves memory usage)
+        # Convert float64 to float32
         float64_cols = self.df.select_dtypes(include=['float64']).columns
         if len(float64_cols) > 0:
             self.df[float64_cols] = self.df[float64_cols].astype('float32')
             logger.info(f"Converted {len(float64_cols)} columns from float64 to float32")
 
-        # Filter by subset if using full dataset (has dataset_source column)
-        if is_full_dataset and self.config.subset and "dataset_source" in self.df.columns:
-            subset_lower = self.config.subset.lower()
-            # Map subset names to dataset_source values in full dataset
-            # Note: actual values may be uppercase (e.g., "AURSAD"), so we compare case-insensitively
-            subset_mapping = {
-                "aursad": "aursad",
-                "voraus-ad": "voraus-ad",
-                "voraus": "voraus-ad",
-                "nasa": "nasa-milling",
-                "nasa-milling": "nasa-milling",
-                "nasa_milling": "nasa-milling",
-                "rh20t": "rh20t",
-                "reassemble": "reassemble",
-            }
-            source_filter = subset_mapping.get(subset_lower, subset_lower)
+        # Filter by data_source if specified (case-insensitive)
+        if self.config.data_source and "dataset_source" in self.df.columns:
+            source = self.config.data_source.lower()
             original_len = len(self.df)
-            # Case-insensitive comparison
-            self.df = self.df[self.df["dataset_source"].str.lower() == source_filter].reset_index(drop=True)
-            logger.info(f"Filtered to {source_filter}: {len(self.df)} rows (from {original_len})")
-
-        # Load metadata JSON for fault labels (only for hackathon dataset)
-        if not is_full_dataset:
-            self._load_metadata(data_dir)
-        else:
-            # Full dataset has fault info in ctx_anomaly_label column
-            self._load_metadata_from_columns()
+            self.df = self.df[self.df["dataset_source"].str.lower() == source].reset_index(drop=True)
+            logger.info(f"Filtered to {source}: {len(self.df)} rows (from {original_len})")
 
     def _load_metadata(self, data_dir: Optional[str]):
         """Load metadata JSON with fault labels for each episode."""
