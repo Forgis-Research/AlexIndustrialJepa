@@ -591,10 +591,12 @@ class FactoryNetDataset(Dataset):
                     f"Using both phases: {loosening_count} loosening + {tightening_count} tightening"
                 )
 
+        # Set random seed once for all random operations in this method
+        np.random.seed(42)
+
         # Limit episodes for memory optimization
         if self.config.max_episodes is not None and len(self.episode_ids) > self.config.max_episodes:
             logger.info(f"Limiting to {self.config.max_episodes} episodes (from {len(self.episode_ids)})")
-            np.random.seed(42)
             self.episode_ids = list(np.random.choice(self.episode_ids, self.config.max_episodes, replace=False))
 
         # Get fault labels from metadata (preferred) or fallback to column
@@ -608,7 +610,8 @@ class FactoryNetDataset(Dataset):
                 ep_data = self.df[self.df["episode_id"] == ep_id]
                 labels = ep_data["ctx_anomaly_label"].dropna()
                 if len(labels) > 0:
-                    self.episode_labels[ep_id] = labels.mode().iloc[0] if len(labels.mode()) > 0 else "normal"
+                    mode_result = labels.mode()  # Cache to avoid recomputation
+                    self.episode_labels[ep_id] = mode_result.iloc[0] if len(mode_result) > 0 else "normal"
                 else:
                     self.episode_labels[ep_id] = "normal"
             else:
@@ -626,7 +629,7 @@ class FactoryNetDataset(Dataset):
         logger.info(f"Episodes: {len(healthy_episodes)} healthy, {len(fault_episodes)} fault")
 
         # Split episodes (not rows) into train/val/test
-        np.random.seed(42)  # Reproducibility
+        # (seed already set at beginning of this method)
 
         # Fallback: if no healthy episodes, use all episodes
         if self.config.train_healthy_only and len(healthy_episodes) == 0:

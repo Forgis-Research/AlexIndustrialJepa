@@ -151,9 +151,9 @@ def create_dataloaders(args) -> tuple:
         val_ratio=0.1,
         test_ratio=0.1,
         # Data source filter for full FactoryNet (avoids schema mismatch)
-        data_source=getattr(args, 'data_source', None),
+        data_source=args.data_source,
         # Memory optimization
-        max_episodes=getattr(args, 'max_episodes', None),
+        max_episodes=args.max_episodes,
     )
 
     # Create datasets with shared_data optimization to avoid OOM
@@ -247,11 +247,10 @@ def train_epoch(
         num_batches += 1
 
         for k, v in output.items():
-            if isinstance(v, torch.Tensor):
-                v = v.item()
+            scalar_v = v.item() if isinstance(v, torch.Tensor) else v
             if k not in all_metrics:
                 all_metrics[k] = 0.0
-            all_metrics[k] += v
+            all_metrics[k] += scalar_v
 
         pbar.set_postfix(loss=loss.item())
 
