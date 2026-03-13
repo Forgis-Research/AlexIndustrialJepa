@@ -263,15 +263,25 @@ class FactoryNetDataset(Dataset):
             if is_full_dataset:
                 # Full FactoryNet uses config-based loading (normalized/raw)
                 config_name = self.config.config_name or "normalized"
-
-                # Load normalized config (data_files patterns don't work with newer fsspec)
-                # We'll filter by data_source after loading
                 logger.info(f"Loading {self.config.dataset_name} config={config_name}")
-                self.hf_dataset = load_dataset(
-                    self.config.dataset_name,
-                    config_name,
-                    split="train",
-                )
+
+                # Try loading with trust_remote_code to handle newer fsspec versions
+                try:
+                    self.hf_dataset = load_dataset(
+                        self.config.dataset_name,
+                        config_name,
+                        split="train",
+                        trust_remote_code=True,
+                    )
+                except (ValueError, OSError) as e:
+                    # fsspec glob pattern issue - try without config (auto-detect)
+                    logger.warning(f"Config-based loading failed: {e}")
+                    logger.info("Trying auto-detection mode...")
+                    self.hf_dataset = load_dataset(
+                        self.config.dataset_name,
+                        split="train",
+                        trust_remote_code=True,
+                    )
             else:
                 # Hackathon dataset uses data_dir based loading
                 logger.info(f"Loading {self.config.dataset_name}" + (f" subset={data_dir}" if data_dir else ""))
@@ -279,14 +289,15 @@ class FactoryNetDataset(Dataset):
                     self.config.dataset_name,
                     data_dir=data_dir,
                     split="train",
+                    trust_remote_code=True,
                 )
         except Exception as e:
             logger.warning(f"Failed to load {self.config.dataset_name}: {e}")
-            logger.info("Falling back to Forgis/FactoryNet_Dataset with normalized config")
+            logger.info("Falling back to Forgis/FactoryNet_Dataset with trust_remote_code")
             self.hf_dataset = load_dataset(
                 "Forgis/FactoryNet_Dataset",
-                "normalized",
                 split="train",
+                trust_remote_code=True,
             )
             is_full_dataset = True
 
