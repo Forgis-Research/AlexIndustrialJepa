@@ -395,10 +395,11 @@ def main():
 
     # Create output directory with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    args.output_dir = f"{args.output_dir}/{args.subset}_{timestamp}"
+    run_name = args.subset or getattr(args, 'data_source', None) or 'default'
+    args.output_dir = f"{args.output_dir}/{run_name}_{timestamp}"
 
     # Load data
-    logger.info(f"Loading {args.subset} dataset...")
+    logger.info(f"Loading {run_name} dataset...")
 
     if args.debug:
         # Smaller dataset for debugging
