@@ -151,11 +151,14 @@ def main():
         log_results(results)
         print(f"\nResults: {results}")
 
-        best = get_best_result()
-        if results.get('val_loss', float('inf')) <= best:
-            print(f"\n🏆 NEW BEST: {results['val_loss']:.6f}")
+        if 'val_loss' in results:
+            best = get_best_result()
+            if results['val_loss'] <= best:
+                print(f"\n🏆 NEW BEST: {results['val_loss']:.6f}")
+            else:
+                print(f"\nCurrent best: {best:.6f}")
         else:
-            print(f"\nCurrent best: {best:.6f}")
+            print("\n❌ Experiment failed - no val_loss")
 
     elif args.loop:
         print(f"Running {args.max_iterations} iterations...")

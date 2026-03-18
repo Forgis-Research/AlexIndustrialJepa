@@ -78,7 +78,7 @@ def prepare_data(
 def get_dataloaders(batch_size: int = 64):
     """Load prepared dataloaders (call after prepare_data)."""
 
-    data_info = torch.load('data_info.pt')
+    data_info = torch.load('data_info.pt', weights_only=False)
     info = data_info['info']
     factorynet_config = data_info['factorynet_config']
     data_config = data_info['data_config']
