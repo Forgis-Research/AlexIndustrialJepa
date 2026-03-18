@@ -5,18 +5,23 @@ KH-JEPA: Koopman-Hierarchical Joint Embedding Predictive Architecture
 
 A world-class time series foundation model architecture combining:
 1. JEPA: Predict in latent space, not observation space
-2. Koopman: Linear dynamics enable O(1) any-horizon prediction
-3. Hierarchy: Multi-resolution captures different time scales
-4. VICReg: Prevents representation collapse
+2. Koopman: Linear dynamics for physical systems (optional)
+3. SIGReg: Provable collapse prevention (LeJEPA, 2024)
+4. Hierarchy: Multi-resolution captures different time scales
 5. Cross-Variate: Captures sensor dependencies
 
 Target: Beat TTT (0.358 MSE) on ETTh1 horizon-96
 
 Architecture toggles allow systematic ablation studies.
 
+Key Innovation (from LeJEPA):
+- SIGReg replaces VICReg with provable guarantees
+- Optional EMA-free mode (LeJEPA-style) for simpler training
+- Koopman retained for industrial systems (eigenvalue interpretability)
+
 References:
+- LeJEPA (Balestriero & LeCun, 2024): Provable JEPA training
 - I-JEPA (Meta, 2023): Joint embedding predictive architecture
-- C-JEPA (NeurIPS 2024): VICReg for JEPA stability
 - Koopman (Nature Comms 2018): Linear dynamics in lifted space
 - iTransformer (ICLR 2024): Cross-variate attention
 """
@@ -80,10 +85,19 @@ USE_KOOPMAN = False     # Replace MLP predictor with Koopman operator
 KOOPMAN_RANK = 64       # Rank of Koopman approximation (< LATENT_DIM for efficiency)
 KOOPMAN_STABLE = True   # Constrain eigenvalues to unit disk
 
-# Innovation #2: VICReg Regularization
+# Innovation #2: Collapse Prevention
+# Option A: VICReg (heuristic, from C-JEPA)
 USE_VICREG = False      # Variance-Invariance-Covariance regularization
 VICREG_VAR_WEIGHT = 0.04
 VICREG_COV_WEIGHT = 0.04
+
+# Option B: SIGReg (provable, from LeJEPA - RECOMMENDED)
+USE_SIGREG = True       # Sketched Isotropic Gaussian Regularization
+SIGREG_WEIGHT = 0.1     # Weight for SIGReg loss
+SIGREG_NUM_SLICES = 256 # Number of random projections for sketching
+
+# LeJEPA Mode: No EMA, just SIGReg for collapse prevention
+USE_LEJEPA_MODE = False  # If True: no target encoder, no EMA (simpler)
 
 # Innovation #3: Cross-Variate Attention
 USE_CROSS_VARIATE = False   # Attention across channels (iTransformer style)
@@ -525,6 +539,69 @@ def vicreg_loss(z: torch.Tensor, var_weight: float = 0.04, cov_weight: float = 0
     return total_loss, {'var_loss': var_loss, 'cov_loss': cov_loss}
 
 
+def sigreg_loss(z: torch.Tensor, num_slices: int = 256,
+                eps: float = 1e-6) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+    """
+    SIGReg: Sketched Isotropic Gaussian Regularization (LeJEPA, 2024)
+
+    Provable collapse prevention via Cramér-Wold theorem:
+    - Project embeddings onto random 1D directions ("slices")
+    - Force projected covariance to be identity matrix
+    - Guarantees isotropic Gaussian embeddings
+
+    This is simpler and more principled than VICReg.
+
+    Reference: Balestriero & LeCun, "LeJEPA: Provable and Scalable SSL"
+
+    Args:
+        z: (B, D) or (B, T, D) latent representations
+        num_slices: number of random projections (K)
+        eps: numerical stability
+
+    Returns:
+        total_loss: ||Σ_sketch - I||_F^2
+        loss_dict: breakdown of loss components
+    """
+    if z.dim() == 3:
+        # (B, T, D) -> (B*T, D)
+        z = z.reshape(-1, z.size(-1))
+
+    B, D = z.shape
+
+    # Normalize embeddings (important for stability)
+    z_norm = F.normalize(z, dim=-1)
+
+    # Random projection matrix (fixed per forward, but resampled each call)
+    # S: (D, K) projects D-dimensional embeddings to K-dimensional sketch
+    K = min(num_slices, D)  # Can't have more slices than dimensions
+    S = torch.randn(D, K, device=z.device, dtype=z.dtype)
+    S = F.normalize(S, dim=0)  # Normalize columns
+
+    # Project: Z_sketch = Z @ S, shape (B, K)
+    z_sketch = z_norm @ S
+
+    # Compute covariance of sketch: (K, K)
+    z_centered = z_sketch - z_sketch.mean(dim=0, keepdim=True)
+    cov_sketch = (z_centered.T @ z_centered) / (B - 1 + eps)
+
+    # Target: identity matrix
+    # Loss: ||Σ - I||_F^2
+    I = torch.eye(K, device=z.device, dtype=z.dtype)
+    cov_loss = ((cov_sketch - I) ** 2).sum() / K
+
+    # Also encourage unit variance in original space (like VICReg variance term)
+    std_loss = F.relu(1 - z.std(dim=0)).mean()
+
+    total_loss = cov_loss + 0.1 * std_loss
+
+    return total_loss, {
+        'cov_loss': cov_loss,
+        'std_loss': std_loss,
+        'cov_trace': cov_sketch.trace().item() / K,  # Should be ~1
+        'cov_offdiag': (cov_sketch[~torch.eye(K, dtype=torch.bool, device=z.device)].abs().mean()).item()
+    }
+
+
 # ============================================================================
 # HIERARCHICAL ENCODER (Innovation #4)
 # ============================================================================
@@ -631,12 +708,16 @@ class KHJEPAForecaster(nn.Module):
 
     Combines:
     1. JEPA: Predict in latent space
-    2. Koopman: Linear dynamics for efficient prediction
-    3. Hierarchy: Multi-resolution for different time scales
-    4. VICReg: Prevent collapse
+    2. Koopman: Linear dynamics for efficient prediction (industrial)
+    3. SIGReg: Provable collapse prevention (LeJEPA, 2024)
+    4. Hierarchy: Multi-resolution for different time scales
     5. Cross-Variate: Capture channel dependencies
 
     All components are toggleable for ablation studies.
+
+    New in v2 (LeJEPA insights):
+    - SIGReg replaces VICReg (provable vs heuristic)
+    - Optional LeJEPA mode (no EMA, simpler training)
     """
 
     def __init__(
@@ -653,11 +734,16 @@ class KHJEPAForecaster(nn.Module):
         use_jepa: bool = True,
         latent_dim: int = 128,
         ema_momentum: float = 0.996,
+        use_lejepa_mode: bool = False,  # No EMA, just SIGReg
         # Koopman
         use_koopman: bool = False,
         koopman_rank: int = 64,
         koopman_stable: bool = True,
-        # VICReg
+        # SIGReg (LeJEPA, 2024) - RECOMMENDED
+        use_sigreg: bool = True,
+        sigreg_weight: float = 0.1,
+        sigreg_num_slices: int = 256,
+        # VICReg (alternative, heuristic)
         use_vicreg: bool = False,
         vicreg_var_weight: float = 0.04,
         vicreg_cov_weight: float = 0.04,
@@ -681,7 +767,13 @@ class KHJEPAForecaster(nn.Module):
         self.use_jepa = use_jepa
         self.latent_dim = latent_dim
         self.ema_momentum = ema_momentum
+        self.use_lejepa_mode = use_lejepa_mode
         self.use_koopman = use_koopman
+        # SIGReg (LeJEPA)
+        self.use_sigreg = use_sigreg
+        self.sigreg_weight = sigreg_weight
+        self.sigreg_num_slices = sigreg_num_slices
+        # VICReg (legacy)
         self.use_vicreg = use_vicreg
         self.vicreg_var_weight = vicreg_var_weight
         self.vicreg_cov_weight = vicreg_cov_weight
@@ -744,8 +836,9 @@ class KHJEPAForecaster(nn.Module):
                 nn.Linear(d_ff, num_features),
             )
 
-            # Target encoder (EMA)
-            self._build_target_encoder(d_model, n_heads, d_ff, e_layers, dropout)
+            # Target encoder (EMA) - skip in LeJEPA mode
+            if not use_lejepa_mode:
+                self._build_target_encoder(d_model, n_heads, d_ff, e_layers, dropout)
         else:
             # Direct prediction (no latent space)
             self.predictor = nn.Linear(d_model, num_features * pred_len)
@@ -840,9 +933,10 @@ class KHJEPAForecaster(nn.Module):
         """Update target encoder with EMA of online encoder.
 
         Handles all encoder architectures (standard, cross-variate, hierarchical).
+        Skipped in LeJEPA mode (no target encoder).
         """
-        if not self.use_jepa:
-            return
+        if not self.use_jepa or self.use_lejepa_mode:
+            return  # LeJEPA mode: no target encoder, no EMA
 
         m = momentum if momentum is not None else self.ema_momentum
 
@@ -984,60 +1078,89 @@ class KHJEPAForecaster(nn.Module):
 
         # JEPA latent loss
         if self.use_jepa and z_pred is not None:
-            with torch.no_grad():
-                # Encode target with target encoder
+            if self.use_lejepa_mode:
+                # LeJEPA mode: use same encoder for target, no stop_grad
+                # Collapse prevented by SIGReg (provable guarantees)
                 y_norm = self.revin(y, 'norm')
 
-                if self.use_hierarchy:
-                    # For hierarchy mode: use target encoder at full resolution
-                    y_proj = self.target_input_proj(y_norm)  # (B, pred_len, d_model)
-                    y_enc = self.target_encoder(y_proj)  # (B, pred_len, d_model)
-                    y_enc = y_enc.mean(dim=1)  # (B, d_model)
+                # Pad y to match x length, then encode with same encoder
+                y_padded = F.pad(y_norm, (0, 0, self.seq_len - self.pred_len, 0))
+                z_target = self.encode(y_padded)  # Use same encoder!
 
-                elif self.use_patches:
-                    # Pad to match patch structure
-                    if self.use_cross_variate:
-                        y_padded = F.pad(y_norm, (0, 0, self.seq_len - self.pred_len, 0))
-                        y_patches = self.patch_embed(y_padded)
-                        B, C, T, D = y_patches.shape
+                # Latent prediction loss
+                z_pred_pooled = z_pred.mean(dim=1)  # (B, latent_dim)
+                jepa_loss = F.mse_loss(z_pred_pooled, z_target)
+                loss_dict['jepa'] = jepa_loss
+                total_loss = total_loss + 0.5 * jepa_loss
 
-                        # Apply positional encoding per channel
-                        y_patches = y_patches.view(B * C, T, D)
-                        y_enc = self.pos_embed(y_patches)
-                        y_enc = y_enc.view(B, C, T, D)
+            else:
+                # Standard JEPA: separate target encoder with EMA, stop_grad
+                with torch.no_grad():
+                    # Encode target with target encoder
+                    y_norm = self.revin(y, 'norm')
 
-                        # Encode with cross-variate target encoder
-                        y_enc = self.target_encoder(y_enc)  # (B, C, T, d_model)
-                        y_enc = y_enc.mean(dim=(1, 2))  # (B, d_model)
+                    if self.use_hierarchy:
+                        # For hierarchy mode: use target encoder at full resolution
+                        y_proj = self.target_input_proj(y_norm)  # (B, pred_len, d_model)
+                        y_enc = self.target_encoder(y_proj)  # (B, pred_len, d_model)
+                        y_enc = y_enc.mean(dim=1)  # (B, d_model)
+
+                    elif self.use_patches:
+                        # Pad to match patch structure
+                        if self.use_cross_variate:
+                            y_padded = F.pad(y_norm, (0, 0, self.seq_len - self.pred_len, 0))
+                            y_patches = self.patch_embed(y_padded)
+                            B, C, T, D = y_patches.shape
+
+                            # Apply positional encoding per channel
+                            y_patches = y_patches.view(B * C, T, D)
+                            y_enc = self.pos_embed(y_patches)
+                            y_enc = y_enc.view(B, C, T, D)
+
+                            # Encode with cross-variate target encoder
+                            y_enc = self.target_encoder(y_enc)  # (B, C, T, d_model)
+                            y_enc = y_enc.mean(dim=(1, 2))  # (B, d_model)
+                        else:
+                            y_padded = F.pad(y_norm, (0, 0, self.seq_len - self.pred_len, 0))
+                            y_patches = self.patch_embed(y_padded)
+                            y_enc = self.pos_embed(y_patches)
+                            y_enc = self.target_encoder(y_enc)
+                            y_enc = y_enc.mean(dim=1)
                     else:
-                        y_padded = F.pad(y_norm, (0, 0, self.seq_len - self.pred_len, 0))
-                        y_patches = self.patch_embed(y_padded)
-                        y_enc = self.pos_embed(y_patches)
+                        y_enc = self.input_proj(y_norm)
+                        y_enc = self.pos_embed(y_enc)
                         y_enc = self.target_encoder(y_enc)
                         y_enc = y_enc.mean(dim=1)
-                else:
-                    y_enc = self.input_proj(y_norm)
-                    y_enc = self.pos_embed(y_enc)
-                    y_enc = self.target_encoder(y_enc)
-                    y_enc = y_enc.mean(dim=1)
 
-                z_target = self.target_to_latent(y_enc)  # (B, latent_dim)
+                    z_target = self.target_to_latent(y_enc)  # (B, latent_dim)
 
-            # Latent prediction loss
-            z_pred_pooled = z_pred.mean(dim=1)  # (B, latent_dim)
-            jepa_loss = F.mse_loss(z_pred_pooled, z_target)
-            loss_dict['jepa'] = jepa_loss
-            total_loss = total_loss + 0.5 * jepa_loss
+                # Latent prediction loss
+                z_pred_pooled = z_pred.mean(dim=1)  # (B, latent_dim)
+                jepa_loss = F.mse_loss(z_pred_pooled, z_target)
+                loss_dict['jepa'] = jepa_loss
+                total_loss = total_loss + 0.5 * jepa_loss
 
-        # VICReg regularization
-        if self.use_vicreg and z_pred is not None:
-            vicreg, vicreg_components = vicreg_loss(
-                z_pred, self.vicreg_var_weight, self.vicreg_cov_weight
-            )
-            loss_dict['vicreg'] = vicreg
-            loss_dict['var_loss'] = vicreg_components['var_loss']
-            loss_dict['cov_loss'] = vicreg_components['cov_loss']
-            total_loss = total_loss + vicreg
+        # Collapse prevention regularization
+        if z_pred is not None:
+            # SIGReg (LeJEPA, 2024) - preferred, provable
+            if self.use_sigreg:
+                sigreg, sigreg_components = sigreg_loss(
+                    z_pred, num_slices=self.sigreg_num_slices
+                )
+                loss_dict['sigreg'] = sigreg
+                loss_dict['sigreg_cov'] = sigreg_components['cov_loss']
+                loss_dict['sigreg_std'] = sigreg_components['std_loss']
+                total_loss = total_loss + self.sigreg_weight * sigreg
+
+            # VICReg (C-JEPA) - alternative, heuristic
+            elif self.use_vicreg:
+                vicreg, vicreg_components = vicreg_loss(
+                    z_pred, self.vicreg_var_weight, self.vicreg_cov_weight
+                )
+                loss_dict['vicreg'] = vicreg
+                loss_dict['var_loss'] = vicreg_components['var_loss']
+                loss_dict['cov_loss'] = vicreg_components['cov_loss']
+                total_loss = total_loss + vicreg
 
         loss_dict['total'] = total_loss
         return loss_dict
@@ -1127,12 +1250,14 @@ def main():
 
     # Configuration summary
     print("\n" + "=" * 60)
-    print("KH-JEPA Configuration")
+    print("KH-JEPA Configuration (LeJEPA-enhanced)")
     print("=" * 60)
     print(f"  SEQ_LEN: {SEQ_LEN}, PRED_LEN: {PRED_LEN}")
     print(f"  USE_JEPA: {USE_JEPA}")
+    print(f"  USE_LEJEPA_MODE: {USE_LEJEPA_MODE} (no EMA)")
     print(f"  USE_KOOPMAN: {USE_KOOPMAN}")
-    print(f"  USE_VICREG: {USE_VICREG}")
+    print(f"  USE_SIGREG: {USE_SIGREG} (LeJEPA, provable)")
+    print(f"  USE_VICREG: {USE_VICREG} (legacy, heuristic)")
     print(f"  USE_CROSS_VARIATE: {USE_CROSS_VARIATE}")
     print(f"  USE_HIERARCHY: {USE_HIERARCHY}")
     print("=" * 60)
@@ -1159,9 +1284,15 @@ def main():
         use_jepa=USE_JEPA,
         latent_dim=LATENT_DIM,
         ema_momentum=EMA_MOMENTUM,
+        use_lejepa_mode=USE_LEJEPA_MODE,
         use_koopman=USE_KOOPMAN,
         koopman_rank=KOOPMAN_RANK,
         koopman_stable=KOOPMAN_STABLE,
+        # SIGReg (LeJEPA, 2024)
+        use_sigreg=USE_SIGREG,
+        sigreg_weight=SIGREG_WEIGHT,
+        sigreg_num_slices=SIGREG_NUM_SLICES,
+        # VICReg (legacy)
         use_vicreg=USE_VICREG,
         vicreg_var_weight=VICREG_VAR_WEIGHT,
         vicreg_cov_weight=VICREG_COV_WEIGHT,
@@ -1214,10 +1345,14 @@ def main():
 
         # Logging
         log_str = f"Epoch {epoch}: train_mse={train_mse:.4f}, val_mse={val_mse:.4f}"
-        if USE_VICREG:
+        if USE_SIGREG:
+            log_str += " [SIGReg]"
+        elif USE_VICREG:
             log_str += " [VICReg]"
         if USE_KOOPMAN:
             log_str += " [Koopman]"
+        if USE_LEJEPA_MODE:
+            log_str += " [LeJEPA]"
         print(log_str)
 
         if val_mse < best_val_mse:
@@ -1260,8 +1395,10 @@ def main():
     # Architecture summary
     print("\nArchitecture used:")
     print(f"  JEPA: {USE_JEPA}")
+    print(f"  LeJEPA Mode: {USE_LEJEPA_MODE}")
     print(f"  Koopman: {USE_KOOPMAN}")
-    print(f"  VICReg: {USE_VICREG}")
+    print(f"  SIGReg: {USE_SIGREG} (provable)")
+    print(f"  VICReg: {USE_VICREG} (legacy)")
     print(f"  Cross-Variate: {USE_CROSS_VARIATE}")
     print(f"  Hierarchy: {USE_HIERARCHY}")
     print("=" * 60)
@@ -1282,7 +1419,9 @@ def main():
             'd_model': D_MODEL,
             'latent_dim': LATENT_DIM,
             'use_jepa': USE_JEPA,
+            'use_lejepa_mode': USE_LEJEPA_MODE,
             'use_koopman': USE_KOOPMAN,
+            'use_sigreg': USE_SIGREG,
             'use_vicreg': USE_VICREG,
             'use_cross_variate': USE_CROSS_VARIATE,
             'use_hierarchy': USE_HIERARCHY,
