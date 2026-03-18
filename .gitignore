@@ -86,5 +86,25 @@ checkpoints/
 wandb/
 outputs/
 results/**/*.pt
+results/**/
 *.pth
 *.ckpt
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.lof
+*.lot
+
+# Claude local settings
+.claude/settings.local.json
+
+# Windows artifacts
+nul
