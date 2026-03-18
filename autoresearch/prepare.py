@@ -23,20 +23,25 @@ from torch.utils.data import Dataset, DataLoader
 # ETT DATASET
 # ============================================================================
 
-ETT_URL = "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv"
+ETT_URLS = {
+    "ETTh1": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh1.csv",
+    "ETTh2": "https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTh2.csv",
+}
 
 
-def download_ett(data_dir: Path = Path("data")):
-    """Download ETTh1 dataset if not present."""
+def download_ett(subset: str = "ETTh1", data_dir: Path = Path("data")):
+    """Download ETT dataset if not present."""
     data_dir.mkdir(exist_ok=True)
-    filepath = data_dir / "ETTh1.csv"
+    filepath = data_dir / f"{subset}.csv"
+
+    url = ETT_URLS.get(subset, ETT_URLS["ETTh1"])
 
     if not filepath.exists():
-        print(f"Downloading ETTh1 from {ETT_URL}...")
-        urllib.request.urlretrieve(ETT_URL, filepath)
+        print(f"Downloading {subset} from {url}...")
+        urllib.request.urlretrieve(url, filepath)
         print(f"Saved to {filepath}")
     else:
-        print(f"ETTh1 already exists at {filepath}")
+        print(f"{subset} already exists at {filepath}")
 
     return filepath
 
@@ -152,24 +157,35 @@ def prepare_data(
     return train_loader, val_loader, test_loader, info
 
 
-def get_dataloaders(batch_size: int = 32, seq_len: int = None, pred_len: int = None):
-    """Load prepared dataloaders (call after prepare_data or with custom lengths)."""
+def get_dataloaders(batch_size: int = 32, seq_len: int = None, pred_len: int = None, subset: str = "ETTh1"):
+    """Load prepared dataloaders.
 
-    # Load saved config
-    data_info = torch.load('data_info.pt', weights_only=False)
-    saved_seq_len = data_info['seq_len']
-    saved_pred_len = data_info['pred_len']
+    Args:
+        batch_size: Batch size for dataloaders
+        seq_len: Input sequence length (default: from saved config)
+        pred_len: Prediction horizon (default: from saved config)
+        subset: Dataset to use ("ETTh1" or "ETTh2") - for cross-domain transfer
+
+    Returns:
+        train_loader, val_loader, test_loader, info
+    """
+    # Load saved config if exists
+    try:
+        data_info = torch.load('data_info.pt', weights_only=False)
+        saved_seq_len = data_info['seq_len']
+        saved_pred_len = data_info['pred_len']
+    except FileNotFoundError:
+        saved_seq_len = 96
+        saved_pred_len = 96
 
     # Use saved or override
     seq_len = seq_len or saved_seq_len
     pred_len = pred_len or saved_pred_len
 
-    # Re-prepare if lengths changed
-    if seq_len != saved_seq_len or pred_len != saved_pred_len:
-        return prepare_data(seq_len, pred_len, batch_size)
+    # Download if needed
+    filepath = download_ett(subset)
 
     # Load data
-    filepath = Path("data/ETTh1.csv")
     df = pd.read_csv(filepath)
     data = df.drop('date', axis=1).values.astype(np.float32)
 
@@ -181,7 +197,7 @@ def get_dataloaders(batch_size: int = 32, seq_len: int = None, pred_len: int = N
     val_data = data[train_end:val_end]
     test_data = data[val_end:]
 
-    # Normalize
+    # Normalize using train statistics
     train_mean = train_data.mean(axis=0)
     train_std = train_data.std(axis=0)
 
@@ -195,9 +211,9 @@ def get_dataloaders(batch_size: int = 32, seq_len: int = None, pred_len: int = N
     test_dataset = ETTDataset(test_data, seq_len, pred_len)
 
     # Create dataloaders
-    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
     info = {
         'num_features': data.shape[1],
@@ -208,6 +224,7 @@ def get_dataloaders(batch_size: int = 32, seq_len: int = None, pred_len: int = N
         'test_size': len(test_dataset),
         'train_mean': train_mean,
         'train_std': train_std,
+        'subset': subset,
     }
 
     return train_loader, val_loader, test_loader, info

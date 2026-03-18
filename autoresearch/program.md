@@ -1,247 +1,153 @@
-# Autoresearch: KH-JEPA Architecture Validation
+# Autoresearch: KH-JEPA World Model Validation
 
 ## Mission
 
-Validate **Koopman-Hierarchical JEPA (KH-JEPA)** on ETTh1 before scaling to foundation model.
+Validate **KH-JEPA** as a world model for physical time series.
 
-**Target**: Beat TTT (0.358 MSE) on ETTh1 horizon-96.
+**Goal**: Learn transferable dynamics, NOT minimize forecasting MSE.
 
-**Context**: This is Phase 1 of the JEPA-FM foundation model project. See `docs/SOTA_PLAN.md` for full plan.
-
----
-
-## The Architecture
-
-```
-KH-JEPA = JEPA + Koopman Predictor + Hierarchy + VICReg + Cross-Variate
-```
-
-We validate each component incrementally.
+**Key Metrics**:
+1. Long-horizon stability (degradation ratio < 3x at H=720)
+2. Cross-distribution transfer (h1→h2 ratio < 1.5)
+3. Cross-task transfer (loosening→tightening)
+4. MSE sanity check (< 0.45 on ETTh1-96, NOT optimization target)
 
 ---
 
-## Phase 1: Baseline
+## Quick Start
 
-Run basic JEPA to establish starting point:
 ```bash
-python run.py --single
-```
+# 1. Prepare data
+python prepare.py
 
-Record: `test_mse = ???`
+# 2. Run training (default: jepa recipe)
+python train.py
 
-**Expected**: MSE ~0.45-0.50 (unoptimized JEPA)
-
----
-
-## Phase 2: Quick Wins
-
-### 2.1 Longer Context (Critical!)
-```python
-SEQ_LEN = 512  # was 96, standard for foundation models
-```
-**Why**: TTT and all SOTA use 512. We were handicapped.
-
-### 2.2 More Training
-```python
-EPOCHS = 20  # was 10
-```
-
-### 2.3 Lower Learning Rate
-```python
-LEARNING_RATE = 1e-4  # was 1e-3
+# 3. Check results
+cat results/latest_results.json
 ```
 
 ---
 
-## Phase 3: VICReg (Prevent Collapse)
+## Recipes (3 Configurations)
 
-**Why**: C-JEPA (NeurIPS 2024) showed EMA alone doesn't prevent collapse.
+| Recipe | JEPA | Koopman | SIGReg | Use For |
+|--------|------|---------|--------|---------|
+| `baseline` | No | No | No | MSE comparison |
+| `jepa` | Yes | No | Yes | **Recommended** |
+| `koopman` | Yes | Yes | Yes | Ablation |
 
-```python
-def vicreg_loss(z):
-    # Variance: prevent collapse to constant
-    std = z.std(dim=0)
-    var_loss = F.relu(1 - std).mean()
-
-    # Covariance: decorrelate dimensions
-    z_centered = z - z.mean(dim=0)
-    cov = (z_centered.T @ z_centered) / (z.shape[0] - 1)
-    cov_loss = cov.pow(2).fill_diagonal_(0).mean()
-
-    return 0.04 * var_loss + 0.04 * cov_loss
-
-# Add to total loss
-total_loss = mse_loss + vicreg_loss(z_pred)
-```
-
-**Expected**: More stable training, better generalization.
+Edit `RECIPE = "jepa"` in train.py to switch.
 
 ---
 
-## Phase 4: Koopman Predictor (Key Innovation #1)
+## Evaluation Tiers
 
-**Why**: Linear dynamics in latent space enable efficient long-horizon prediction.
+### Tier 1: Sanity (Every Epoch)
+- MSE < 0.45 (broken if > 0.50)
+- z_std > 0.1 (collapsed if < 0.1)
+- K_eigval < 1.0 (unstable if > 1.0)
 
-Replace MLP predictor with Koopman operator:
+### Tier 2: Cross-Distribution (After Tier 1)
+- Train on ETTh1, test on ETTh2
+- Transfer ratio < 1.5 = success
+- Runs automatically after training
 
-```python
-class KoopmanPredictor(nn.Module):
-    def __init__(self, latent_dim):
-        super().__init__()
-        # Parameterize via eigendecomposition for stability
-        self.eigenvalues = nn.Parameter(torch.randn(latent_dim) * 0.1)
-        self.eigenvectors = nn.Parameter(torch.eye(latent_dim) + torch.randn(latent_dim, latent_dim) * 0.01)
-
-    def forward(self, z, horizon=1):
-        # K^horizon via eigendecomposition
-        # K = V @ diag(λ) @ V^(-1)
-        # K^k = V @ diag(λ^k) @ V^(-1)
-        V = self.eigenvectors
-        lambdas = torch.sigmoid(self.eigenvalues)  # Keep in (0,1) for stability
-        lambdas_k = lambdas.pow(horizon)
-
-        # Avoid explicit inverse - use solve
-        z_transformed = torch.linalg.solve(V, z.T).T  # z @ V^(-1)
-        z_scaled = z_transformed * lambdas_k
-        z_pred = z_scaled @ V.T
-        return z_pred
+### Tier 3: Long-Horizon
+```bash
+# Test horizons 96, 192, 336, 720
+python train.py --eval-long-horizon
 ```
+- Degradation ratio = MSE_720 / MSE_96
+- Good world model: ratio < 3.0
+- Autoregressive: ratio >> 3.0
 
-**Why this is novel**:
-- O(1) for any horizon (vs O(H) for autoregressive)
-- Interpretable: eigenvalues reveal system dynamics
-- Grounded in Koopman operator theory
+### Tier 4: Cross-Task (AURSAD)
+```bash
+python scripts/cross_task_transfer.py
+```
+- Train on loosening, test on tightening
+- Same robot, related tasks
 
-**Expected**: Better long-horizon accuracy, faster inference.
+### Tier 5: Cross-Machine (Hardest)
+```bash
+python scripts/cross_machine_transfer.py
+```
+- AURSAD (UR3e) → voraus-AD (Yu-Cobot)
+- Different robots, different tasks, different sensors
+- Expect limited zero-shot, good few-shot
 
 ---
 
-## Phase 5: Cross-Variate Attention (Key Innovation #2)
+## Decision Tree
 
-**Why**: iTransformer (ICLR 2024) showed cross-channel modeling beats channel-independent.
-
-```python
-class CrossVariateEncoder(nn.Module):
-    def __init__(self, d_model, n_heads, n_layers):
-        super().__init__()
-        self.temporal_layers = nn.ModuleList([
-            nn.TransformerEncoderLayer(d_model, n_heads, batch_first=True)
-            for _ in range(n_layers)
-        ])
-        self.variate_layers = nn.ModuleList([
-            nn.TransformerEncoderLayer(d_model, n_heads, batch_first=True)
-            for _ in range(n_layers)
-        ])
-
-    def forward(self, x):  # (B, C, T, d)
-        B, C, T, d = x.shape
-
-        for temp_layer, var_layer in zip(self.temporal_layers, self.variate_layers):
-            # Temporal attention: within each channel
-            x = x.view(B * C, T, d)
-            x = temp_layer(x)
-            x = x.view(B, C, T, d)
-
-            # Variate attention: across channels at each time
-            x = x.permute(0, 2, 1, 3).reshape(B * T, C, d)
-            x = var_layer(x)
-            x = x.view(B, T, C, d).permute(0, 2, 1, 3)
-
-        return x
 ```
-
-**Expected**: Captures sensor dependencies, beats PatchTST.
+Run baseline recipe
+    ↓
+MSE > 0.50?  → Config broken, debug
+    ↓
+MSE > 0.45?  → Check z_std, learning rate
+    ↓
+MSE < 0.45?  → Tier 1 PASS, run Tier 2
+    ↓
+Transfer ratio > 1.5?  → JEPA not learning dynamics
+    ↓
+Transfer ratio < 1.5?  → Tier 2 PASS, run Tier 3
+    ↓
+Degradation ratio > 3.0?  → Koopman not helping
+    ↓
+Degradation ratio < 3.0?  → SUCCESS, run full evaluation
+```
 
 ---
 
-## Phase 6: Hierarchy (If Needed)
+## Key Insight
 
-Only if Phase 4-5 don't reach target.
+We are NOT competing with Chronos/TimesFM on short-horizon MSE.
 
-Multi-resolution latent spaces:
-```python
-# Level 1: Full resolution
-z1 = encoder(x)
+We ARE building a world model that:
+1. Learns physics (transferable across machines)
+2. Stays stable over long horizons (Koopman)
+3. Detects anomalies (prediction residuals)
 
-# Level 2: Downsampled 4x
-x_down = F.avg_pool1d(x, kernel_size=4)
-z2 = encoder(x_down)
+MSE is a sanity check, not the goal.
 
-# Level 3: Downsampled 16x
-x_down2 = F.avg_pool1d(x, kernel_size=16)
-z3 = encoder(x_down2)
+---
 
-# Predict at each level, combine
-```
+## Files
+
+| File | Purpose |
+|------|---------|
+| `train.py` | Main training script (edit RECIPE here) |
+| `prepare.py` | Data preparation (ETTh1/h2) |
+| `run.py` | Experiment runner |
+| `benchmarks.py` | SOTA comparison numbers |
 
 ---
 
 ## Success Criteria
 
-| MSE | Status | Next Action |
-|-----|--------|-------------|
-| > 0.45 | Baseline | Apply Phase 2 quick wins |
-| 0.40-0.45 | Improving | Apply VICReg (Phase 3) |
-| 0.38-0.40 | Good | Apply Koopman (Phase 4) |
-| 0.358-0.38 | **Competitive** | Apply Cross-Variate (Phase 5) |
-| < 0.358 | **SOTA!** | Document, move to Phase 2 of SOTA_PLAN |
-
----
-
-## Rules
-
-1. **One change at a time** - Know what works
-2. **Keep what helps** - Don't revert improvements
-3. **Log everything** - Results go to experiment_log.jsonl
-4. **5 minutes max** - Fast iteration
-5. **Don't overcomplicate** - Simple + working > complex + broken
-
----
-
-## Current Best
-
-| Run | MSE | Changes |
-|-----|-----|---------|
-| baseline | ??? | Initial config |
-
----
-
-## Architecture Decision Tree
-
-```
-Start: Basic JEPA
-    ↓
-MSE > 0.45?  → Quick wins (SEQ_LEN=512, more epochs)
-    ↓
-MSE > 0.40?  → Add VICReg
-    ↓
-MSE > 0.38?  → Add Koopman predictor
-    ↓
-MSE > 0.358? → Add Cross-Variate attention
-    ↓
-MSE > 0.35?  → Add Hierarchy
-    ↓
-SUCCESS → Move to foundation model training
-```
+| Metric | Target | Status |
+|--------|--------|--------|
+| ETTh1-96 MSE | < 0.45 | Sanity check |
+| h1→h2 transfer | < 1.5x | Core capability |
+| H=720 degradation | < 3.0x | World model proof |
+| AURSAD anomaly AUC | > 0.80 | Practical value |
 
 ---
 
 ## After Validation
 
-Once we beat 0.358 MSE:
-
-1. Validate on full ETT suite (ETTh1, ETTh2, ETTm1, ETTm2)
-2. Test all prediction horizons (96, 192, 336, 720)
-3. Begin foundation model pre-training on Time-300B
-
-See `docs/SOTA_PLAN.md` for full roadmap.
+If all tiers pass:
+1. Run full benchmark suite (ETTh1, h2, m1, m2)
+2. Run AURSAD/voraus-AD anomaly detection
+3. Write up results for paper
+4. Consider scaling to larger datasets
 
 ---
 
 ## References
 
-- **Target**: TTT (0.358 MSE on ETTh1-96)
-- **Baselines**: iTransformer (0.386), PatchTST (0.414)
-- **C-JEPA**: VICReg prevents collapse
-- **Koopman Theory**: Linear dynamics in lifted space
-- **iTransformer**: Cross-variate attention
+- **SIGReg**: LeJEPA (Balestriero & LeCun, 2024) - provable collapse prevention
+- **Koopman**: Linear dynamics in lifted space for physical systems
+- **JEPA**: Joint Embedding Predictive Architecture (LeCun, 2023)

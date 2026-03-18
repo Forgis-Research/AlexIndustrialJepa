@@ -43,41 +43,47 @@ from torch.optim.lr_scheduler import CosineAnnealingLR, OneCycleLR
 from prepare import get_dataloaders
 
 # ============================================================================
-# RECIPES: 3 Configurations, Not 512
+# RECIPES: 3 Configurations (Simplified)
 # ============================================================================
-# Choose ONE recipe. Don't mix flags randomly.
+# Choose ONE recipe. Each is a coherent, tested configuration.
+#
+# REMOVED (unnecessary complexity):
+# - USE_VICREG: SIGReg is strictly better (provable)
+# - USE_HUBER_LOSS: MSE is fine
+# - USE_CROSS_VARIATE: Not tested, adds complexity
+# - USE_HIERARCHY: Not tested, adds complexity
+#
+# KEPT:
+# - USE_JEPA: Core innovation (latent prediction)
+# - USE_SIGREG: Collapse prevention (LeJEPA, provable)
+# - USE_KOOPMAN: Physics-based dynamics (ablation, not core)
 
-RECIPE = "jepa"  # Options: "baseline", "jepa", "world_model"
+RECIPE = "jepa"  # Options: "baseline", "jepa", "koopman"
 
 RECIPES = {
     # Recipe 1: Baseline (PatchTST-style direct prediction)
-    # Use for: Sanity check, comparison baseline
+    # Use for: Sanity check, MSE comparison
     "baseline": {
         "USE_JEPA": False,
         "USE_KOOPMAN": False,
         "USE_SIGREG": False,
-        "USE_CROSS_VARIATE": False,
-        "USE_HIERARCHY": False,
     },
 
-    # Recipe 2: JEPA with SIGReg (LeJEPA-style)
-    # Use for: Learning representations, anomaly detection
+    # Recipe 2: JEPA with SIGReg (LeJEPA-style) - RECOMMENDED
+    # Use for: Learning representations, transfer, anomaly detection
     "jepa": {
         "USE_JEPA": True,
         "USE_KOOPMAN": False,
         "USE_SIGREG": True,
-        "USE_CROSS_VARIATE": False,
-        "USE_HIERARCHY": False,
     },
 
-    # Recipe 3: Full World Model (JEPA + Koopman)
-    # Use for: Cross-machine transfer, interpretable dynamics
-    "world_model": {
+    # Recipe 3: JEPA + Koopman (Ablation for interpretability)
+    # Use for: Testing if Koopman helps transfer/long-horizon
+    # NOTE: Koopman is theoretically justified but empirically unproven
+    "koopman": {
         "USE_JEPA": True,
         "USE_KOOPMAN": True,
         "USE_SIGREG": True,
-        "USE_CROSS_VARIATE": False,  # Add if multivariate matters
-        "USE_HIERARCHY": False,       # Add if multi-scale matters
     },
 }
 
@@ -117,30 +123,24 @@ EMA_WARMUP = True
 KOOPMAN_RANK = 64
 KOOPMAN_STABLE = True
 
-# SIGReg config (when enabled)
+# SIGReg config (LeJEPA - provable collapse prevention)
 SIGREG_WEIGHT = 0.1
 SIGREG_NUM_SLICES = 256
 
-# Cross-variate config (when enabled)
-CROSS_VARIATE_LAYERS = 2
-
-# Hierarchy config (when enabled)
-HIERARCHY_FACTORS = [1, 4, 16]
-
 # ============================================================================
-# APPLY RECIPE (Don't edit below unless you know what you're doing)
+# APPLY RECIPE
 # ============================================================================
 
 _recipe = RECIPES[RECIPE]
 USE_JEPA = _recipe["USE_JEPA"]
 USE_KOOPMAN = _recipe["USE_KOOPMAN"]
 USE_SIGREG = _recipe["USE_SIGREG"]
-USE_CROSS_VARIATE = _recipe["USE_CROSS_VARIATE"]
-USE_HIERARCHY = _recipe["USE_HIERARCHY"]
 
-# Derived settings
-USE_LEJEPA_MODE = USE_JEPA and USE_SIGREG and not USE_KOOPMAN
-USE_VICREG = False  # Deprecated, use SIGReg
+# Derived (not user-configurable)
+USE_LEJEPA_MODE = USE_JEPA and USE_SIGREG  # No EMA when using SIGReg
+USE_CROSS_VARIATE = False  # Disabled (untested)
+USE_HIERARCHY = False       # Disabled (untested)
+USE_VICREG = False          # Removed (SIGReg is better)
 
 # ============================================================================
 # EVALUATION THRESHOLDS (Sanity checks, not goals)
@@ -1108,11 +1108,8 @@ class KHJEPAForecaster(nn.Module):
         """Compute all losses."""
         loss_dict = {}
 
-        # Main prediction loss
-        if USE_HUBER_LOSS:
-            mse_loss = F.huber_loss(pred, y, delta=HUBER_DELTA)
-        else:
-            mse_loss = F.mse_loss(pred, y)
+        # Main prediction loss (MSE - simple, no Huber complexity)
+        mse_loss = F.mse_loss(pred, y)
         loss_dict['mse'] = mse_loss
 
         total_loss = mse_loss
@@ -1262,6 +1259,169 @@ def check_health(diagnostics: Dict[str, float], epoch: int) -> Tuple[bool, str]:
 
 
 # ============================================================================
+# TIER 2: CROSS-DOMAIN TRANSFER EVALUATION
+# ============================================================================
+
+@torch.no_grad()
+def cross_domain_transfer_test(
+    model: nn.Module,
+    device: torch.device,
+    source_subset: str = "ETTh1",
+    target_subset: str = "ETTh2",
+) -> Dict[str, float]:
+    """
+    Tier 2 evaluation: Quick cross-domain transfer test.
+
+    Tests if learned representations transfer between similar domains.
+    This is a FAST PROXY for the full cross-machine transfer experiment.
+
+    Protocol:
+    1. Model was trained on source_subset (e.g., ETTh1)
+    2. Evaluate directly on target_subset (e.g., ETTh2) - zero-shot
+    3. Compare to random baseline
+
+    Returns:
+        transfer_ratio: target_mse / source_mse (lower is better transfer)
+        target_mse: MSE on target domain
+        source_mse: MSE on source domain (reference)
+    """
+    try:
+        # Get source and target loaders
+        _, _, source_test, _ = get_dataloaders(
+            BATCH_SIZE, SEQ_LEN, PRED_LEN, subset=source_subset
+        )
+        _, _, target_test, _ = get_dataloaders(
+            BATCH_SIZE, SEQ_LEN, PRED_LEN, subset=target_subset
+        )
+
+        model.eval()
+
+        # Evaluate on source (should be good - trained on this)
+        source_mse, _ = evaluate(model, source_test, device)
+
+        # Evaluate on target (zero-shot transfer)
+        target_mse, _ = evaluate(model, target_test, device)
+
+        # Transfer ratio: how much worse on target vs source
+        # Perfect transfer = 1.0, poor transfer = >>1
+        transfer_ratio = target_mse / (source_mse + 1e-8)
+
+        return {
+            'source_mse': source_mse,
+            'target_mse': target_mse,
+            'transfer_ratio': transfer_ratio,
+            'transfer_success': transfer_ratio < 1.5,  # Within 50% is success
+        }
+    except Exception as e:
+        return {
+            'error': str(e),
+            'transfer_ratio': float('inf'),
+            'transfer_success': False,
+        }
+
+
+def compute_hero_metric(
+    source_model_path: str,
+    device: torch.device,
+) -> Dict[str, float]:
+    """
+    Compute the HERO METRIC: Cross-machine transfer performance.
+
+    For full transfer evaluation, run:
+        python scripts/cross_machine_transfer.py --source aursad --target voraus
+
+    Returns:
+        transfer_ratio: zero_shot_auc / supervised_auc * 100 (%)
+    """
+    return {
+        'note': 'Run scripts/cross_machine_transfer.py for full evaluation',
+        'hero_metric': None,
+    }
+
+
+@torch.no_grad()
+def long_horizon_evaluation(
+    model: nn.Module,
+    loader,
+    device: torch.device,
+    horizons: List[int] = [96, 192, 336, 720],
+) -> Dict[str, float]:
+    """
+    Evaluate model at multiple horizons.
+
+    KEY INSIGHT: World models should EXCEL at long horizons.
+    - Autoregressive models (Chronos): error accumulates
+    - Koopman models: z_{t+k} = K^k z_t, stable if |eigenvalues| < 1
+
+    If KH-JEPA doesn't beat Chronos at horizon 720+, the Koopman
+    inductive bias isn't providing value.
+
+    Returns:
+        mse_96, mse_192, mse_336, mse_720: MSE at each horizon
+        degradation_ratio: mse_720 / mse_96 (lower = more stable)
+    """
+    model.eval()
+    results = {}
+
+    for horizon in horizons:
+        # Need to reload data with different pred_len
+        try:
+            _, _, test_loader, _ = get_dataloaders(
+                batch_size=32,
+                seq_len=SEQ_LEN,
+                pred_len=horizon,
+            )
+
+            total_mse = 0
+            n_samples = 0
+
+            for batch in test_loader:
+                x = batch['x'].to(device)
+                y = batch['y'].to(device)
+
+                # For long horizons, we may need to predict iteratively
+                # if model was trained on shorter horizons
+                if hasattr(model, 'pred_len') and horizon > model.pred_len:
+                    # Iterative prediction for horizons longer than training
+                    pred_chunks = []
+                    current_input = x
+                    remaining = horizon
+
+                    while remaining > 0:
+                        chunk_len = min(model.pred_len, remaining)
+                        pred, _ = model(current_input)
+                        pred_chunks.append(pred[:, :chunk_len])
+
+                        # Shift input: use last seq_len from (input + pred)
+                        combined = torch.cat([current_input, pred], dim=1)
+                        current_input = combined[:, -model.seq_len:, :]
+                        remaining -= chunk_len
+
+                    pred = torch.cat(pred_chunks, dim=1)[:, :horizon]
+                else:
+                    pred, _ = model(x)
+
+                mse = F.mse_loss(pred, y, reduction='sum').item()
+                total_mse += mse
+                n_samples += y.numel()
+
+            results[f'mse_{horizon}'] = total_mse / n_samples
+
+        except Exception as e:
+            results[f'mse_{horizon}'] = float('nan')
+            results[f'error_{horizon}'] = str(e)
+
+    # Degradation ratio: how much worse at long horizon vs short
+    if 'mse_96' in results and 'mse_720' in results:
+        results['degradation_ratio'] = results['mse_720'] / (results['mse_96'] + 1e-8)
+        # Good world model: ratio < 2.0 (error grows sublinearly)
+        # Autoregressive: ratio >> 2.0 (error accumulates)
+        results['stable_long_horizon'] = results['degradation_ratio'] < 3.0
+
+    return results
+
+
+# ============================================================================
 # TRAINING
 # ============================================================================
 
@@ -1380,18 +1540,14 @@ def main():
         use_koopman=USE_KOOPMAN,
         koopman_rank=KOOPMAN_RANK,
         koopman_stable=KOOPMAN_STABLE,
-        # SIGReg (LeJEPA, 2024)
+        # SIGReg (LeJEPA - provable collapse prevention)
         use_sigreg=USE_SIGREG,
         sigreg_weight=SIGREG_WEIGHT,
         sigreg_num_slices=SIGREG_NUM_SLICES,
-        # VICReg (legacy)
-        use_vicreg=USE_VICREG,
-        vicreg_var_weight=VICREG_VAR_WEIGHT,
-        vicreg_cov_weight=VICREG_COV_WEIGHT,
-        use_cross_variate=USE_CROSS_VARIATE,
-        cross_variate_layers=CROSS_VARIATE_LAYERS,
-        use_hierarchy=USE_HIERARCHY,
-        hierarchy_factors=HIERARCHY_FACTORS,
+        # Disabled features (kept in model for future use)
+        use_vicreg=False,
+        use_cross_variate=False,
+        use_hierarchy=False,
         use_patches=USE_PATCHES,
         patch_len=PATCH_LEN,
         stride=STRIDE,
@@ -1496,13 +1652,36 @@ def main():
     if 'K_max_eigval' in final_diag:
         print(f"  K_max_eigval: {final_diag['K_max_eigval']:.4f} (target: < 1.0)")
 
-    print("\n--- Next Steps ---")
+    # Tier 2: Cross-domain transfer test (quick proxy for hero metric)
+    transfer_results = None
     if test_mse < THRESHOLDS['mse_sane']:
-        print("  1. Run cross-domain transfer: train h1 -> test h2")
-        print("  2. Run anomaly detection on AURSAD")
-        print("  3. If both pass, run full cross-machine transfer")
+        print("\n--- Tier 2: Cross-Domain Transfer Test ---")
+        print("  Testing ETTh1 -> ETTh2 transfer (quick proxy)...")
+        transfer_results = cross_domain_transfer_test(model, device)
+
+        if 'error' not in transfer_results:
+            print(f"  Source MSE (h1): {transfer_results['source_mse']:.4f}")
+            print(f"  Target MSE (h2): {transfer_results['target_mse']:.4f}")
+            print(f"  Transfer ratio:  {transfer_results['transfer_ratio']:.2f}x")
+            if transfer_results['transfer_success']:
+                print("  TRANSFER: PASS (ratio < 1.5)")
+            else:
+                print("  TRANSFER: NEEDS IMPROVEMENT (ratio >= 1.5)")
+        else:
+            print(f"  Error: {transfer_results['error']}")
+
+    print("\n--- Next Steps ---")
+    if test_mse < THRESHOLDS['mse_sane'] and transfer_results and transfer_results.get('transfer_success'):
+        print("  TIER 1+2 PASSED: Ready for full evaluation")
+        print("  Run: python scripts/cross_machine_transfer.py --source aursad --target voraus")
+        print("  This computes the HERO METRIC for the paper.")
+    elif test_mse < THRESHOLDS['mse_sane']:
+        print("  TIER 1 PASSED, TIER 2 NEEDS WORK: Improve transfer")
+        print("  - Check if Koopman is helping or hurting")
+        print("  - Try world_model recipe for better dynamics")
     else:
-        print("  1. Debug: check data, learning rate, architecture")
+        print("  TIER 1 FAILED: Debug basic training first")
+        print("  - Check data loading, learning rate, architecture")
     print("=" * 60)
 
     # Save results
@@ -1514,6 +1693,15 @@ def main():
         'diagnostics': final_diag,
         'elapsed_seconds': elapsed,
         'parameters': n_params,
+        # Tier 2: Transfer evaluation
+        'transfer': transfer_results if transfer_results else None,
+        'tier1_pass': test_mse < THRESHOLDS['mse_sane'],
+        'tier2_pass': transfer_results.get('transfer_success') if transfer_results else False,
+        'ready_for_hero_metric': (
+            test_mse < THRESHOLDS['mse_sane'] and
+            transfer_results and
+            transfer_results.get('transfer_success', False)
+        ),
         'config': {
             'recipe': RECIPE,
             'epochs': EPOCHS,

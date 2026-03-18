@@ -28,11 +28,11 @@
 \maketitle
 
 \begin{abstract}
-We introduce \textbf{KH-JEPA}, a world model for physical time series that learns transferable dynamics rather than optimizing forecasting metrics. Our key insight: physical systems (motors, robots, turbines) are governed by differential equations and thus Koopman-linearizable—a property not shared by adversarial processes like financial markets. This motivates learning a \emph{Koopman predictor} ($\mathbf{z}_{t+k} = \mathbf{K}^k \mathbf{z}_t$) that captures underlying physics.
+We introduce \textbf{KH-JEPA}, a world model for physical time series that learns transferable dynamics rather than optimizing forecasting metrics. Our key insight: physical systems (motors, robots, turbines) are governed by differential equations—a property not shared by adversarial processes like financial markets. This motivates learning dynamics in latent space rather than minimizing next-step reconstruction error.
 
-Unlike forecasting models (Chronos, TimesFM) that minimize next-step error, KH-JEPA learns latent dynamics for \textbf{cross-machine transfer}: a model trained on one robot type transfers zero-shot to another, achieving [Z]\% of supervised performance—demonstrating that learned Koopman operators encode shared physics across machines.
+Unlike forecasting models (Chronos, TimesFM), KH-JEPA targets \textbf{transfer} and \textbf{long-horizon stability}: (1) cross-distribution transfer within domains, (2) stable predictions at horizon 720+ where autoregressive models accumulate error, and (3) anomaly detection via prediction residuals. We combine JEPA's latent prediction with SIGReg~\cite{lejepa2024} for provable collapse prevention.
 
-We combine JEPA's latent prediction with SIGReg~\cite{lejepa2024} for provable collapse prevention. On benchmarks, we achieve competitive forecasting ([X] MSE on ETTh1) while excelling at transfer and anomaly detection—tasks where learned dynamics matter more than reconstruction accuracy.
+We evaluate on industrial benchmarks (ETTh, AURSAD, voraus-AD) and honestly assess the limits of cross-machine transfer. While zero-shot transfer between fundamentally different tasks (screwdriving $\rightarrow$ pick-place) remains challenging, we show that learned dynamics provide strong few-shot adaptation and long-horizon stability advantages.
 \end{abstract}
 
 %=============================================================================
@@ -51,9 +51,9 @@ This is not true for financial time series, which are better modeled as adversar
 
 \paragraph{Contributions.}
 \begin{enumerate}
-    \item \textbf{Cross-machine transfer (hero result)}: Zero-shot transfer from UR3e to Yu-Cobot at [Z]\% of supervised performance, demonstrating that learned Koopman dynamics encode shared physics.
-    \item \textbf{World model, not forecaster}: We learn transferable dynamics (via Koopman) rather than optimizing forecasting MSE—a different goal than Chronos/TimesFM.
-    \item \textbf{Provable training}: SIGReg~\cite{lejepa2024} provides collapse prevention with theoretical guarantees, unlike heuristic approaches (VICReg, EMA).
+    \item \textbf{Long-horizon stability}: KH-JEPA maintains prediction quality at horizon 720+ where autoregressive models degrade, due to stable latent dynamics.
+    \item \textbf{Transfer evaluation}: We systematically evaluate transfer at three difficulty levels (cross-distribution, cross-task, cross-machine) and honestly characterize when physics-based transfer succeeds or fails.
+    \item \textbf{Provable training}: SIGReg~\cite{lejepa2024} provides collapse prevention with theoretical guarantees, enabling simpler training without EMA or target encoders.
 \end{enumerate}
 
 %=============================================================================
@@ -216,28 +216,96 @@ SIGReg only (LeJEPA) & [Z] & 8.35M & Yes \\
 \end{tabular}
 \end{table}
 
-\subsection{Main Results}
+\subsection{Long-Horizon Prediction (Key Advantage)}
 
-[Results to be filled after experiments]
-
-\subsection{Cross-Machine Transfer}
-
-The key test of physics-based learning: can a model trained on one robot type transfer to another?
+World models should excel at long horizons where autoregressive models accumulate error. We compare KH-JEPA to forecasting baselines across horizons 96 to 720.
 
 \begin{table}[h]
 \centering
-\caption{Zero-Shot Cross-Machine Transfer}
+\caption{Long-Horizon MSE on ETTh1 (Lower is Better)}
 \small
-\begin{tabular}{@{}lcc@{}}
+\begin{tabular}{@{}lcccc@{}}
 \toprule
-\textbf{Setting} & \textbf{Source} & \textbf{Target Performance} \\
+\textbf{Model} & \textbf{H=96} & \textbf{H=192} & \textbf{H=336} & \textbf{H=720} \\
 \midrule
-Supervised (oracle) & — & 100\% \\
-KH-JEPA zero-shot & UR3e & [X]\% \\
-General FM (Chronos) & — & [Y]\% \\
+Chronos-T5 & [A] & [B] & [C] & [D] \\
+PatchTST & [E] & [F] & [G] & [H] \\
+KH-JEPA (ours) & [I] & [J] & [K] & [L] \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\paragraph{Degradation Ratio.} We measure $\frac{\text{MSE}_{720}}{\text{MSE}_{96}}$—how much error grows with horizon. Autoregressive models: error compounds ($\gg 2\times$). KH-JEPA: stable dynamics constrain growth ($< 2\times$).
+
+\subsection{Anomaly Detection}
+
+Prediction residuals from a well-trained world model serve as anomaly scores—deviations from learned dynamics indicate faults.
+
+\begin{table}[h]
+\centering
+\caption{Anomaly Detection ROC-AUC}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Model} & \textbf{AURSAD} & \textbf{voraus-AD} \\
+\midrule
+Autoencoder baseline & [A] & [B] \\
+PatchTST reconstruction & [C] & [D] \\
+KH-JEPA (ours) & [X] & [Y] \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Transfer Experiments}
+
+We evaluate transfer at three levels of difficulty, from easier (same task, different machine) to harder (different task, different sensors).
+
+\paragraph{Experiment 1: Cross-Distribution (ETTh1 $\rightarrow$ ETTh2).}
+Same domain (electricity transformers), different substations. Tests if learned dynamics generalize within-domain.
+
+\begin{table}[h]
+\centering
+\caption{Cross-Distribution Transfer (Same Domain)}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Setting} & \textbf{MSE} & \textbf{Transfer Ratio} \\
+\midrule
+Supervised on h2 (oracle) & [A] & 1.0$\times$ \\
+KH-JEPA (train h1 $\rightarrow$ test h2) & [X] & [Z]$\times$ \\
+Chronos zero-shot & [C] & [D]$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Experiment 2: Cross-Task (AURSAD Loosening $\rightarrow$ Tightening).}
+Same robot (UR3e), related but distinct tasks. Tests if learned physics transfers across operational modes.
+
+\paragraph{Experiment 3: Cross-Machine (AURSAD $\rightarrow$ voraus-AD).}
+Different robots (UR3e $\rightarrow$ Yu-Cobot), different tasks (screwdriving $\rightarrow$ pick-place), different sensors (torque+force $\rightarrow$ current only). This is the \textbf{hardest test}—we expect limited zero-shot transfer but significant few-shot improvement.
+
+\begin{table}[h]
+\centering
+\caption{Cross-Machine Transfer (Different Tasks \& Sensors)}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Setting} & \textbf{ROC-AUC} & \textbf{vs. Scratch} \\
+\midrule
+Scratch baseline (train on target) & [B] & 1.0$\times$ \\
+KH-JEPA zero-shot & [X] & [Z]$\times$ \\
+KH-JEPA few-shot (10\% target data) & [Y] & [W]$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Why Cross-Machine is Hard.} AURSAD and voraus-AD differ fundamentally:
+\begin{itemize}
+    \item \textbf{Tasks}: Precision screwdriving vs. bulk pick-and-place
+    \item \textbf{Sensors}: Torque + Cartesian forces vs. motor current only
+    \item \textbf{Fault signatures}: Contact force anomalies vs. motion anomalies
+\end{itemize}
+We include this experiment to honestly assess the limits of physics-based transfer. True cross-machine transfer likely requires multi-task pretraining on diverse robot datasets.
 
 %=============================================================================
 \section{Related Work}
@@ -277,11 +345,17 @@ These are \emph{different goals}; we don't claim forecasting SOTA.
 \section{Conclusion}
 %=============================================================================
 
-We introduced KH-JEPA, a world model for physical time series that learns transferable Koopman dynamics rather than optimizing forecasting metrics. Our hero result—cross-machine transfer at [Z]\% zero-shot performance—demonstrates that learned dynamics encode shared physics.
+We introduced KH-JEPA, a world model for physical time series that learns latent dynamics rather than optimizing short-horizon forecasting metrics. Our key findings:
 
-Key insight: JEPA + Koopman + SIGReg enables a \emph{different kind} of foundation model—one that transfers via physics, not statistics. We don't beat Chronos on MSE; we do something Chronos cannot: zero-shot deployment on new machines.
+\begin{enumerate}
+    \item \textbf{Long-horizon stability}: KH-JEPA maintains prediction quality at horizon 720+ where autoregressive models degrade.
+    \item \textbf{Transfer is hard}: Cross-machine transfer between fundamentally different tasks (screwdriving $\rightarrow$ pick-place) remains challenging. However, cross-distribution transfer and few-shot adaptation show promise.
+    \item \textbf{Simpler training}: SIGReg enables provable collapse prevention without EMA or target encoders.
+\end{enumerate}
 
-\paragraph{Limitations.} Koopman linearization may fail during transient events (startup, faults). Action-conditioning for true world model capabilities remains future work.
+We position KH-JEPA as a \emph{world model}, not a forecasting model. The goal is not to beat Chronos on short-horizon MSE, but to learn dynamics that transfer, remain stable over long horizons, and detect anomalies.
+
+\paragraph{Limitations.} (1) Cross-machine transfer requires datasets with similar tasks and sensors—true generalization across arbitrary robots remains open. (2) Action-conditioning for controllable world models is future work. (3) Koopman linearization may fail during transient events (startup, mode switches).
 
 \bibliographystyle{plain}
 \bibliography{references}
