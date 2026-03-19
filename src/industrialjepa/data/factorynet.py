@@ -616,8 +616,9 @@ class FactoryNetDataset(Dataset):
         np.random.seed(42)
 
         # Limit episodes for memory optimization
+        logger.info(f"Dataset has {len(self.episode_ids)} episodes total")
         if self.config.max_episodes is not None and len(self.episode_ids) > self.config.max_episodes:
-            logger.info(f"Limiting to {self.config.max_episodes} episodes (from {len(self.episode_ids)})")
+            logger.info(f"  -> Limiting to {self.config.max_episodes} episodes (memory optimization)")
             self.episode_ids = list(np.random.choice(self.episode_ids, self.config.max_episodes, replace=False))
 
         # Get fault labels from metadata (preferred) or fallback to column
