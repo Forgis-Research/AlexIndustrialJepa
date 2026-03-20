@@ -1,108 +1,168 @@
-# Cross-Machine Transfer Research State
+# Many-to-1 Transfer Learning Research State
 
-Last updated: [AUTO-UPDATE THIS]
+Last updated: 2025-03-20
+
+## Core Insight
+
+**1-to-1 transfer is nearly impossible. Many-to-1 is tractable.**
+
+Training on multiple source machines forces the model to learn domain-invariant features.
+
+---
 
 ## Current Status
 
-| Objective | Target | Current Best | Status |
-|-----------|--------|--------------|--------|
-| Anomaly Detection AUC | ≥ 0.70 | TBD | ⏳ Not started |
-| Forecasting Transfer Ratio | ≤ 1.5 | TBD | ⏳ Not started |
+### Track 1: Bearing Transfer (Validation)
+| Metric | Target | Current Best | Status |
+|--------|--------|--------------|--------|
+| Diagnosis Accuracy | ≥ 80% | - | ⏳ Not started |
+| RUL Transfer Ratio | ≤ 2.0 | - | ⏳ Not started |
+
+### Track 2: Robot Transfer (Novel)
+| Metric | Target | Current Best | Status |
+|--------|--------|--------------|--------|
+| Avg Anomaly AUC | ≥ 0.60 | - | ⏳ Not started |
+| Avg Forecast Ratio | ≤ 2.5 | - | ⏳ Not started |
+
+---
 
 ## Datasets
 
-| Dataset | Robot | Task | Episodes | Signals |
-|---------|-------|------|----------|---------|
-| AURSAD | UR3e (6-DOF) | Screwdriving | 4094 | torque, position, velocity |
-| Voraus | Yu-Cobot (6-DOF) | Screwdriving | 2122 | voltage, position, velocity |
+### Track 1: Bearings (via PHMD library)
 
-**Key difference**: AURSAD has torque, Voraus has voltage. Both are "effort" but different modalities.
+| Dataset | Units | Conditions | Signals | Task |
+|---------|-------|------------|---------|------|
+| CWRU | 161 | 4 loads | Vibration | Diagnosis |
+| PHM 2012 | 17 | 3 conditions | Vibration | RUL |
+| XJTU-SY | 15 | 2 conditions | Vibration | RUL |
+| Paderborn (target) | Multiple | 3 speeds | Vibration | Diagnosis |
+
+**Advantage**: Same signal type across all datasets.
+
+### Track 2: Robot Manipulators
+
+| Dataset | Robot | Joints | Signals | Source |
+|---------|-------|--------|---------|--------|
+| AURSAD | UR3e | 6 | pos, vel, torque | HuggingFace |
+| Voraus-AD | Yu-Cobot | 6 | pos, vel, voltage | HuggingFace |
+| UR3 CobotOps | UR3 | 6 | current, temp, speed | UCI |
+| NIST UR5 | UR5 | 6 | pos, vel, current | NIST |
+| Robot Failures | PUMA 560 | 6 | force, torque | UCI |
+
+**Challenge**: Different signal types require semantic alignment.
+
+---
 
 ## Working Hypotheses
 
-### H1: Distribution Shift is Manageable
-- [ ] Validate with MMD/Wasserstein analysis
-- Status: Untested
+### H1: Multi-Source Training Enables Generalization
+- Training on N-1 sources forces learning of domain-invariant features
+- Status: ⏳ Untested
 
-### H2: Physics Transfers (Effort-Dynamics)
-- [ ] Test if setpoint→effort relationship is similar
-- Status: Untested
+### H2: Signal Semantics Matter More Than Exact Values
+- Normalized effort (torque/current/voltage) should transfer
+- Status: ⏳ Untested
 
-### H3: Anomaly Signatures are Universal
-- [ ] Test if source-trained anomaly detector works on target
-- Status: Untested
+### H3: Bearings Are Easier Than Robots
+- Same signal type (vibration) should transfer well
+- Validates approach before harder robot problem
+- Status: ⏳ Untested
+
+---
 
 ## Failed Approaches (DO NOT REPEAT)
 
 | Approach | Why it Failed | Date |
 |----------|---------------|------|
-| (none yet) | | |
+| 1-to-1 AURSAD→Voraus | Model overfits to source-specific features | 2025-03 |
+
+---
 
 ## Promising Directions
 
 | Direction | Evidence | Priority |
 |-----------|----------|----------|
-| (none yet) | | |
+| Many-to-1 training | RT-X, Open X-Embodiment | HIGH |
+| Semantic signal embedding | CHARM paper | MEDIUM |
+| Domain-adversarial training | DANN literature | MEDIUM |
+
+---
 
 ## Key Papers & Insights
+
+### RT-X / Open X-Embodiment (Google, 2023)
+- Key idea: Co-train on 22+ robot types
+- Result: 50%+ improvement over single-source
+- Insight: **Many sources → better generalization**
 
 ### CHARM (C3 AI, May 2025)
 - URL: https://arxiv.org/abs/2505.14543
 - Key idea: Semantic signal embeddings via LLM
 - Result: SOTA on cross-machine transfer
-- Applicable: Yes, for signal alignment
+- Applicable: For signal alignment in Track 2
 
-### RT-X (Google, 2023)
-- Key idea: Co-training on diverse robots
-- Result: Emergent cross-embodiment transfer
-- Applicable: Partially (we have only 2 robots)
+### Domain Generalization Literature
+- Key idea: Train on N-1 domains, test on held-out
+- Standard setup for transfer learning
+- Applicable: Our exact protocol
 
-### TIMETIC (2023)
-- URL: https://arxiv.org/abs/2312.16386
-- Key idea: Entropy-based transferability estimation
-- Result: Predicts transfer success before training
-- Applicable: Yes, for early validation
+---
 
 ## Research Queue
 
-Things to investigate:
-1. [ ] Run distribution analysis
-2. [ ] Run linear probe
-3. [ ] Research domain adaptation for time series
-4. [ ] Try RevIN normalization
-5. [ ] Try separate encoders for different signal types
+### Phase 1: Setup (TODAY)
+- [x] Install phmd, ucimlrepo
+- [ ] Run 00_setup_datasets.py
+- [ ] Validate all datasets load
+
+### Phase 2: Track 1 - Bearings
+- [ ] Run 01_bearing_baseline.py
+- [ ] Analyze results
+- [ ] Iterate if accuracy < 80%
+
+### Phase 3: Track 2 - Robots
+- [ ] Create unified robot data loader
+- [ ] Run Leave-One-Robot-Out experiments
+- [ ] Iterate if metrics not met
+
+---
 
 ## Architecture Notes
 
-Current architecture:
-- Encoder: Transformer with channel-independent processing
-- Hidden dim: 256
-- Layers: 4
-- Training: JEPA-style self-supervised
+### Current: Simple CNN Encoder + Classifier
+```
+Input (N, 1, seq_len)
+  → Conv1D stack
+  → AdaptiveAvgPool
+  → Linear projection (embedding)
+  → Classification head
+```
 
-Ideas for modification:
-- [ ] Add domain indicator
-- [ ] Use domain-adversarial training
-- [ ] Add physics constraints
-
-## Debugging Log
-
-### Memory Issues
-- Problem: Process dies when loading Voraus after AURSAD
-- Root cause: Unknown (not OOM based on checks)
-- Workaround: TBD
-
-## Next Actions
-
-1. [ ] Fix memory issue with debug_memory.py
-2. [ ] Run statistical analysis
-3. [ ] Get baseline transfer numbers
-4. [ ] Iterate on improvements
+### Ideas for Improvement
+- [ ] Add domain tokens
+- [ ] Domain-adversarial training (DANN)
+- [ ] RevIN per-domain normalization
+- [ ] Multi-task learning with domain ID
+- [ ] Gradient blending
 
 ---
 
 ## Session Notes
 
-### Session: [DATE]
+### Session: 2025-03-20
 
-(Add notes here during research)
+**Goal**: Reformulate research from 1-to-1 (impossible) to many-to-1 (tractable)
+
+**Progress**:
+1. Deep web research on available datasets
+2. Found 5+ robot datasets, 4+ bearing datasets
+3. Created MULTI_SOURCE_DATASETS.md inventory
+4. Created MANY_TO_ONE_PROMPT.md for overnight research
+5. Updated OBJECTIVES_STATUS.md with new targets
+6. Created experiment scripts:
+   - 00_setup_datasets.py
+   - 01_bearing_baseline.py
+
+**Key Insight**: 1-to-1 transfer is nearly impossible because model can't distinguish domain-specific vs universal features. Many-to-1 forces learning invariant representations.
+
+**Next**: Run setup script on VM, start overnight research.

@@ -1,16 +1,18 @@
 #!/bin/bash
-# Start overnight cross-machine transfer research
+# Start overnight Many-to-1 transfer learning research
 # Run this before starting Claude agent
 
 set -e
 
 echo "=============================================="
-echo "Cross-Machine Transfer Overnight Research"
+echo "Many-to-1 Transfer Learning Overnight Research"
 echo "=============================================="
 
 cd ~/IndustrialJEPA
 
 # Pull latest
+echo ""
+echo "Pulling latest code..."
 git pull
 
 # Check GPU
@@ -23,40 +25,43 @@ echo ""
 echo "Memory Status:"
 free -h
 
-# Quick sanity check
+# Install dependencies
 echo ""
-echo "Quick Data Check:"
-python -c "
-from industrialjepa.data.factorynet import FactoryNetDataset, FactoryNetConfig
+echo "Installing dependencies..."
+pip install -q phmd ucimlrepo
 
-# Test AURSAD
-config = FactoryNetConfig(data_source='aursad', max_episodes=10)
-ds = FactoryNetDataset(config, split='train')
-print(f'AURSAD: {len(ds)} windows')
-
-# Test Voraus
-config = FactoryNetConfig(data_source='voraus', max_episodes=10)
-ds = FactoryNetDataset(config, split='train')
-print(f'Voraus: {len(ds)} windows')
-
-print('Data loading: OK')
-"
-
-# Show current status
+# Run setup validation
 echo ""
 echo "=============================================="
-echo "Current Objectives Status:"
+echo "Validating Datasets..."
 echo "=============================================="
-cat autoresearch/OBJECTIVES_STATUS.md | head -30
+python autoresearch/experiments/00_setup_datasets.py
+
+# Show objectives
+echo ""
+echo "=============================================="
+echo "Current Objectives:"
+echo "=============================================="
+cat autoresearch/OBJECTIVES_STATUS.md | head -50
 
 echo ""
 echo "=============================================="
 echo "Ready for overnight research!"
 echo "=============================================="
 echo ""
+echo "TRACK 1 (Bearings): Validate approach on clean data"
+echo "  Sources: CWRU + PHM2012 + XJTU-SY"
+echo "  Target:  Paderborn (zero-shot)"
+echo "  Goal:    Accuracy >= 80%"
+echo ""
+echo "TRACK 2 (Robots): Novel contribution"
+echo "  Sources: 4 robot datasets"
+echo "  Target:  1 held-out robot"
+echo "  Goal:    Avg AUC >= 0.60"
+echo ""
 echo "Next: Start Claude agent with:"
 echo "  claude --dangerously-skip-permissions"
 echo ""
 echo "Then paste prompt from:"
-echo "  autoresearch/CROSS_MACHINE_PROMPT.md"
+echo "  autoresearch/MANY_TO_ONE_PROMPT.md"
 echo ""

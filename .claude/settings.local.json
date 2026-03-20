@@ -14,7 +14,8 @@
       "Bash(git push)",
       "Bash(git stash:*)",
       "Bash(ls:*)",
-      "Bash(du:*)"
+      "Bash(du:*)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
