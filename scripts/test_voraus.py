@@ -4,8 +4,7 @@
 from industrialjepa.data.factorynet import FactoryNetDataset, FactoryNetConfig
 
 config = FactoryNetConfig(
-    dataset='voraus',
-    split='train',
+    data_source='voraus',
     max_episodes=100,
     window_size=256,
     stride=128,
