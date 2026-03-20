@@ -369,7 +369,8 @@ class FactoryNetDataset(Dataset):
         if self.config.data_source and "dataset_source" in self.df.columns:
             source = self.config.data_source.lower()
             original_len = len(self.df)
-            self.df = self.df[self.df["dataset_source"].str.lower() == source].reset_index(drop=True)
+            # Use 'contains' for flexible matching (e.g., "voraus" matches "voraus_AD")
+            self.df = self.df[self.df["dataset_source"].str.lower().str.contains(source)].reset_index(drop=True)
             logger.info(f"Filtered to {source}: {len(self.df)} rows (from {original_len})")
 
     def _load_metadata(self, data_dir: Optional[str]):

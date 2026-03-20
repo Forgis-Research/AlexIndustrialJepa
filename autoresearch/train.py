@@ -121,7 +121,7 @@ PRED_LEN = 96
 # Model architecture (smaller to avoid overfitting on ETTh1's ~8500 training samples)
 D_MODEL = 128
 N_HEADS = 4
-E_LAYERS = 2
+E_LAYERS = 1
 D_FF = 256
 DROPOUT = 0.3
 
@@ -151,6 +151,8 @@ _recipe = RECIPES[RECIPE]
 USE_JEPA = _recipe["USE_JEPA"]
 USE_KOOPMAN = _recipe["USE_KOOPMAN"]
 USE_SIGREG = _recipe["USE_SIGREG"]
+
+USE_REVIN = True  # RevIN helps transfer even on z-scored data
 
 # Derived (not user-configurable)
 USE_LEJEPA_MODE = USE_JEPA and USE_SIGREG  # No EMA when using SIGReg
@@ -765,7 +767,7 @@ class PatchTSTForecaster(nn.Module):
     def __init__(self, num_features, seq_len, pred_len, d_model=128, n_heads=4,
                  e_layers=2, d_ff=256, dropout=0.1, patch_len=16, stride=8,
                  use_jepa=False, latent_dim=128, use_sigreg=False,
-                 sigreg_weight=0.01, sigreg_num_slices=256):
+                 sigreg_weight=0.01, sigreg_num_slices=256, use_revin=True):
         super().__init__()
         self.num_features = num_features
         self.seq_len = seq_len
@@ -794,7 +796,9 @@ class PatchTSTForecaster(nn.Module):
         self.stride = stride
         self.dropout_layer = nn.Dropout(dropout)
 
-        self.revin = RevIN(num_features)
+        self.use_revin = use_revin
+        if use_revin:
+            self.revin = RevIN(num_features)
 
         # JEPA components
         if use_jepa:
@@ -834,8 +838,9 @@ class PatchTSTForecaster(nn.Module):
     def forward(self, x, y=None):
         B, T, C = x.shape
 
-        # RevIN normalize
-        x = self.revin(x, 'norm')
+        # RevIN normalize (optional)
+        if self.use_revin:
+            x = self.revin(x, 'norm')
 
         # Encode
         h = self._encode_patches(x)  # (B*C, num_patches, d_model)
@@ -848,7 +853,8 @@ class PatchTSTForecaster(nn.Module):
         pred = pred.reshape(B, C, self.pred_len).permute(0, 2, 1)
 
         # RevIN denormalize
-        pred = self.revin(pred, 'denorm')
+        if self.use_revin:
+            pred = self.revin(pred, 'denorm')
 
         loss_dict = {}
         if y is not None:
@@ -865,9 +871,12 @@ class PatchTSTForecaster(nn.Module):
                 z_pred = self.latent_predictor(z_context)  # (B*C, latent_dim)
 
                 # Target latent: encode target window
-                y_norm = self.revin(y, 'norm')
+                if self.use_revin:
+                    y_input = self.revin(y, 'norm')
+                else:
+                    y_input = y
                 with torch.no_grad():
-                    h_target = self._encode_patches(y_norm)  # (B*C, num_patches, d_model)
+                    h_target = self._encode_patches(y_input)  # (B*C, num_patches, d_model)
                     z_target = self.to_latent(h_target.mean(dim=1))  # (B*C, latent_dim)
 
                 jepa_loss = F.mse_loss(z_pred, z_target.detach())
@@ -1722,6 +1731,7 @@ def main():
             use_sigreg=USE_SIGREG,
             sigreg_weight=SIGREG_WEIGHT,
             sigreg_num_slices=SIGREG_NUM_SLICES,
+            use_revin=USE_REVIN,
         ).to(device)
     else:
         model = KHJEPAForecaster(

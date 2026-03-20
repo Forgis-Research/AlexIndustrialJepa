@@ -47,7 +47,7 @@ class CrossTaskConfig:
 
     # Signal configuration
     setpoint_dim: int = 12  # 6 pos + 6 vel
-    effort_dim: int = 12    # 6 torque + 6 Cartesian forces
+    effort_dim: int = 6     # 6 joint currents
 
     # Model
     hidden_dim: int = 256
@@ -192,14 +192,15 @@ def create_phase_dataloader(
     from industrialjepa.data.factorynet import FactoryNetDataset, FactoryNetConfig
 
     ds_config = FactoryNetConfig(
-        dataset_name="Forgis/factorynet-hackathon",
+        dataset_name="Forgis/FactoryNet_Dataset",
+        data_source="aursad",  # Only download AURSAD parquet files
         subset="aursad",
         window_size=config.window_size,
         stride=config.stride,
         normalize=True,
         norm_mode="global",
         setpoint_signals=["position", "velocity"],
-        effort_signals=["torque", "force"],  # Include Cartesian forces
+        effort_signals=["current"],  # AURSAD has current, not torque
         train_healthy_only=healthy_only,
         unified_setpoint_dim=config.setpoint_dim,
         unified_effort_dim=config.effort_dim,
@@ -208,13 +209,33 @@ def create_phase_dataloader(
 
     dataset = FactoryNetDataset(ds_config, split=split)
 
-    # Filter by phase
+    # Filter by phase: AURSAD odd episode_ids = loosening, even = tightening
+    # Build episode-level phase map first (fast), then filter windows
+    phase_map = {}
+    for i in range(len(dataset)):
+        try:
+            item = dataset[i]
+            meta = item[2]
+            ep_id = str(meta.get("episode_id", ""))
+            if ep_id not in phase_map:
+                try:
+                    ep_num = int(ep_id.split("_")[-1])
+                    phase_map[ep_id] = "loosening" if ep_num % 2 == 1 else "tightening"
+                except (ValueError, IndexError):
+                    phase_map[ep_id] = "tightening"
+        except Exception:
+            continue
+
     phase_indices = []
     for i in range(len(dataset)):
         try:
             item = dataset[i]
-            if item[2].get("phase") == phase:
-                if not healthy_only or not item[2].get("is_anomaly", False):
+            meta = item[2]
+            ep_id = str(meta.get("episode_id", ""))
+            ep_phase = phase_map.get(ep_id, "tightening")
+
+            if ep_phase == phase:
+                if not healthy_only or not meta.get("is_anomaly", False):
                     phase_indices.append(i)
         except Exception:
             continue
@@ -437,9 +458,11 @@ def main():
     print("=" * 70)
     print(f"{'Setting':<30} {'Pred Error':>15} {'ROC-AUC':>15}")
     print("-" * 70)
-    print(f"{'Source (loosening)':<30} {source_results.get('mean_pred_error', 'N/A'):>15} {'N/A':>15}")
-    print(f"{'Zero-shot (tightening)':<30} {zero_shot_results['mean_pred_error']:>15.4f} {zero_shot_results.get('roc_auc', 'N/A'):>15}")
-    print(f"{'Scratch (tightening)':<30} {scratch_results['mean_pred_error']:>15.4f} {scratch_results.get('roc_auc', 'N/A'):>15}")
+    def fmt_val(v):
+        return f"{v:.4f}" if isinstance(v, (int, float)) and v is not None else "N/A"
+    print(f"{'Source (loosening)':<30} {fmt_val(source_results.get('mean_pred_error')):>15} {'N/A':>15}")
+    print(f"{'Zero-shot (tightening)':<30} {fmt_val(zero_shot_results['mean_pred_error']):>15} {fmt_val(zero_shot_results.get('roc_auc')):>15}")
+    print(f"{'Scratch (tightening)':<30} {fmt_val(scratch_results['mean_pred_error']):>15} {fmt_val(scratch_results.get('roc_auc')):>15}")
     print("-" * 70)
 
     # Transfer ratio

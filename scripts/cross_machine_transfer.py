@@ -330,16 +330,23 @@ def create_dataloader(
     # These exist in both AURSAD and voraus-AD
     if use_shared_signals:
         # Only use joint position/velocity for setpoint
-        # Only use joint torque for effort (both have this)
-        # Use "joint_torque" to exclude Cartesian forces (not in voraus-AD)
+        # Both AURSAD and voraus have effort_voltage_0..5
         setpoint_signals = ["position", "velocity"]
-        effort_signals = ["joint_torque"]  # Both have effort_torque_0..5
+        effort_signals = ["voltage"]  # Common to both datasets
     else:
         setpoint_signals = ["position", "velocity"]
-        effort_signals = ["torque", "current"]
+        effort_signals = ["voltage", "current", "torque"]
+
+    # Map dataset name to data_source for parquet filtering
+    data_source_map = {"aursad": "aursad", "voraus": "voraus", "voraus-ad": "voraus"}
+    data_source = data_source_map.get(dataset_name.lower(), dataset_name.lower())
+
+    # Limit episodes for voraus to avoid OOM (11.6M rows is too much)
+    max_eps = 500 if data_source == "voraus" else None
 
     ds_config = FactoryNetConfig(
-        dataset_name="Forgis/factorynet-hackathon",
+        dataset_name="Forgis/FactoryNet_Dataset",
+        data_source=data_source,
         subset=dataset_name,
         window_size=config.window_size,
         stride=config.stride,
@@ -350,6 +357,7 @@ def create_dataloader(
         train_healthy_only=(split == "train"),
         unified_setpoint_dim=config.setpoint_dim,
         unified_effort_dim=config.effort_dim,
+        max_episodes=max_eps,
     )
 
     dataset = FactoryNetDataset(ds_config, split=split)
