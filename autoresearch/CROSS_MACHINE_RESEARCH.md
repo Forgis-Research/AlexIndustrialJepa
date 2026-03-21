@@ -1,16 +1,13 @@
 # Many-to-1 Transfer Learning Research State
 
-Last updated: 2025-03-20
-
-## Core Insight
-
-**1-to-1 transfer is nearly impossible. Many-to-1 is tractable.**
-
-Training on multiple source machines forces the model to learn domain-invariant features.
-
----
+Last updated: 2026-03-20 22:15
 
 ## Current Status
+
+| Objective | Target | Current Best | Status |
+|-----------|--------|--------------|--------|
+| Many-to-1 Forecasting Transfer | Ratio ≤ 1.5 | 1.14 (1-to-1) | ⏳ Reformulating |
+| Cross-Machine Anomaly Detection | AUC ≥ 0.70 | 0.53 (1-to-1) | ⏳ Reformulating |
 
 ### Track 1: Bearing Transfer (Validation)
 | Metric | Target | Current Best | Status |
@@ -21,12 +18,26 @@ Training on multiple source machines forces the model to learn domain-invariant 
 ### Track 2: Robot Transfer (Novel)
 | Metric | Target | Current Best | Status |
 |--------|--------|--------------|--------|
-| Avg Anomaly AUC | ≥ 0.60 | - | ⏳ Not started |
-| Avg Forecast Ratio | ≤ 2.5 | - | ⏳ Not started |
+| Avg Anomaly AUC | ≥ 0.60 | 0.53 | ⏳ Reformulating |
+| Avg Forecast Ratio | ≤ 2.5 | 1.14 | ⏳ Reformulating |
 
 ---
 
-## Datasets
+## PIVOT: Many-to-1 Transfer (from 1-to-1)
+
+### Rationale
+1-to-1 transfer (AURSAD→Voraus) showed:
+- Forecasting works well (ratio 1.14) but limited by single-source generalization
+- Anomaly detection fails because anomaly signatures differ across robots
+- Many-to-1 (train on N-1, test on held-out) is more tractable and realistic
+
+### Available Sources in FactoryNet
+
+| Dataset | Robot/Machine | DOF | Episodes | Rows | Effort Signal | Task |
+|---------|--------------|-----|----------|------|---------------|------|
+| AURSAD | UR3e | 6 | 4094 | 6.2M | voltage | Screwdriving |
+| Voraus | Yu-Cobot | 6 | 2122 | 11.6M | voltage | Pick-and-place |
+| CNC | UMich CNC | 4 | 18 | 25K | current/voltage | Milling |
 
 ### Track 1: Bearings (via PHMD library)
 
@@ -37,9 +48,7 @@ Training on multiple source machines forces the model to learn domain-invariant 
 | XJTU-SY | 15 | 2 conditions | Vibration | RUL |
 | Paderborn (target) | Multiple | 3 speeds | Vibration | Diagnosis |
 
-**Advantage**: Same signal type across all datasets.
-
-### Track 2: Robot Manipulators
+### Track 2: Robots
 
 | Dataset | Robot | Joints | Signals | Source |
 |---------|-------|--------|---------|--------|
@@ -49,24 +58,51 @@ Training on multiple source machines forces the model to learn domain-invariant 
 | NIST UR5 | UR5 | 6 | pos, vel, current | NIST |
 | Robot Failures | PUMA 560 | 6 | force, torque | UCI |
 
-**Challenge**: Different signal types require semantic alignment.
+### Shared Signal Space
+All sources share:
+- `setpoint_pos_0..N`: Joint position setpoints
+- `setpoint_vel_0..N`: Joint velocity setpoints
+- `effort_voltage_0..N`: Motor voltage (effort)
+
+This enables training across sources in a unified representation.
 
 ---
 
-## Working Hypotheses
+## Experimental Plan
 
-### H1: Multi-Source Training Enables Generalization
-- Training on N-1 sources forces learning of domain-invariant features
-- Status: ⏳ Untested
+### Phase 1: Multi-Source Forecasting
+- Leave-one-out: train on 2 sources, test on held-out
+- Measure transfer ratio for each held-out source
+- Compare 1-to-1 vs many-to-1
 
-### H2: Signal Semantics Matter More Than Exact Values
-- Normalized effort (torque/current/voltage) should transfer
-- Status: ⏳ Untested
+### Phase 2: Multi-Source Anomaly Detection
+- Train on healthy data from N-1 sources
+- Test anomaly detection on held-out source
+- Multi-source provides more diverse "normal" patterns
 
-### H3: Bearings Are Easier Than Robots
-- Same signal type (vibration) should transfer well
-- Validates approach before harder robot problem
-- Status: ⏳ Untested
+### Phase 3: Scale and Improve
+- Add RevIN normalization for domain adaptation
+- Channel-independent processing
+- External datasets if needed
+
+---
+
+## Key Findings (from 1-to-1 experiments)
+
+### What Works
+- Forecasting transfer ratio 0.9-1.14 with episode normalization
+- Same signal space (voltage) across datasets
+- Sorted DataFrame with iloc-based indexing for correct data loading
+
+### What Doesn't Work
+- Setpoint→effort prediction error for anomaly detection (AUC ~0.5)
+- Episode normalization for anomaly detection (erases signal)
+- Raw (no normalization) for cross-domain (incomparable scales)
+
+### Critical Bug Fixes Applied
+1. `is_anomaly` logic now works for non-AURSAD datasets (removed tightening phase check)
+2. DataFrame sorted by episode_id for contiguous iloc access
+3. iloc-based windowing instead of loc-based
 
 ---
 
@@ -74,7 +110,10 @@ Training on multiple source machines forces the model to learn domain-invariant 
 
 | Approach | Why it Failed | Date |
 |----------|---------------|------|
-| 1-to-1 AURSAD→Voraus | Model overfits to source-specific features | 2025-03 |
+| Setpoint→effort prediction + episode norm | Episode norm erases anomaly signal | 2026-03-20 |
+| Setpoint→effort prediction + no norm | Scales incomparable across robots | 2026-03-20 |
+| Setpoint→effort prediction + global norm | Voraus anomalies not visible in voltage stats | 2026-03-20 |
+| 1-to-1 AURSAD→Voraus anomaly detection | Anomaly signatures fundamentally different | 2026-03-20 |
 
 ---
 
@@ -82,9 +121,11 @@ Training on multiple source machines forces the model to learn domain-invariant 
 
 | Direction | Evidence | Priority |
 |-----------|----------|----------|
-| Many-to-1 training | RT-X, Open X-Embodiment | HIGH |
-| Semantic signal embedding | CHARM paper | MEDIUM |
-| Domain-adversarial training | DANN literature | MEDIUM |
+| Many-to-1 forecasting | 1-to-1 already works (ratio 1.14) | HIGH |
+| RevIN normalization | Handles distribution shift per-instance | HIGH |
+| JEPA temporal dynamics | May capture anomaly temporal patterns | MEDIUM |
+| Channel-independent processing | PatchTST-style, handles heterogeneous DOF | MEDIUM |
+| External datasets (CMAPSS) | More source diversity | LOW |
 
 ---
 
@@ -96,61 +137,26 @@ Training on multiple source machines forces the model to learn domain-invariant 
 - Insight: **Many sources → better generalization**
 
 ### CHARM (C3 AI, May 2025)
-- URL: https://arxiv.org/abs/2505.14543
 - Key idea: Semantic signal embeddings via LLM
 - Result: SOTA on cross-machine transfer
 - Applicable: For signal alignment in Track 2
-
-### Domain Generalization Literature
-- Key idea: Train on N-1 domains, test on held-out
-- Standard setup for transfer learning
-- Applicable: Our exact protocol
 
 ---
 
 ## Research Queue
 
-### Phase 1: Setup (TODAY)
-- [x] Install phmd, ucimlrepo
-- [ ] Run 00_setup_datasets.py
-- [ ] Validate all datasets load
+1. [x] Fix data loading bugs (iloc, anomaly labels)
+2. [x] Run 1-to-1 baseline experiments
+3. [x] Diagnose anomaly detection failure
+4. [ ] Build multi-source training framework
+5. [ ] Run leave-one-out experiments
+6. [ ] Add RevIN normalization
+7. [ ] Attempt multi-source anomaly detection
+8. [ ] Create comprehensive figures and report
 
-### Phase 2: Track 1 - Bearings
-- [ ] Run 01_bearing_baseline.py
-- [ ] Analyze results
-- [ ] Iterate if accuracy < 80%
+## Session Log
 
-### Phase 3: Track 2 - Robots
-- [ ] Create unified robot data loader
-- [ ] Run Leave-One-Robot-Out experiments
-- [ ] Iterate if metrics not met
-
----
-
-## Architecture Notes
-
-### Current: Simple CNN Encoder + Classifier
-```
-Input (N, 1, seq_len)
-  → Conv1D stack
-  → AdaptiveAvgPool
-  → Linear projection (embedding)
-  → Classification head
-```
-
-### Ideas for Improvement
-- [ ] Add domain tokens
-- [ ] Domain-adversarial training (DANN)
-- [ ] RevIN per-domain normalization
-- [ ] Multi-task learning with domain ID
-- [ ] Gradient blending
-
----
-
-## Session Notes
-
-### Session: 2025-03-20
-
+### Session: 2025-03-20 (Evening)
 **Goal**: Reformulate research from 1-to-1 (impossible) to many-to-1 (tractable)
 
 **Progress**:
@@ -159,10 +165,6 @@ Input (N, 1, seq_len)
 3. Created MULTI_SOURCE_DATASETS.md inventory
 4. Created MANY_TO_ONE_PROMPT.md for overnight research
 5. Updated OBJECTIVES_STATUS.md with new targets
-6. Created experiment scripts:
-   - 00_setup_datasets.py
-   - 01_bearing_baseline.py
+6. Created experiment scripts (00_setup_datasets.py, 01_bearing_baseline.py)
 
 **Key Insight**: 1-to-1 transfer is nearly impossible because model can't distinguish domain-specific vs universal features. Many-to-1 forces learning invariant representations.
-
-**Next**: Run setup script on VM, start overnight research.
