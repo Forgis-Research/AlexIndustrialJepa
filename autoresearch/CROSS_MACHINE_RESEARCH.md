@@ -121,10 +121,12 @@ This enables training across sources in a unified representation.
 
 | Direction | Evidence | Priority |
 |-----------|----------|----------|
+| **Channel-independent patching** | Local patterns transfer better; avoids coupling assumptions | **HIGH** |
+| **Smaller stride** | More training samples from limited episodes | **HIGH** |
+| **Stronger regularization** | Prevent overfitting to source-specific dynamics | **HIGH** |
 | Many-to-1 forecasting | 1-to-1 already works (ratio 1.14) | HIGH |
 | RevIN normalization | Handles distribution shift per-instance | HIGH |
-| JEPA temporal dynamics | May capture anomaly temporal patterns | MEDIUM |
-| Channel-independent processing | PatchTST-style, handles heterogeneous DOF | MEDIUM |
+| JEPA temporal dynamics | Validated: temporal cross-correlation shows causal lag | MEDIUM |
 | External datasets (CMAPSS) | More source diversity | LOW |
 
 ---
@@ -168,3 +170,34 @@ This enables training across sources in a unified representation.
 6. Created experiment scripts (00_setup_datasets.py, 01_bearing_baseline.py)
 
 **Key Insight**: 1-to-1 transfer is nearly impossible because model can't distinguish domain-specific vs universal features. Many-to-1 forces learning invariant representations.
+
+### Session: 2026-03-21 (Deep Dataset Analysis)
+**Goal**: Comprehensive dataset analysis to validate transferability assumptions
+
+**Progress**:
+1. Created `analysis/dataset_deep_dive.py` with 5 transfer indicator figures
+2. Ran `analysis/cross_machine/01_distribution_analysis.py` (MMD, Wasserstein)
+3. Ran `analysis/cross_machine/03_entropy_profiles.py` (permutation entropy)
+4. Created comprehensive `autoresearch/DATASET_ANALYSIS_REPORT.md`
+
+**Key Results**:
+- Overall transferability score: **0.94** (HIGH)
+- MMD distance: **0.0099** (very low = similar distributions)
+- Entropy correlation: **0.99-1.00** (near-perfect complexity match)
+- Cross-correlation lag: ~2 timesteps (consistent causal structure)
+- Spectral similarity: **0.91** (similar frequency content)
+
+**Key Insight**: Static setpoint→effort correlation is near-zero, but temporal cross-correlation shows clear causal lag structure. This validates JEPA's temporal dynamics approach over naive instantaneous prediction.
+
+### Session: 2026-03-21 (Architecture Improvements - RECOVERED)
+**Goal**: Document insights from crashed SSH session
+
+**Critical Realization**:
+> "Making the model bigger/training longer won't fix this. I need a different approach."
+
+**Next Steps to Try**:
+1. **Channel-independent patching (PatchTST-style)** — Process each channel independently; local patterns transfer better than global patterns
+2. **Smaller stride** — More training windows = more diverse samples from limited episodes
+3. **Stronger regularization** — Prevent overfitting to source dynamics (dropout, weight decay, early stopping)
+
+**Rationale**: The 1-to-1 transfer failure isn't a capacity problem but a representation problem. Channel-independent processing breaks the assumption that cross-channel correlations are universal (they're not—different robots have different kinematic coupling).
