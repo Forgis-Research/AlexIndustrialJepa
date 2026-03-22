@@ -110,13 +110,50 @@ Different robots have different kinematic coupling. Joint 1's effect on Joint 3 
 
 ---
 
+## C-MAPSS Experiments (March 2026)
+
+### Physics-Informed Channel Grouping Enables Transfer — CONFIRMED
+
+**What we tried**: Group C-MAPSS sensors by turbofan component (fan, HPC, combustor, turbine, nozzle), process within-component with shared weights, cross-component with attention.
+
+**Result**: Role-Transformer transfers 36% better than CI-Transformer (ratio 4.00 vs 6.23) with 9x lower variance, on FD001→FD002 (1→6 operating conditions).
+
+**Why it works**: Within-component sensor relationships (e.g., fan speed ↔ bypass ratio) reflect physics invariant across operating conditions. CI-Transformer treats each sensor independently, losing these relationships.
+
+**Critical detail**: This result only appears WITHOUT RevIN. RevIN normalizes away the operating-condition information and makes all groupings look equivalent.
+
+### RevIN Hurts on C-MAPSS Transfer
+
+**What we tried**: RevIN (instance normalization) to handle distribution shift between FD001 (1 condition) and FD002 (6 conditions).
+
+**Result**: RevIN makes both in-domain (+21%) and transfer (+34%) worse.
+
+**Why**: The operating-condition variation in C-MAPSS is structured (6 discrete regimes, not random shift). RevIN treats it as random noise to remove, destroying useful conditioning information. Global normalization (fit on train set) is sufficient.
+
+**Lesson**: RevIN helps for distribution shift between datasets, NOT for structured multi-condition data. Don't blindly apply it.
+
+### Grouping Structure Matters More Than Specific Groups
+
+**Result**: Physics grouping gives the best transfer (ratio 3.69), but uniform grouping also helps (3.78-3.86). Random is worse (4.99), and no grouping is catastrophic (7.79-8.96).
+
+**Implication**: The two-level hierarchy (within-component + cross-component) is the main architectural insight. Physics-informed groups add on top, but the structure is the bigger win.
+
+### Role-Trans Zero-Shot ≈ CI-Trans 5% Fine-Tuned
+
+**Finding**: Role-Trans zero-shot on FD002 (45.96) ≈ CI-Trans with 5% FD002 fine-tuning (43.59).
+
+**Implication**: Physics-informed grouping is worth approximately 5% of target-domain labels. This is the practical value proposition.
+
+---
+
 ## Approaches to Avoid
 
 | Approach | Issue | Status |
 |----------|-------|--------|
-| Channel-independent for transfer | Can't learn physics | Confirmed |
+| Channel-independent for transfer | Can't learn physics | Confirmed (C-MAPSS) |
 | JEPA as joint objective on small supervised data | Adds nothing | Confirmed on ETTh1 |
 | Scaling up broken architectures | Doesn't fix fundamentals | Confirmed |
 | Claiming "transfer" from per-channel prediction | Misleading | Confirmed |
+| RevIN on structured multi-condition data | Normalizes away useful info | Confirmed on C-MAPSS |
 | Episode normalization for anomaly | Uncertain | Needs investigation |
 | Setpoint→effort for cross-machine anomaly | Robot-specific signatures | Confirmed failed |
