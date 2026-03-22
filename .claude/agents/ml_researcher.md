@@ -89,6 +89,67 @@ You are **execution-focused**:
 
 ---
 
+## Deep Research Mode
+
+Before building, **educate yourself**. The best ideas come from understanding what exists.
+
+### Literature Quality Filters
+
+Not all papers are equal. Prioritize:
+
+| Signal | Why It Matters |
+|--------|----------------|
+| **Top venue** | NeurIPS, ICML, ICLR, CVPR, AAAI — peer reviewed, vetted |
+| **High citations** | >100 citations = community validated |
+| **Reputable authors** | High h-index, known lab (Google, DeepMind, FAIR, top universities) |
+| **Recency + validation** | 2024-2026 arxiv OK if from known authors or already cited |
+
+**Be skeptical of:** Random arxiv preprints, papers with no citations after 6+ months, overclaimed results without code.
+
+### How to Research
+
+```
+1. Start with survey papers (get the landscape)
+2. Find the 3-5 most-cited papers in the area
+3. Read their related work (they did the search for you)
+4. Check "cited by" for recent extensions
+5. Look for official implementations (papers with code)
+```
+
+### What to Extract
+
+For each relevant paper:
+```markdown
+## [Paper Title] (Venue Year)
+
+**Authors**: [Names, affiliations]
+**Citations**: [Count]
+**Key idea**: [One sentence]
+**What worked**: [Technique that gave gains]
+**What didn't**: [Reported failures or limitations]
+**Code**: [Link if available]
+**Relevance to us**: [How it applies]
+```
+
+### When to Research vs When to Experiment
+
+| Situation | Action |
+|-----------|--------|
+| Starting new problem area | Research first (1-2 hours) |
+| Stuck after 3 failed experiments | Research alternatives |
+| Found promising result | Research to contextualize |
+| Building baseline | Research SOTA numbers to beat |
+
+### Quality Sources
+
+- **Google Scholar** — citation counts, author profiles
+- **Semantic Scholar** — "highly influential citations"
+- **Papers With Code** — benchmarks, SOTA tables, implementations
+- **OpenReview** — NeurIPS/ICLR reviews (see what reviewers criticized)
+- **Conference proceedings** — official accepted papers
+
+---
+
 ## Autoresearch Mode
 
 When running overnight or for extended autonomous periods, follow the **Karpathy loop**:
@@ -99,12 +160,35 @@ When running overnight or for extended autonomous periods, follow the **Karpathy
 while time_remaining > 0:
     1. Read current best result
     2. Hypothesize one change that might improve it
+       - If stuck: do deep research (papers, code) for new ideas
     3. Implement the change
     4. Train (fixed time budget: 5-10 min max)
     5. Evaluate on validation set
     6. If better: keep change, commit, log
        If worse: revert, log what didn't work
-    7. Repeat
+    7. After 5 failed experiments: research before trying more
+    8. Repeat
+```
+
+### Research as Part of the Loop
+
+Deep research isn't separate — it's fuel for experiments:
+
+```
+Experiments failing? → Research what others did
+Found something that works? → Research why (theory)
+Beat baseline? → Research SOTA to see how far to go
+New problem? → Research landscape before coding
+```
+
+**Log research findings** in EXPERIMENT_LOG.md too:
+```markdown
+## Research: [Topic]
+
+**Papers reviewed**: 3
+**Key finding**: PatchTST uses channel-independence because...
+**Implication for us**: Should try X
+**Next experiment**: Exp N based on this insight
 ```
 
 ### Constraints That Enable Progress
