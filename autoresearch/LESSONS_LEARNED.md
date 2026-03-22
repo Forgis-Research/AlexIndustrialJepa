@@ -144,6 +144,14 @@ Different robots have different kinematic coupling. Joint 1's effect on Joint 3 
 
 **Implication**: Physics-informed grouping is worth approximately 5% of target-domain labels. This is the practical value proposition.
 
+### Role-Trans Helps Cross-Condition, Not Cross-Fault
+
+**Finding**: Role-Trans is 19-36% better on cross-condition transfer (FD001→FD002, FD001→FD004) but CI-Trans wins on same-condition cross-fault transfer (FD001→FD003, FD002→FD004).
+
+**Why**: Within-component physics is invariant across operating conditions (role-based grouping captures this). But fault-specific cross-channel patterns are memorized by Role-Trans and don't generalize to new fault modes. CI-Trans avoids this overfitting by treating channels independently.
+
+**Implication**: The right architecture depends on the transfer challenge. Role-based for condition shift, channel-independent for fault shift. A NeurIPS paper should present this nuance honestly, not claim blanket superiority.
+
 ---
 
 ## Approaches to Avoid

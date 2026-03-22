@@ -247,6 +247,65 @@
 
 ---
 
+# Phase 2b: Cross-Fault Transfer (2026-03-22)
+
+## Exp 17: FD001 → FD003 (same conditions, +fan fault)
+
+**Hypothesis**: Role-Trans should also help with cross-fault transfer.
+**Result**:
+
+| Model | FD001 RMSE | FD003 RMSE | Ratio |
+|-------|-----------|-----------|-------|
+| Role-Trans | 12.29 ± 0.37 | 20.30 ± 2.01 | 1.65 |
+| CI-Trans | 13.42 ± 0.26 | 18.54 ± 2.24 | **1.38** |
+
+**Verdict**: CI-Trans wins here. When operating conditions are the same, CI doesn't suffer from condition shift and avoids overfitting to specific fault patterns.
+
+## Exp 18: FD001 → FD004 (different conditions + different faults)
+
+| Model | FD001 RMSE | FD004 RMSE | Ratio |
+|-------|-----------|-----------|-------|
+| **Role-Trans** | **12.29 ± 0.37** | **52.92 ± 4.40** | **4.31** |
+| CI-Trans | 13.42 ± 0.26 | 71.79 ± 19.43 | 5.35 |
+
+**Verdict**: Role-Trans wins when both conditions and faults differ. 19% better ratio, 4x lower variance.
+
+## Exp 19: FD003 → FD001 (multi-fault → single-fault, same conditions)
+
+| Model | FD003 RMSE | FD001 RMSE | Ratio |
+|-------|-----------|-----------|-------|
+| Role-Trans | 13.34 ± 0.16 | 12.58 ± 0.30 | 0.94 |
+| CI-Trans | 14.03 ± 0.35 | 13.08 ± 0.08 | 0.93 |
+
+**Verdict**: Both transfer perfectly (ratio <1.0). Training on multi-fault data generalizes to single-fault — expected since multi-fault is a superset.
+
+## Exp 20: FD002 → FD004 (same 6 conditions, +fan fault)
+
+| Model | FD002 RMSE | FD004 RMSE | Ratio |
+|-------|-----------|-----------|-------|
+| Role-Trans | 18.40 ± 1.17 | 31.99 ± 3.01 | 1.74 |
+| CI-Trans | 27.29 ± 7.19 | 30.31 ± 5.65 | **1.11** |
+
+**Verdict**: CI-Trans transfers better on same-condition cross-fault. But note CI-Trans is much worse on source domain (27.29 vs 18.40 on FD002).
+
+## Cross-Transfer Summary
+
+| Transfer Type | Role-Trans Ratio | CI-Trans Ratio | Winner |
+|--------------|-----------------|----------------|--------|
+| **Cross-condition** (FD001→FD002) | **4.00** | 6.23 | **Role-Trans (+36%)** |
+| **Cross-both** (FD001→FD004) | **4.31** | 5.35 | **Role-Trans (+19%)** |
+| Cross-fault (FD001→FD003) | 1.65 | **1.38** | CI-Trans |
+| Same-domain (FD003→FD001) | 0.94 | 0.93 | Tie |
+| Cross-fault (FD002→FD004) | 1.74 | **1.11** | CI-Trans |
+
+**Key Finding**: Role-Trans excels at **cross-condition transfer** (distribution shift across operating regimes). CI-Trans is better at **cross-fault transfer** (same conditions, different failure modes). This makes physical sense:
+- **Condition shift**: Within-component physics (captured by Role-Trans) is invariant across operating conditions. CI-Trans loses this information.
+- **Fault shift**: When conditions are the same, CI-Trans avoids overfitting to specific cross-channel fault patterns. Role-Trans' component grouping can memorize fault-specific correlations.
+
+**NeurIPS framing**: "Role-based architectures excel when the transfer challenge involves distribution shift across operating regimes, providing 19-36% improvement. When the challenge is novel fault modes under the same conditions, channel-independent approaches remain competitive."
+
+---
+
 # ETTh1 Experiment Log (previous work)
 
 Date: 2026-03-22
