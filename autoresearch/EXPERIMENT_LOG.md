@@ -1,4 +1,122 @@
-# ETTh1 Experiment Log
+# Experiment Log
+
+---
+
+# Phase 1: Deep Research (2026-03-22)
+
+## Research: Transfer Learning for Time Series (2024-2026)
+
+**Papers reviewed**: 10+
+**Key findings**:
+1. **Channel-independence is dominant** — PatchTST (ICLR 2023, 1000+ citations), Moirai (ICML 2024), UniTS (NeurIPS 2024) all use channel-independent or any-variate processing
+2. **Nobody does role-based channel grouping** — SCNN (arXiv 2305.13036) decomposes by structured/heterogeneous components but doesn't transfer. SaR routes sensors by pattern similarity but not by physical function. This is our gap to fill.
+3. **TS-JEPA exists** (NeurIPS 2024 TSALM Workshop, Ennadir et al.) — adapts JEPA to time series with 70% patch masking. Does NOT use role-based grouping. Code: github.com/Sennadir/TS_JEPA
+4. **Foundation models work** — TimesFM, Chronos, Moirai show pretraining transfers. But univariate-focused.
+
+**Implication for us**: Role-based channel grouping for cross-machine transfer is genuinely novel. No existing work combines structured sensor grouping with JEPA-style learning for industrial transfer.
+
+## Research: C-MAPSS SOTA (2024-2025)
+
+**Papers reviewed**: 8
+**Key findings**:
+- FD001 best RMSE: ~6.62 (LightGBM+CatBoost ensemble, Nature Sci Rep 2025), ~11.36 (Transformer, DL-only)
+- FD002 best RMSE: ~12.78 (LGBM), ~14.45 (CNN-LSTM-Attention)
+- Cross-subset transfer: GPT-2 fine-tuning (freeze 20/24 layers), MMD-based domain adaptation
+- **No JEPA or role-based transfer on C-MAPSS** — this is an open opportunity
+
+**Target for us**: FD001 RMSE < 13.0 (competitive DL baseline), then demonstrate FD001→FD002 transfer improvement with role-based grouping.
+
+## Research: Cross-Machine Fault Diagnosis
+
+**Papers reviewed**: 6
+**Key findings**:
+- DANN/CDAN are standard for domain adaptation (~5000 citations for DANN)
+- CWRU→Paderborn transfer requires careful preprocessing (resampling, filtering)
+- Nobody uses role-based grouping for cross-machine — all treat channels uniformly
+- Few-shot transfer from artificial→natural faults is a recognized challenge
+
+## Research: Structured / Physics-Informed Architectures
+
+**Papers reviewed**: 8
+**Key findings**:
+- **Mamba competitive with Transformers** at lower compute (S-Mamba, Neurocomputing 2024)
+- **SCNN** decomposes MTS by structured/heterogeneous components — closest to our approach
+- **SaR** routes sensors to expert modules by similarity — related to role-based concept
+- **Brain-JEPA** (NeurIPS 2024) — JEPA works for scientific multivariate time series
+
+**Implication**: Our contribution sits at the intersection of structured decomposition (SCNN/SaR) + JEPA pretraining (TS-JEPA) + cross-machine transfer — a novel combination.
+
+---
+
+# Phase 2: C-MAPSS Experiments (2026-03-22)
+
+## Setup
+- Dataset: C-MAPSS (NASA Turbofan Engine Degradation)
+- FD001: 100 train engines, 1 operating condition, 1 fault mode (HPC)
+- FD002: 260 train engines, 6 operating conditions, 1 fault mode (HPC)
+- Sensors: 14 informative (dropped 7 near-constant)
+- Lookback: 30 cycles
+- RUL cap: 125 (piece-wise linear, standard)
+- Seeds: 42, 123, 456
+- Component groups: fan(3), hpc(4), combustor(2), turbine(3), nozzle(2)
+
+## Exp 7: C-MAPSS FD001 Baselines (5 models)
+
+**Time**: 18:10
+**Hypothesis**: Role-Transformer should match or beat CI-Transformer on single-dataset while learning transferable structure.
+**Change**: Built 5 models — Linear, LSTM, Transformer, CI-Transformer, Role-Transformer
+
+**Results (FD001 test, 3 seeds):**
+
+| Model | Params | Test RMSE | NASA Score |
+|-------|--------|-----------|------------|
+| Linear | 421 | 48.24 ± 0.06 | 747,117 ± 45,197 |
+| LSTM | 53,825 | 14.77 ± 0.26 | 375 ± 14 |
+| Transformer | 102,913 | 16.11 ± 0.11 | 499 ± 30 |
+| CI-Transformer | 26,480 | 13.38 ± 0.24 | 298 ± 21 |
+| **Role-Transformer** | **40,513** | **12.66 ± 0.34** | **248 ± 23** |
+
+**Verdict**: KEEP ✓
+**Insights**:
+1. **Role-Transformer is best** at 12.66 RMSE, beating CI-Transformer (13.38) by 5.4%
+2. CI-Transformer beats LSTM (14.77) by 9.4% — channel-independence helps here too
+3. Channel-mixing Transformer overfits severely (val 3.6 vs test 16.1)
+4. Role-Transformer beats our target of <13.0 RMSE
+5. Competitive with published DL SOTA (~11-13 RMSE range)
+
+## Exp 8: Transfer FD001 → FD002 (THE KEY EXPERIMENT)
+
+**Time**: 18:50
+**Hypothesis**: Role-based grouping by physical component enables better transfer across operating conditions than channel-independent processing.
+**Change**: Train on FD001 (1 condition), test on FD002 (6 conditions). Normalize FD002 with FD001 stats.
+
+**Results (3 seeds):**
+
+| Model | FD001 RMSE | FD002 RMSE | Transfer Ratio |
+|-------|------------|------------|----------------|
+| CI-Transformer | 13.05 ± 0.14 | 101.52 ± 30.77 | 7.78 |
+| **Role-Transformer** | **12.65 ± 0.17** | **55.10 ± 7.68** | **4.36** |
+
+**Verdict**: KEEP ✓✓✓ (Major result)
+**Insights**:
+1. **Role-Transformer transfers 44% better** (ratio 4.36 vs 7.78)
+2. **Lower variance on transfer** — Role-Transformer std=7.68 vs CI std=30.77
+3. CI-Transformer has catastrophic transfer on some seeds (124 RMSE on seed 42)
+4. Role-Transformer is more robust: worst seed 65.81 vs CI worst 124.41
+5. **The hypothesis is confirmed**: Structured channel-dependence (grouping by physical component) enables cross-condition transfer that channel-independence cannot achieve
+
+**Why it works (hypothesis)**: Within-component sensor relationships (e.g., fan speed ↔ bypass ratio ↔ bleed) reflect physics that is invariant across operating conditions. The Role-Transformer learns these physics within each component, while the cross-component attention captures how subsystems interact. CI-Transformer treats each sensor independently, losing these physics relationships.
+
+**Caveats**:
+- Both models degrade substantially on transfer (ratio >4). Need domain adaptation.
+- FD002 has 6 operating conditions vs FD001's 1 — this is a hard transfer.
+- Published SOTA on FD002 (trained on FD002) is ~13-15 RMSE; we get 55 with zero-shot transfer.
+
+**Next**: Try fine-tuning on small FD002 subset, try RevIN for distribution shift, ablate component groupings.
+
+---
+
+# ETTh1 Experiment Log (previous work)
 
 Date: 2026-03-22
 
