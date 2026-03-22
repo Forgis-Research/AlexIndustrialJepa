@@ -45,46 +45,85 @@ Architecture: Patch embedding (patch_len=16) -> Transformer encoder (3 layers, d
 | DLinear | ~0.375 | ~0.405 | ~0.439 | ~0.472 | Zeng et al. 2023 |
 | iTransformer | ~0.386 | ~0.384 | ~0.396 | ~0.428 | Liu et al. 2024 |
 
-## Gap Analysis
+## Diagnosis Experiments (Task 5)
+
+After the vanilla JEPA failed, we diagnosed the overfitting problem with three targeted experiments:
+
+| # | Model | Params | H=96 MSE | H=192 MSE | H=336 MSE | H=720 MSE | Notes |
+|---|-------|--------|----------|-----------|-----------|-----------|-------|
+| 4 | **CI-Transformer** | 105K | **0.450** | **0.502** | **0.561** | **0.673** | Channel-independent, d=64, 2 layers |
+| 5 | Tiny-Transformer | 142K | 0.713 | 0.819 | 0.910 | 0.943 | d=32, 1 layer, channel-mixing |
+| 6 | DLinear | 19K | 0.480 | 0.538 | 0.579 | 0.683 | Trend-seasonal decomposition |
+
+### Key finding: Channel independence is the single biggest improvement
+
+The channel-independent transformer (EXP 4) achieves **0.450 MSE at H=96** — a 50% improvement over our vanilla model (0.899) and 21% better than the Linear baseline (0.571). This is the PatchTST insight: with only 7 channels, cross-channel mixing provides almost no value and dramatically increases overfitting.
+
+Comparison to the naive Linear baseline (0.571): CI-Transformer beats it at every horizon.
+
+| Horizon | Linear | CI-Transformer | Improvement |
+|---------|--------|----------------|-------------|
+| 96 | 0.571 | 0.450 | -21% |
+| 192 | 0.780 | 0.502 | -36% |
+| 336 | 0.970 | 0.561 | -42% |
+| 720 | 1.195 | 0.673 | -44% |
+
+### DLinear performs similarly to CI-Transformer
+
+Our DLinear implementation (0.480 at H=96) is close to CI-Transformer (0.450). Both are much better than channel-mixing models. However, our DLinear is worse than published DLinear (~0.375), suggesting there's still room for tuning.
+
+### Tiny model doesn't help if architecture is wrong
+
+EXP 5 (Tiny-Transformer) shrinks the model but keeps channel-mixing. It improves over vanilla (0.713 vs 0.899) but is still much worse than CI-Transformer (0.450). **The architecture design (channel-independence) matters more than model size.**
+
+## Gap Analysis (Updated)
 
 | Comparison | H=96 | H=192 | H=336 | H=720 |
 |------------|------|-------|-------|-------|
-| Our best (Supervised) | 0.900 | 0.895 | 0.963 | 1.007 |
+| Our best (CI-Transformer) | **0.450** | **0.502** | **0.561** | **0.673** |
+| Our DLinear | 0.480 | 0.538 | 0.579 | 0.683 |
 | Our Linear baseline | 0.571 | 0.780 | 0.970 | 1.195 |
 | PatchTST SOTA | 0.370 | 0.383 | 0.396 | 0.419 |
-| Gap: Ours vs Linear | +57% | +15% | -1% | -16% |
-| Gap: Ours vs SOTA | +143% | +134% | +143% | +140% |
+| Gap: CI-Trans vs SOTA | +22% | +31% | +42% | +61% |
 
-Our transformer-based models are **2.4x worse than published SOTA** across all horizons.
+We've closed the gap significantly (from 2.4x worse to 1.2-1.6x worse), but there's still meaningful distance to SOTA, especially at longer horizons.
+
+## Published SOTA (for reference)
+
+| Model | H=96 MSE | H=192 MSE | H=336 MSE | H=720 MSE | Source |
+|-------|----------|-----------|-----------|-----------|--------|
+| PatchTST | ~0.370 | ~0.383 | ~0.396 | ~0.419 | Nie et al. 2023 |
+| DLinear | ~0.375 | ~0.405 | ~0.439 | ~0.472 | Zeng et al. 2023 |
+| iTransformer | ~0.386 | ~0.384 | ~0.396 | ~0.428 | Liu et al. 2024 |
 
 ## Honest Assessment
 
-### What went wrong
-1. **The transformer model overfits massively.** Training loss drops to ~0.15 but val MSE stays at ~0.9-1.0. Early stopping kicks in at epoch 11-20. The model memorizes training patterns but doesn't generalize.
+### What worked
+1. **Channel-independent processing** is the single most impactful change. It reduces effective parameters per-channel while giving 7x more training examples. This matches the PatchTST finding.
+2. **Patch-based embeddings** with a shared transformer encoder and linear head is a clean, effective architecture.
+3. **DLinear's trend-seasonal decomposition** is competitive and trains in seconds.
 
-2. **The architecture is wrong for this task.** Published results show that for ETTh1:
-   - PatchTST works because it uses channel-independent processing + supervised patching with proper attention masking
-   - DLinear works because it's simple enough not to overfit
-   - Our "flatten patches -> MLP predictor -> MLP decoder" loses too much structure
+### What didn't work
+1. **JEPA loss provides zero forecasting benefit** in any configuration. The latent-space prediction objective doesn't translate to better forecasts.
+2. **Channel-mixing** is actively harmful on a 7-channel dataset with only 8640 training points. The model overfits to spurious cross-channel correlations.
+3. **JEPA-only training** produces useless forecasts (MSE ~1.28, near-persistence baseline).
 
-3. **JEPA adds nothing here.** The JEPA loss in latent space is orthogonal to the actual forecasting objective. The encoder/decoder bottleneck means the JEPA loss just regularizes the latent space, but not in a way that helps forecasting. The EMA target is essentially a slowly-updating copy, not providing meaningfully different signal.
+### Remaining gap to SOTA (~22% at H=96)
+Possible causes:
+1. **Missing RevIN** — Reversible instance normalization is standard in PatchTST/iTransformer
+2. **No instance-wise norm at inference** — our model normalizes globally, not per-instance
+3. **Head design** — PatchTST uses a flatten+linear head with careful attention masking
+4. **Hyperparameter tuning** — published results are heavily tuned; ours are first-pass
+5. **Data preprocessing** — potential differences in split boundaries or normalization
 
-4. **Our Linear baseline (0.571) is already worse than published DLinear (0.375).** This suggests our data split or normalization might differ slightly from standard implementations, or our linear model architecture (flatten all channels) is suboptimal vs DLinear's decomposition approach.
-
-### What we learned
-1. **JEPA is not naturally suited for direct forecasting.** JEPA was designed for self-supervised *representation learning*, not end-to-end supervised forecasting. Using it as a forecasting model without a large-scale pretraining phase misses the point.
-
-2. **The predictor architecture matters enormously.** Flattening patch embeddings into an MLP predictor destroys temporal structure. Published models preserve temporal/channel structure throughout.
-
-3. **Overfitting is the dominant failure mode on ETTh1.** With only 8640 training points and 7 channels, a 890K parameter model is overparameterized. The linear model (96*7 = 672 input features) has far fewer effective parameters.
-
-### What to try next (priority order)
-1. **Channel-independent mode.** Process each channel separately through the encoder (like PatchTST). This is 7x more samples with 7x fewer parameters per sample.
-2. **Reduce model size drastically.** Try d_model=32, 1-2 layers, latent_dim=16. Match capacity to data size.
-3. **Add proper regularization.** Dropout on patches, weight decay, data augmentation (window slicing, masking).
-4. **Rethink JEPA for forecasting.** Consider: pretrain with JEPA (self-supervised), then fine-tune with supervised loss. Don't combine them simultaneously.
-5. **Match DLinear's decomposition.** Add trend-seasonal decomposition before the model.
-6. **Use RevIN.** Reversible instance normalization handles distribution shift between train/test.
+### What to try next
+1. **Add RevIN** to CI-Transformer — likely the biggest remaining easy win
+2. **Add JEPA as pretraining** — pretrain channel-independent encoder with JEPA, then fine-tune with supervised loss. This is the principled way to use JEPA.
+3. **Tune hyperparameters** — patch_len, d_model, n_layers, learning rate, dropout
+4. **Instance normalization** — normalize each input window independently at inference
+5. **Move to larger datasets** (Weather, Electricity) where JEPA's representation learning may add value
 
 ### Bottom line
-**The vanilla JEPA approach cannot beat a linear model on ETTh1.** This is not surprising — JEPA was designed for visual representation learning with large-scale data, not small-scale supervised forecasting. The path forward is either (a) make JEPA work as a *pretraining* method with fine-tuning, or (b) abandon JEPA for forecasting and focus on where its representation learning strengths matter (anomaly detection, transfer learning). The linear baseline at 0.571 is the number to beat before trying anything fancier.
+**The vanilla JEPA approach cannot beat a linear model on ETTh1.** But a channel-independent transformer achieves 0.450 MSE at H=96, beating our linear baseline (0.571) and approaching published DLinear (0.375). The gap to PatchTST SOTA (0.370) is ~22%, likely closeable with RevIN and tuning.
+
+**For the JEPA research direction**: JEPA should be used as a *pretraining* method (self-supervised representation learning), not as a combined training objective. The next step is to pretrain a channel-independent encoder with JEPA on unlabeled data, then fine-tune for forecasting. This is where JEPA could add value — especially for transfer learning to industrial datasets where labeled data is scarce.
