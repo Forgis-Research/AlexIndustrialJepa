@@ -168,14 +168,41 @@ Different robots have different kinematic coupling. Joint 1's effect on Joint 3 
 
 ---
 
+### JEPA Pretraining Hurts Transfer — CONFIRMED (C-MAPSS)
+
+**What we tried**: Pretrain Role-Transformer encoder with component-level JEPA on FD001+FD002 unlabeled data (63,950 windows, 30 epochs), then fine-tune for RUL on FD001 only.
+
+**Result**: Transfer ratio 5.46 (JEPA+FT) vs 4.10 (scratch) — 33% WORSE with pretraining.
+
+**Why**: JEPA learns to reconstruct component representations, including condition-specific correlations from FD002. When fine-tuned on FD001 (single condition), the encoder already has multi-condition representations baked in that confuse the RUL head. The JEPA objective optimizes for reconstruction, not invariance.
+
+**Broader lesson**: For transfer learning, the architectural inductive bias (role-based grouping) is more valuable than representation pretraining. JEPA might help if the pretraining objective were explicitly condition-invariant (e.g., contrastive across conditions), but standard JEPA reconstruction does not provide this.
+
+**Status**: JEPA has now failed in 3 configurations:
+1. Joint objective on ETTh1 → no benefit
+2. JEPA-only on ETTh1 → garbage predictions
+3. Pretraining on C-MAPSS → hurts transfer
+
+### MMD Domain Adaptation — Marginal Benefit
+
+**What we tried**: Added MMD loss (λ=0.1) between FD001 and FD002 encoder features during supervised training.
+
+**Result**: Transfer ratio 3.92 vs 4.10 — 4% improvement, lower variance.
+
+**Lesson**: MMD provides modest feature alignment but doesn't solve the fundamental condition shift problem. The main challenge is operating condition distribution shift, not feature distribution mismatch per se.
+
+---
+
 ## Approaches to Avoid
 
 | Approach | Issue | Status |
 |----------|-------|--------|
 | Channel-independent for transfer | Can't learn physics | Confirmed (C-MAPSS) |
 | JEPA as joint objective on small supervised data | Adds nothing | Confirmed on ETTh1 |
+| JEPA pretraining for transfer | Learns condition-specific features, hurts transfer | Confirmed on C-MAPSS |
 | Scaling up broken architectures | Doesn't fix fundamentals | Confirmed |
 | Claiming "transfer" from per-channel prediction | Misleading | Confirmed |
 | RevIN on structured multi-condition data | Normalizes away useful info | Confirmed on C-MAPSS |
+| Patch embeddings on short sequences (≤30) | No benefit over point-wise | Confirmed on C-MAPSS |
 | Episode normalization for anomaly | Uncertain | Needs investigation |
 | Setpoint→effort for cross-machine anomaly | Robot-specific signatures | Confirmed failed |

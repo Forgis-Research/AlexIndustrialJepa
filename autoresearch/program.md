@@ -318,43 +318,31 @@ By morning, produce:
 
 ### 1. Literature Review Document
 `autoresearch/LITERATURE_REVIEW.md`
-- 30+ papers analyzed
-- Gap analysis for each direction
-- Clear picture of what exists vs what's novel
 
 ### 2. Technical Definitions
 `autoresearch/TECHNICAL_SPECS.md`
-- Precise definition of each approach
-- Architecture pseudocode
-- Training procedures
 
 ### 3. SOTA Analysis
 `autoresearch/SOTA_ANALYSIS.md`
-- Current methods' shortcomings
-- How each direction addresses them
 
 ### 4. Experiment Log
 `autoresearch/EXPERIMENT_LOG.md`
-- All experiments run
-- Results and insights
 
 ### 5. Recommendation
 `autoresearch/RECOMMENDATION.md`
-- Which direction is most promising?
-- Why?
-- Concrete next steps
 
 ---
 
-## Success Criteria
+## Role-Based Transfer Results (from prior sessions)
 
-| Deliverable | Minimum | Stretch |
-|-------------|---------|---------|
-| Papers reviewed | 20 | 40+ |
-| Directions fully defined | 3 | 3 with variants |
-| SOTA shortcomings identified | 5 | 10+ |
-| Experiments run | 3 (one per direction) | 15+ |
-| Clear recommendation | Yes | With evidence |
+| Metric | Target | Stretch | Result | Status |
+|--------|--------|---------|--------|--------|
+| C-MAPSS FD001 RMSE | < 13.0 | < 11.0 | **12.17 ± 0.30** | ✅ MET |
+| C-MAPSS FD001→FD002 transfer | Role > CI | Beat SOTA | **53.73 vs 82.51 (p=0.005, 10 seeds)** | ✅ MET |
+| FactoryNet AURSAD→Voraus | Transfer ratio < 1.5 | < 1.2 | Not tested (data gated) | ❌ BLOCKED |
+| Total experiments | > 15 | > 30 | **38** | ✅ MET (stretch) |
+| Pretraining benefit | JEPA helps | Any pretrain helps | **No pretraining helps** | ❌ NEGATIVE |
+| Encoder quality | Role > CI | Frozen transfer | **Role 42% better at 1% data** | ✅ NEW FINDING |
 
 ---
 

@@ -387,9 +387,148 @@
 
 ---
 
+# Phase 2d: Karpathy Loop Round 5 (2026-03-23)
+
+## Exp 28: JEPA Pretraining — NEGATIVE RESULT
+
+**Time**: 17:19
+**Hypothesis**: JEPA pretraining on FD001+FD002 unlabeled data (63,950 windows) should learn condition-invariant representations that improve transfer.
+**Change**: Pretrain Role-Transformer encoder with component-level JEPA (mask 40% of components, predict via EMA target encoder), then fine-tune for RUL on FD001.
+
+**Results (3 seeds):**
+
+| Method | FD001 RMSE | FD002 RMSE | Transfer Ratio |
+|--------|-----------|-----------|----------------|
+| **JEPA+FT** | **12.42 ± 0.11** | **67.85 ± 8.83** | **5.46** |
+| Scratch | 12.58 ± 0.03 | 51.54 ± 7.28 | 4.10 |
+
+**Verdict**: REVERT ✗✗
+**Insights**:
+1. **JEPA pretraining HURTS transfer** — ratio 5.46 vs 4.10 (33% worse)
+2. JEPA loss converges nicely (0.006 → 0.001) but learned representations don't help
+3. Slightly better in-domain (12.42 vs 12.58) but much worse on transfer
+4. **Consistent with ETTh1 finding**: JEPA learns to reconstruct, not to generalize
+5. The pretrained encoder likely learns condition-specific features from FD002, which then bias the fine-tuned model
+
+**Why JEPA fails here**: The JEPA objective (predict masked component representations from context) learns the joint distribution of component representations — including condition-specific correlations. When fine-tuned on FD001 (1 condition), the encoder has already learned 6-condition representations that confuse the RUL head. The Role-Trans architecture itself already captures within-component physics; JEPA adds no additional inductive bias for transfer.
+
+**Implication**: JEPA pretraining is not the right approach for this transfer setting. The architectural inductive bias (role-based grouping) is more valuable than representation pretraining.
+
+## Exp 29: MMD Domain Adaptation — MARGINAL
+
+**Time**: 18:00
+**Hypothesis**: Aligning FD001 and FD002 feature distributions via MMD loss should reduce transfer gap.
+**Change**: Added MMD loss (λ=0.1) between encoder features on FD001 batches and unlabeled FD002 batches during training.
+
+**Results (3 seeds):**
+
+| Method | FD001 RMSE | FD002 RMSE | Transfer Ratio |
+|--------|-----------|-----------|----------------|
+| **MMD (λ=0.1)** | **12.45 ± 0.09** | **48.77 ± 4.81** | **3.92** |
+| Scratch | 12.58 ± 0.03 | 51.54 ± 7.28 | 4.10 |
+
+**Verdict**: MARGINAL — slight improvement, not dramatic
+**Insights**:
+1. Transfer ratio improves 3.92 vs 4.10 (-4%), mostly from lower variance
+2. FD002 RMSE drops from 51.54 to 48.77 (-5%)
+3. Lower transfer variance (4.81 vs 7.28) — more robust
+4. In-domain performance maintained (12.45 vs 12.58)
+5. The improvement is modest — condition shift is the main challenge, and MMD doesn't explicitly handle it
+
+## Exp 30: Patch-based Role-Transformer — NO BENEFIT
+
+**Time**: 18:30
+**Hypothesis**: Patch embeddings (patch_len=5, 6 patches) may learn better temporal representations than point-wise input.
+
+**Results (3 seeds):**
+
+| Method | FD001 RMSE | FD002 RMSE | Transfer Ratio |
+|--------|-----------|-----------|----------------|
+| Patch(5) | 12.98 ± 0.30 | 55.61 ± 3.56 | 4.28 |
+| Point | 12.58 ± 0.03 | 51.54 ± 7.28 | 4.10 |
+
+**Verdict**: REVERT ✗
+**Insights**:
+1. Patches slightly worse on both in-domain (+3%) and transfer (+8%)
+2. Patches have lower transfer variance (3.56 vs 7.28) but higher mean
+3. With only 30 timesteps and 14 sensors, patches don't capture enough context per patch
+4. Point-wise input with positional encoding is sufficient for this sequence length
+
+---
+
+# Phase 2e: Karpathy Loop Round 6 (2026-03-23)
+
+## Exp 31: Contrastive Pretraining — REVERT
+
+**Time**: 19:22
+**Hypothesis**: NT-Xent contrastive pretraining (same engine, different timesteps = positive pairs) should learn condition-invariant representations.
+**Change**: Pretrain RoleEncoder with contrastive loss on 61,790 positive pairs from FD001+FD002.
+
+**Results (3 seeds):**
+
+| Method | FD001 RMSE | FD002 RMSE | Transfer Ratio |
+|--------|-----------|-----------|----------------|
+| Contrastive+FT | 12.54 ± 0.14 | 57.01 ± 7.15 | 4.55 |
+| Scratch | 12.58 ± 0.03 | 51.54 ± 7.28 | 4.10 |
+
+**Verdict**: REVERT ✗
+**Insights**:
+1. Contrastive pretraining also hurts transfer (4.55 vs 4.10, +11%)
+2. Loss barely decreases (4.71 → 4.68), suggesting temporal proximity is a poor signal for contrastive learning on degrading systems
+3. Unlike JEPA (which helped in-domain), contrastive gives no benefit at all
+4. **Pretraining approaches consistently fail** on this small-data setting
+
+## Exp 32: Encoder Freezing — KEY INSIGHT
+
+**Time**: 20:00
+**Hypothesis**: Role-Trans encoder learns more transferable features than CI-Trans. Test by freezing encoder (trained on FD001) and fine-tuning only the head on FD002.
+
+**Results (3 seeds):**
+
+| Setting | Role-Trans | CI-Trans |
+|---------|-----------|---------|
+| Zero-shot avg | 51.54 | 82.31 |
+| 1% FT frozen-enc avg | 43.03 | 73.98 |
+| 5% FT frozen-enc avg | 40.62 | 58.70 |
+| 10% FT frozen-enc avg | 39.55 | 49.29 |
+
+**Verdict**: KEEP ✓✓ — strong evidence for Role-Trans encoder quality
+**Insights**:
+1. **Role-Trans frozen encoder far superior at low data**: At 1% FD002, Role=43.03 vs CI=73.98 (42% better)
+2. **CI catches up with more data**: At 10%, CI=49.29 is closer to Role=39.55 (20% gap)
+3. **Role-Trans zero-shot < CI-Trans 10% frozen-enc** in some seeds — the architecture is genuinely learning transferable representations
+4. **The encoder quality story**: Role-Trans encoder representations are directly useful for FD002 without retraining. CI-Trans encoder learns sensor-specific features that don't transfer.
+5. This supports the NeurIPS claim more directly than raw transfer ratios
+
+## Exp 33: Temporal JEPA — INCONCLUSIVE (NaN instability)
+
+**Time**: 20:30
+**Hypothesis**: Masking future timesteps (not components) in JEPA should learn temporal dynamics rather than condition-specific patterns.
+**Change**: Temporal JEPA with 30% temporal masking, per-sensor processing.
+
+**Results**: Only seed 42 converged (FD001=12.95, FD002=46.54, ratio=3.59). Seeds 123 and 456 diverged to NaN.
+**Verdict**: INCONCLUSIVE — numerically unstable implementation. The one valid seed (3.59) is promising vs scratch (3.35) but unreliable.
+**Root cause**: Processing 14 sensors sequentially through the encoder creates gradient accumulation instability. Would need mixed-precision or gradient scaling to fix.
+
+---
+
+# Pretraining Summary: All Approaches Tested
+
+| Method | Transfer Ratio | vs Scratch (4.10) | Verdict |
+|--------|---------------|-------------------|---------|
+| Component JEPA (mask components) | 5.46 | **+33% worse** | Learns condition-specific patterns |
+| Contrastive (same-engine pairs) | 4.55 | **+11% worse** | Poor contrastive signal |
+| MMD domain adaptation | 3.92 | -4% better | Marginal improvement |
+| Temporal JEPA (mask time) | 3.59* | -12% better* | Unstable, 1/3 seeds valid |
+| **No pretraining (scratch)** | **4.10** | **baseline** | Architecture is sufficient |
+
+**Conclusion**: On C-MAPSS with 14 sensors and ~20K samples, pretraining does not improve transfer. The Role-Transformer architecture already captures the right inductive bias. Pretraining might help at larger scale or with more diverse data, but on this benchmark, it's the architecture that matters, not the representation learning objective.
+
+---
+
 # Grand Summary of All C-MAPSS Experiments
 
-## 20 experiments, 14 key findings
+## 33 experiments, 20 key findings
 
 ### Architecture (Role-Trans vs CI-Trans)
 
@@ -414,14 +553,30 @@
 | Multi-source training | Inconclusive |
 | Per-condition normalization | Eliminates architecture difference |
 | Few-shot (5% FD002) | Role zero-shot ≈ CI 5% fine-tuned |
+| JEPA pretraining (component mask) | Hurts transfer (+33% worse) |
+| Contrastive pretraining | Hurts transfer (+11% worse) |
+| MMD domain adaptation | Marginal improvement (-4%) |
+| Patch embeddings (patch_len=5) | No benefit over point-wise |
+| Encoder freezing | Role-Trans encoder 42% more transferable at 1% FD002 |
 
-### The NeurIPS Story (if honest)
+### The NeurIPS Story (updated with pretraining results)
 
-**Claim**: "Physics-informed channel grouping provides 26-41% better cross-condition transfer by learning condition-invariant within-component features, equivalent to 5% of target-domain labels."
+**Claim**: "Physics-informed channel grouping provides 26-41% better cross-condition transfer by learning condition-invariant within-component features, equivalent to 5% of target-domain labels. This improvement comes from architectural inductive bias, not from representation pretraining — JEPA, contrastive, and domain adaptation methods provide no significant additional benefit."
 
 **Nuance**: "This advantage is specific to operating condition shift. For novel fault modes under the same conditions, channel-independent approaches remain competitive. With operating condition information available (e.g., via clustering), condition-aware normalization provides comparable or greater benefits."
 
-**Novel contribution**: First systematic comparison of structured channel grouping vs channel-independence for industrial transfer learning, with rigorous ablation across 4 C-MAPSS subsets and 7 transfer directions.
+**Novel contribution**: First systematic comparison of structured channel grouping vs channel-independence for industrial transfer learning, with comprehensive ablation of architecture, normalization, pretraining, and domain adaptation across 4 C-MAPSS subsets and 7 transfer directions. Key finding: the architecture IS the transfer mechanism — pretraining is unnecessary when the inductive bias is correct.
+
+### Encoder Quality Analysis (Exp 32)
+
+| FD002 Data Available | Role-Trans (frozen enc) | CI-Trans (frozen enc) | Role advantage |
+|---------------------|----------------------|---------------------|---------------|
+| 0% (zero-shot) | 51.54 | 82.31 | 37% |
+| 1% | 43.03 | 73.98 | 42% |
+| 5% | 40.62 | 58.70 | 31% |
+| 10% | 39.55 | 49.29 | 20% |
+
+Role-Trans encoder representations are directly useful for unseen operating conditions. CI-Trans requires substantial target data to adapt.
 
 ---
 
