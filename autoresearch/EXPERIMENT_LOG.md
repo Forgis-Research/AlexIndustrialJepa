@@ -2,6 +2,37 @@
 
 ---
 
+# Phase 3: Deep Literature Review (2026-03-23)
+
+## Research: Three Directions for Breakthrough
+
+**Papers reviewed**: 35+
+**Time**: 4+ hours of deep research
+**Key finding**: Three viable directions identified. Direction 2 (Slot-based Concept Learning) is most novel. Direction 3 (Mechanical-JEPA) has strongest narrative. See `LITERATURE_REVIEW.md` for full analysis.
+
+### Direction 1: Sparse Graph Learning
+- 11 papers reviewed (NRI, MTGNN, GTS, iTransformer, etc.)
+- **Gap**: Nobody validates learned graphs against known physics or uses them for transfer
+- **Risk**: Low (incremental)
+
+### Direction 2: Learned Latent Concepts (RECOMMENDED)
+- 13 papers reviewed (CBMs, Slot Attention, SlotPi, SlotFM, etc.)
+- **Gap**: No slot attention for industrial sensors. CBMs for C-MAPSS exist but need expert concepts.
+- **Key prior**: SlotFM (2025) — first slot attention on sensor data (accelerometers), discovers frequency components
+- **Our angle**: Slot attention + physics structure → discovers physical components unsupervised
+
+### Direction 3: Mechanical-JEPA
+- 12 papers reviewed (I-JEPA, V-JEPA, MTS-JEPA, Brain-JEPA, etc.)
+- **Root cause of our JEPA failures**: (1) too few mask targets, (2) no codebook bottleneck, (3) shallow encoder, (4) MSE not L1, (5) no multi-scale
+- **Fix**: MTS-JEPA-style codebook + 70-90% temporal masking + deep encoder
+- **Risk**: High (JEPA has failed 3 times already)
+
+### Hybrid: Slot-JEPA
+- **Best of both**: Slot attention discovers components, JEPA predicts in slot space with codebook bottleneck
+- **Novel**: No prior work on this combination for industrial data
+
+---
+
 # Phase 1: Deep Research (2026-03-22)
 
 ## Research: Transfer Learning for Time Series (2024-2026)
