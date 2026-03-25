@@ -1,79 +1,66 @@
-# Next Research Push: Physics-Informed Forecasting for Mechanical Systems
+# Next Steps (Updated 2026-03-25 06:00)
 
-**Goal**: SOTA performance on mechanical dynamical systems time series forecasting via physics-informed channel grouping.
+## Research Status: COMPLETE for Paper Submission
 
-**Core Claim**: Encoding physical structure (which sensors measure the same component) outperforms learning channel relationships from data.
-
----
-
-## Validated So Far
-
-| Result | Evidence |
-|--------|----------|
-| Role-Trans beats CI-Trans on C-MAPSS | RMSE 12.17 vs 13.82, p=0.005 |
-| Physics grouping improves transfer | Transfer ratio 4.42 vs 6.16 |
-| Architecture > Pretraining | JEPA variants underperformed |
+48 experiments across 3 tiers with comprehensive ablations. The story is clear and nuanced.
 
 ---
 
-## Three-Tier Validation (from VALIDATION_RADICAL.md)
+## Core Finding
 
-### Tier 1: Double Pendulum (Synthetic)
-- **Why**: Ground truth physics, 2 groups (mass_1, mass_2)
-- **Data**: Generate or use [Mendeley Dataset](https://data.mendeley.com/datasets/7yd2ntbh3w/1) (1000 FPS, pre-extracted angles)
-- **Task**: Predict next 10-50 timesteps
-- **Transfer**: Train m1/m2=1.0 → Test m1/m2=0.5
+**Physics-masked attention provides a principled attention constraint for multivariate time series.**
 
-### Tier 2: KAIST Motor (Real Mechanical)
-- **Why**: 4 sensor groups (vibration, acoustic, thermal, electrical)
-- **Data**: [ScienceDirect](https://www.sciencedirect.com/science/article/pii/S2352340923001671)
-- **Task**: Fault diagnosis or forecasting
-- **Transfer**: Cross-load (0Nm → 2Nm)
-
-### Tier 3: Weather (Large Physical)
-- **Why**: GIFT-Eval benchmark, 4 groups (temp, pressure, humidity, wind)
-- **Data**: GIFT-Eval / Jena Climate
-- **Task**: Temperature forecast
-- **Baseline**: iTransformer 0.174 MSE
+| System Type | Physics Mask Value | Why |
+|-------------|-------------------|-----|
+| Independent components (pendulum) | **Strong** (7.4% > Full-Attn, p=0.0002) | Groups match true statistical independence |
+| Correlated components (C-MAPSS) | **Moderate** (6.4% > Full-Attn, ns) | Components share failure mode |
+| Complex interactions (weather) | **Negative** (-1.3% vs Full-Attn) | Cross-group interactions too important |
+| **All systems vs CI** | **Strong** (5-34%, p<0.005) | 2D treatment always helps |
 
 ---
 
-## Immediate Actions
+## For Paper Writing
 
-```bash
-# 1. Double pendulum data (Tier 1)
-python experiments/generate_pendulum.py --n_trajectories 1000
+### Ready Now
+1. All experimental results with 10-seed statistical power
+2. Comprehensive ablations (mask type, grouping assignment, data fraction, horizon)
+3. Honest negative results (JEPA, slot attention, data efficiency)
+4. Clear paper narrative: "When to Mask"
 
-# 2. Run Role-Trans on pendulum
-python experiments/role_transformer_pendulum.py --groups physics
-
-# 3. Download KAIST (Tier 2)
-# From ScienceDirect supplementary materials
-
-# 4. Run on ETT/Weather (Tier 3)
-python experiments/role_transformer_ett.py --groups voltage_levels
-```
+### Still Needed
+1. **Figures**: Attention heatmaps comparing physics vs full vs random masks
+2. **Writing**: LaTeX paper draft
+3. **Related work**: Position vs iTransformer, PatchTST, MTGNN
+4. **Additional benchmark** (optional): A second mechanical system (e.g., bearing fault)
 
 ---
 
-## Active Experiments
+## Suggested Paper Structure
 
-| File | Purpose |
-|------|---------|
-| `role_transformer_cmapss.py` | Final C-MAPSS architecture |
-| `cmapss_cross_fault.py` | Transfer experiments |
-| `slot_concept_v2.py` | Learned slot attention |
-| `jepa_etth1_v2.py` | JEPA baseline |
-| `baselines_etth1.py` | iTransformer etc. |
+**Title**: "When to Mask: Physics-Informed Attention for Multivariate Time Series"
+
+1. **Introduction**: The attention spectrum (CI → masked → full)
+2. **Method**: PhysMask architecture (2D treatment + physics-informed mask)
+3. **Experiments**: 3 tiers × 3+ seeds × 6+ models
+4. **When masking helps**: Independence structure predicts effectiveness
+5. **Ablations**: Mask type, grouping assignment, horizon, data size
+6. **Negative results**: JEPA, pooling, slot attention
+7. **Discussion**: Practical guidelines
 
 ---
 
-## Success Criteria
+## Experiment Inventory (48 total)
 
-| Tier | Metric | Baseline | Target |
-|------|--------|----------|--------|
-| 1 | MSE (10-step) | LSTM | <LSTM |
-| 2 | Transfer Ratio | CI-Trans | <5.0 |
-| 3 | MSE | iTransformer 0.174 | <0.174 |
-
-Beat 2/3 tiers = paper. Beat 3/3 + transfer = strong paper.
+| Phase | Experiments | Key Results |
+|-------|------------|-------------|
+| C-MAPSS Baselines | Exp 7-20 | Role-Trans 12.22 FD001, beats CI by 27% |
+| Transfer & Ablation | Exp 21-38 | Weight sharing is key, JEPA hurts |
+| Slot Attention | Exp 39-40 | K=5 optimal but slots collapse |
+| Tier 1-3 Validation | Exp 41 | 3/3 tiers physics > CI |
+| Multi-horizon | Exp 42 | 5.4% → 9.6% with horizon |
+| 10-Seed Stats | Exp 43 | p=0.002 C-MAPSS, p<0.0001 pendulum |
+| Data Efficiency | Exp 44 | Full-Attn wins at all sizes |
+| Pendulum Grouping | Exp 45 | Wrong grouping 23x worse |
+| PhysMask vs Full-Attn | Exp 46 | Pendulum: PhysMask wins. Weather: Full wins |
+| Pendulum Mask Ablation | Exp 47 | Physics mask >> random mask (p<0.001) |
+| C-MAPSS Mask Ablation | Exp 48 | Physics ≈ random (p=0.528), lowest variance |
