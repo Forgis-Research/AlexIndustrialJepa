@@ -1,90 +1,119 @@
-# Executive Summary
+# Executive Summary (Updated)
 
-**Date**: 2026-03-23
-**Session duration**: ~7 hours
-**Total experiments**: 41 (Exp 28-40, plus literature review)
-
----
-
-## Most Promising Direction
-
-**Role-based Transformer with physics-informed channel grouping** remains the strongest contribution. After 41 experiments, the story is clear:
-
-### What Works
-1. **Physics-informed grouping + weight sharing** provides 35% better cross-condition transfer (p=0.005, 10 seeds, FD001→FD002)
-2. **Weight sharing is THE key mechanism** — not just grouping (4.36 vs 4.98 ratio without sharing)
-3. **Role-Trans encoder representations are directly transferable** — frozen encoder is 42% better than CI-Trans at 1% target data
-4. **Role-Trans is also better in-domain** (12.17±0.30 vs 13.39±0.42)
-
-### What Doesn't Work
-1. **JEPA pretraining hurts transfer** (-33%) — learns condition-specific features
-2. **Contrastive pretraining hurts** (-11%) — poor temporal signal for same-engine pairs
-3. **MMD domain adaptation** — marginal (-4%)
-4. **Slot attention doesn't discover components** — shared encoder homogenizes features
-5. **Patch embeddings** — no benefit on 30-timestep sequences
+**Date**: 2026-03-25 (updated from 2026-03-23)
+**Total experiments**: 42+
+**Key result**: Grouped architecture beats CI-Trans by 34.6% on transfer (p=0.002, 10 seeds)
 
 ---
 
-## Key Insight
+## The Real Finding
 
-**The transfer mechanism is architectural, not representational.** The Role-Transformer succeeds because:
-- Weight sharing forces universal sensor dynamics (architectural regularization)
-- Component pooling provides compositional building blocks
-- Cross-component attention captures subsystem interactions
+**The contribution is the grouped architecture, not physics-specific grouping.**
 
-This is NOT about learning condition-invariant features (t-SNE shows Role-Trans is MORE condition-aware). It's about compositional representations that remain functional across conditions.
+After 42+ experiments across 3 tiers (pendulum, turbofan, weather), the honest story is:
+
+### What We Proved
+1. **Grouped architecture >> Channel-independent**: 34.6% better transfer on C-MAPSS (p=0.002, Cohen's d=1.43, 9/10 seeds)
+2. **Consistent across domains**: Physics grouping beats CI on 3/3 tiers (21% pendulum, 27% C-MAPSS, 4.9% weather)
+3. **Effect scales with task difficulty**: Grouped advantage grows from 5.4% → 9.6% as weather forecast horizon increases 96→720
+4. **Variance reduction**: Physics-masked attention has remarkably low variance (±0.00008 vs CI's ±0.0005 on weather)
+
+### What We Disproved (Critical Honest Finding)
+1. **Physics grouping ≈ random grouping**: Ablation shows random groups match or beat physics (FD002: random avg 53.01 vs physics 56.98, p=0.278 ns)
+2. **The benefit is architectural, not knowledge-based**: ANY grouping provides the regularization benefit
+3. **Full-Attention often wins**: Unconstrained attention matches or beats physics grouping on 2/3 tiers
+4. **RoleTrans underperforms on weather**: The mean-pooling bottleneck loses information for non-component-based systems
+
+### What Failed (Don't Pursue)
+- JEPA pretraining (-33% on transfer)
+- Contrastive pretraining (-11%)
+- Slot-based concept discovery (slots collapse)
+- Patch embeddings (no benefit on short sequences)
+
+---
+
+## Revised Paper Narrative
+
+### OLD narrative (invalidated by ablation):
+> "Physics-informed channel grouping captures true physical structure, enabling better transfer"
+
+### NEW narrative (supported by evidence):
+> "Grouped 2D architecture (shared within-group encoder + cross-group attention) provides strong regularization for cross-condition transfer. The grouping structure itself doesn't need to match physics — any reasonable partition improves over channel-independent processing. Physics groups offer interpretability and variance reduction but not performance advantage."
+
+---
+
+## Cross-Tier Results
+
+| Tier | System | Grouped vs CI | Grouped vs Full-Attn | Best Overall |
+|------|--------|--------------|---------------------|-------------|
+| 1. Pendulum | Synthetic, 4ch | **+21%** | Comparable | PhysicsGrouped |
+| 2. C-MAPSS | Turbofan, 14ch | **+27%** (p=0.002) | -17% (loses) | Full-Attn |
+| 3. Weather | Climate, 14ch | **+4.9%** | -0.7% (close) | Full-Attn |
+
+### Multi-Horizon Weather (Tier 3 Extended)
+
+| Horizon | CI-Trans | Full-Attn | Role-Trans | RT vs CI |
+|---------|----------|-----------|------------|----------|
+| H=96 | 0.4570 | 0.4267 | 0.4323 | 5.4% |
+| H=336 | 0.5608 | 0.5203 | 0.5248 | 6.4% |
+| H=720 | 0.6214 | 0.5435 | 0.5620 | 9.6% |
+
+### Grouping Ablation (C-MAPSS FD001→FD002)
+
+| Condition | FD002 RMSE | vs CI-Trans (78.44) |
+|-----------|-----------|---------------------|
+| random_1 | 50.87 | -35% |
+| random_2 | 52.92 | -33% |
+| random_0 | 55.23 | -30% |
+| physics | 56.98 | -27% |
+| wrong | 61.99 | -21% |
+
+---
+
+## Where This Paper Can Still Be Strong
+
+1. **The 2D treatment itself**: Temporal within-channel + Spatial across-channel is a clean, general architecture
+2. **Variance reduction**: Physics grouping gives the most stable results (even if not best average)
+3. **Scaling with horizon**: The grouped advantage grows with task difficulty
+4. **Negative results**: Honest reporting of what doesn't work (JEPA, physics specificity) is valued
+5. **Practical guidance**: "Group your sensors ANY way you want — it helps"
+
+---
+
+## Recommended Paper Structure
+
+**Title**: "Grouped 2D Architecture for Cross-Condition Transfer in Multivariate Time Series"
+(Drop "physics-informed" — the ablation doesn't support it)
+
+**Abstract**: We show that grouping channels with shared within-group encoders and cross-group attention improves transfer by 34.6% over channel-independent processing (p=0.002). Surprisingly, the specific grouping assignment (physics-based, random, or deliberately wrong) matters less than the architectural pattern itself. We validate across synthetic (double pendulum), mechanical (turbofan), and meteorological (weather) systems.
+
+**Sections**:
+1. Introduction: CI paradox + our 2D treatment
+2. Method: Grouped architecture (RoleTrans + PhysMask variants)
+3. Experiments: 3 tiers, 3+ seeds, transfer + in-domain
+4. **Ablation**: Random vs physics vs wrong grouping (key finding)
+5. Multi-horizon: Effect scales with difficulty
+6. Negative results: JEPA, slot attention, physics specificity
+7. Discussion: When and why grouping helps
 
 ---
 
 ## Risk Assessment
 
-### What Could Go Wrong
-1. **C-MAPSS-specific**: Results may not generalize to other industrial systems (FactoryNet blocked by data access)
-2. **Limited scale**: 14 sensors, 100 engines. Unclear if findings scale to larger systems
-3. **Statistical significance on transfer**: p=0.005 is solid but one seed (456) shows CI-Trans winning
-4. **Per-condition normalization eliminates advantage**: With condition labels, simple normalization matches Role-Trans
+### Strengths
+- p=0.002 on 10-seed C-MAPSS transfer (robust)
+- Consistent across 3 different domains
+- Honest about what doesn't work
+
+### Weaknesses
+- Full-Attention beats grouped on 2/3 tiers → hard to argue for the *specific* architecture
+- Physics grouping doesn't beat random → core novelty claim is weakened
+- All datasets are relatively small (14-21 channels)
 
 ### Mitigations
-1. Need FactoryNet access or another multi-machine dataset
-2. Test on Weather/Traffic datasets with known spatial structure
-3. Report honestly: "advantage is for unsupervised cross-condition transfer"
-
----
-
-## Recommended Next Steps
-
-### Immediate (for paper)
-1. **Get FactoryNet data access** — critical for second benchmark
-2. **Write the paper** — sufficient results for a solid workshop paper or short paper
-3. **Clean up code** — make experiments reproducible
-
-### For NeurIPS (if ambitious)
-1. **Second benchmark** (FactoryNet or another multi-machine dataset)
-2. **Theoretical analysis** — why does weight sharing help transfer? (PAC-Bayes bound argument)
-3. **Comparison to MTGNN/GTS** — learned graph baselines
-4. **Domain adaptation combination** — Role-Trans + condition-aware normalization
-
-### Research Directions That Failed (Don't Pursue)
-- JEPA pretraining (failed 4 times)
-- Contrastive pretraining (failed)
-- Slot-based concept discovery on C-MAPSS (slot attention collapses)
-- Patch embeddings for short sequences
-
----
-
-## Paper Outline
-
-**Title**: "Physics-Informed Channel Grouping for Cross-Condition Transfer in Industrial Time Series"
-
-**Abstract**: We show that grouping sensors by physical component with shared within-component weights enables 35% better cross-condition transfer (p<0.005) by learning compositional representations. This architectural inductive bias outperforms representation pretraining (JEPA, contrastive, domain adaptation) and is equivalent to 5% of target-domain labels.
-
-**Sections**:
-1. Introduction: Channel-independence paradox
-2. Method: Role-Transformer architecture
-3. Experiments: 10-seed FD001→FD002, cross-fault, ablations
-4. Analysis: Weight sharing, encoder quality, representation analysis
-5. Negative results: JEPA, contrastive, slot attention
-6. Discussion: When role-based works vs when it doesn't
+- Frame as "understanding what matters in grouped architectures" (ablation study)
+- Emphasize variance reduction and interpretability as practical benefits
+- Test on larger-scale datasets (100+ channels) where full attention is expensive
 
 ---
 
@@ -92,11 +121,11 @@ This is NOT about learning condition-invariant features (t-SNE shows Role-Trans 
 
 | Metric | Value |
 |--------|-------|
-| Total experiments | 41 |
+| Total experiments | 42+ |
 | Papers reviewed | 35+ |
 | Seeds tested (key result) | 10 |
-| Transfer directions tested | 7 |
-| Pretraining methods tested | 4 |
-| New architectures tested | 3 |
-| Statistical significance | p=0.005 |
-| Git commits | 8 |
+| Tiers validated | 3 |
+| Grouping conditions ablated | 5 |
+| Horizons tested | 3 (96, 336, 720) |
+| Statistical significance | p=0.002 |
+| Git commits | 12+ |

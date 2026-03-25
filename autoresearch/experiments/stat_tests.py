@@ -101,8 +101,8 @@ def run_cmapss_10seed():
 
 def run_pendulum_10seed():
     """Run CI-Trans vs Physics-Grouped on Pendulum with 10 seeds."""
-    from tier1_pendulum import (load_pendulum, PendulumDS, CITrans as PendCITrans,
-                                 PhysicsGrouped, train_m as pend_train, evaluate as pend_eval,
+    from tier1_pendulum import (load_pendulum_data, TSDataset, CITransformer as PendCITrans,
+                                 PhysicsGrouped, train_model as pend_train, evaluate as pend_eval,
                                  LOOKBACK, HORIZON, N_CH as PEND_NCH, PHYSICS_GROUPS as PEND_GROUPS)
 
     print("\n" + "="*70)
@@ -110,11 +110,11 @@ def run_pendulum_10seed():
     print("="*70)
     sys.stdout.flush()
 
-    source, target = load_pendulum()
-    mn, sd = source.mean(0), np.maximum(source.std(0), 1e-8)
+    source, target = load_pendulum_data()
 
-    src_ds = PendulumDS(source, mean=mn, std=sd, max_samples=8000)
-    tgt_ds = PendulumDS(target, mean=mn, std=sd, max_samples=3000)
+    src_ds = TSDataset(source, max_samples=8000)
+    mn, sd = src_ds.mean, src_ds.std
+    tgt_ds = TSDataset(target, mean=mn, std=sd, max_samples=3000)
     src_l = DataLoader(src_ds, 256)
     tgt_l = DataLoader(tgt_ds, 256)
 

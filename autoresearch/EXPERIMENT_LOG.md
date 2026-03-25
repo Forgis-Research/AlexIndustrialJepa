@@ -179,6 +179,69 @@
 
 ---
 
+## Exp 43: 10-Seed Statistical Significance Tests
+
+### C-MAPSS: CI-Trans vs Role-Trans (10 seeds)
+
+**Time**: 01:22-01:58
+
+| Seed | CI FD001 | CI FD002 | Role FD001 | Role FD002 |
+|------|---------|---------|-----------|-----------|
+| 42 | 13.01 | 111.77 | 12.67 | 49.21 |
+| 123 | 12.76 | 75.30 | 13.27 | 61.17 |
+| 456 | 13.85 | 48.25 | 13.14 | 60.55 |
+| 789 | 13.38 | 97.75 | 12.48 | 62.60 |
+| 1234 | 13.39 | 106.46 | 12.47 | 53.30 |
+| 5678 | 13.44 | 94.51 | 12.50 | 57.38 |
+| 9012 | 13.50 | 57.09 | 12.35 | 44.01 |
+| 3456 | 12.66 | 68.93 | 12.82 | 49.85 |
+| 7890 | 12.95 | 95.01 | 12.67 | 49.59 |
+| 2468 | 13.55 | 110.03 | 12.31 | 77.91 |
+
+**Summary**:
+- CI-Trans FD002: **86.51 ± 21.49**
+- Role-Trans FD002: **56.56 ± 9.20**
+- **Paired t-test**: t=4.302, **p=0.0020**
+- **Wilcoxon**: W=1.0, **p=0.0039**
+- **Cohen's d**: 1.43 (very large effect)
+- **Role wins**: 9/10 seeds
+- **Improvement**: 34.6%
+
+### Pendulum: CI-Trans vs Physics-Grouped (10 seeds)
+
+**Time**: 01:58-02:05
+
+| Seed | CI Target MSE | Physics Target MSE |
+|------|-------------|-------------------|
+| 42 | 0.016859 | 0.013180 |
+| 123 | 0.016179 | 0.012741 |
+| 456 | 0.015522 | 0.012306 |
+| 789 | 0.015833 | 0.012843 |
+| 1234 | 0.014920 | 0.012864 |
+| 5678 | 0.015341 | 0.012051 |
+| 9012 | 0.015898 | 0.013127 |
+| 3456 | 0.016233 | 0.012356 |
+| 7890 | 0.016394 | 0.012999 |
+| 2468 | 0.015348 | 0.012395 |
+
+**Summary**:
+- CI-Trans target: **0.015853 ± 0.000553**
+- Physics target: **0.012686 ± 0.000366**
+- **Paired t-test**: t=19.478, **p < 0.0001**
+- **Physics wins**: 10/10 seeds
+- **Improvement**: 20.0%
+
+### Combined Statistical Evidence
+
+| Dataset | Improvement | p-value | Effect Size | Win Rate |
+|---------|-------------|---------|-------------|----------|
+| C-MAPSS FD002 | 34.6% | 0.0020 | d=1.43 | 9/10 |
+| Pendulum | 20.0% | <0.0001 | d=19.5 | 10/10 |
+
+**Verdict**: Grouped architecture advantage over CI is statistically robust across both domains.
+
+---
+
 # Phase 3: Deep Literature Review (2026-03-23)
 
 ## Research: Three Directions for Breakthrough
