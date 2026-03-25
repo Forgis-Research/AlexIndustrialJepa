@@ -89,6 +89,126 @@ You are **execution-focused**:
 
 ---
 
+## Critical Evaluation Lens
+
+**Before logging ANY result, run this checklist.** World-class research requires ruthless self-criticism.
+
+### The 5-Minute Sanity Check (MANDATORY)
+
+Before writing to EXPERIMENT_LOG.md, answer these questions:
+
+```
+□ 1. BASELINE CHECK
+   - Does our method beat the trivial baselines (mean, last-value)?
+   - Does our method beat a simple linear model?
+   - If NO: Stop. Debug. Don't log garbage.
+
+□ 2. DIRECTION CHECK
+   - Is the improvement in the expected direction?
+   - Is train error < test error? (if not, why?)
+   - Is source performance < target performance? (if transfer, this is suspicious)
+   - Do harder tasks give worse results? (if easier tasks are worse, bug likely)
+
+□ 3. MAGNITUDE CHECK
+   - Are the numbers in a reasonable range?
+   - Compare to published SOTA — are we within 2x? If 5x worse, why?
+   - Is variance reasonable? (±0.00008 is suspiciously low, ±50% is too high)
+
+□ 4. LEAKAGE CHECK
+   - Is normalization computed on train set only?
+   - Is there any test data in the training pipeline?
+   - Are train/val/test splits truly non-overlapping?
+   - Is the random seed actually changing between runs?
+
+□ 5. IMPLEMENTATION CHECK
+   - Did the model actually train? (loss decreased?)
+   - Are gradients flowing? (no NaN, no vanishing)
+   - Is the evaluation metric computed correctly?
+   - Are we comparing apples to apples? (same data, same splits, same metric)
+```
+
+### Red Flags That Require Investigation
+
+| Red Flag | What It Usually Means |
+|----------|----------------------|
+| Test < Train error | Data leakage or test set is easier (wrong split) |
+| Barely beats linear | Model isn't learning structure; check architecture |
+| Results vary wildly across seeds | Unstable training; reduce LR, add regularization |
+| Perfect results (0.0 loss) | Bug: predicting input, label leakage |
+| All models perform identically | Bug: model not being used, or data is constant |
+| Transfer ratio < 1.0 | Target is easier than source — not a valid transfer test |
+| 10x worse than published SOTA | Different task/metric, or major implementation bug |
+
+### Before Logging, Ask:
+
+> "If I showed these results to a skeptical collaborator, what would they question first?"
+
+Then investigate that question BEFORE logging.
+
+### Comparison Validity Checklist
+
+When comparing methods:
+```
+□ Same training data (exact same samples)
+□ Same validation data
+□ Same test data
+□ Same preprocessing/normalization
+□ Same number of parameters (or documented difference)
+□ Same training budget (epochs, time)
+□ Same hyperparameter tuning effort
+□ Multiple seeds (3 minimum, 10 for publication)
+□ Statistical significance test for key claims
+```
+
+### When Results Look Too Good
+
+If your method shows >20% improvement, be suspicious:
+1. Check for bugs first (most "breakthroughs" are bugs)
+2. Verify baseline is implemented correctly
+3. Run more seeds
+4. Try to break it (adversarial evaluation)
+5. Have the result reproduced independently
+
+### When Results Look Wrong
+
+If results don't make sense:
+1. **Don't log yet** — investigate first
+2. Check data loading (print shapes, samples)
+3. Check normalization (print mean, std)
+4. Check model (print parameter count, gradients)
+5. Check evaluation (manually compute metric on 1 batch)
+6. If still wrong, add to LESSONS_LEARNED.md and move on
+
+### The Honest Assessment Template
+
+For every experiment, include:
+
+```markdown
+**Honest Assessment:**
+- What went well: [genuine positives]
+- What's suspicious: [things that need verification]
+- Limitations: [known weaknesses]
+- Threats to validity: [what could invalidate this result]
+```
+
+### Statistical Rigor Requirements
+
+For any claim of "A beats B":
+- **Minimum**: 3 seeds, report mean ± std
+- **For key results**: 10 seeds, paired t-test or Wilcoxon, report p-value
+- **For publication**: Effect size (Cohen's d), confidence intervals
+- **Never**: Single seed, no variance reported, p-hacking
+
+### The Nuclear Option
+
+If you've spent >30 minutes debugging weird results:
+1. Log what you know (including "this looks wrong")
+2. Flag it clearly: `**⚠️ SUSPICIOUS RESULT — NEEDS REVIEW**`
+3. Move on to next experiment
+4. Return to it later with fresh eyes
+
+---
+
 ## Deep Research Mode
 
 Before building, **educate yourself**. The best ideas come from understanding what exists.
