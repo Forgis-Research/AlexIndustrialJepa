@@ -439,6 +439,186 @@ src/industrialjepa/      # Core library (use, don't modify unless needed)
 
 ---
 
+## 3-Tier Validation Framework
+
+All claims must be validated across multiple tiers of increasing realism. Single-dataset results are not publishable.
+
+### The Tiers
+
+| Tier | Type | Dataset | Why It Matters |
+|------|------|---------|----------------|
+| **1** | Synthetic | Double Pendulum | Ground truth physics, perfect control, fast iteration |
+| **2** | Mechanical Real | C-MAPSS Turbofan | Real sensors, known physics groups, established benchmark |
+| **3** | Action-Conditioned | TBD (FactoryNet?) | True dynamics: state + action → next state |
+
+### Tier 1: Double Pendulum (Synthetic)
+
+**Data:** Generate once with `autoresearch/experiments/generate_pendulum.py`, save as CSV, use forever.
+
+```python
+# State variables
+state = [theta1, omega1, theta2, omega2]
+
+# Physics groups (truly independent masses)
+GROUPS = {
+    "mass_1": ["theta1", "omega1"],
+    "mass_2": ["theta2", "omega2"],
+}
+
+# Transfer test
+source: m1/m2 = 1.0 (balanced)
+target: m1/m2 = 0.5 (unbalanced)
+```
+
+**Action-conditioned version (preferred):**
+```python
+# Add control torques as actions
+action = [torque1, torque2]
+next_state = physics_step(state, action)
+
+# Task: Given (state_t, action_t), predict state_{t+1}
+```
+
+### Tier 2: C-MAPSS Turbofan (Mechanical Real)
+
+**Data:** 4 subsets (FD001-FD004), 100-260 engines per subset.
+
+```python
+# 14 informative sensors
+SENSORS = ["s2","s3","s4","s7","s8","s9","s11","s12","s13","s14","s15","s17","s20","s21"]
+
+# Physics groups (turbofan components)
+GROUPS = {
+    "fan": ["s2", "s8", "s12", "s21"],
+    "hpc": ["s3", "s7", "s11", "s20"],
+    "combustor": ["s9", "s14"],
+    "turbine": ["s4", "s13"],
+    "nozzle": ["s15", "s17"],
+}
+
+# Transfer test
+source: FD001 (1 operating condition)
+target: FD002 (6 operating conditions)
+```
+
+**Task options:**
+- RUL prediction (established benchmark)
+- Sensor forecasting (predict next N sensor values)
+
+### Tier 3: Action-Conditioned Real (Goal)
+
+**The end goal:** Learn dynamics from actions and states, transfer across machines.
+
+```python
+# Robot/CNC example
+action = [setpoint_pos, setpoint_vel]  # Commanded
+state = [actual_pos, actual_vel, effort]  # Measured
+next_state = model(state, action)
+
+# Transfer test
+source: Robot A (learned dynamics)
+target: Robot B (apply dynamics, different kinematics)
+```
+
+**Candidate datasets:**
+- FactoryNet/AURSAD (if accessible)
+- Voraus-AD
+- Custom simulation
+
+**Why action-conditioning matters:**
+| Forecasting Type | What It Tests | Transfer Meaning |
+|------------------|---------------|------------------|
+| State-only | Pattern extrapolation | Same patterns on new machine |
+| **Action-conditioned** | **Dynamics understanding** | **Same physics on new machine** |
+
+### Required Baselines (ALL Tiers)
+
+Every experiment table MUST include:
+
+```markdown
+| Model | In-Domain | Transfer | Ratio |
+|-------|-----------|----------|-------|
+| Mean | ... | ... | ... |
+| Last-value | ... | ... | ... |
+| Linear | ... | ... | ... |
+| MLP | ... | ... | ... |
+| CI-Transformer | ... | ... | ... |
+| Full-Attention | ... | ... | ... |
+| **Physics-Grouped** | ... | ... | ... |
+```
+
+**If you don't beat Linear, stop and debug.**
+
+### Metrics (Unified)
+
+```python
+METRICS = {
+    "in_domain": "MSE or RMSE",
+    "transfer_ratio": "MSE_target / MSE_source",  # Lower = better
+}
+
+# Interpretation
+# Ratio < 1.5: Good transfer
+# Ratio 1.5-3.0: Moderate transfer
+# Ratio > 3.0: Poor transfer
+# Ratio < 1.0: ⚠️ INVALID — target is easier than source
+```
+
+### Transfer Protocol
+
+```
+Source: [======== 100% train ========]
+Target: [10% adapt][===== 90% test =====]
+```
+
+```python
+def transfer_eval(model, source_data, target_data):
+    # 1. Train on source
+    model.fit(source_data)
+    source_mse = model.evaluate(source_data.test)
+
+    # 2. Zero-shot transfer
+    zero_shot = model.evaluate(target_data.test)
+
+    # 3. Few-shot adaptation (10% of target)
+    model.finetune(target_data[:10%], epochs=10)
+    adapted = model.evaluate(target_data[10%:])
+
+    return {
+        "source": source_mse,
+        "zero_shot": zero_shot,
+        "adapted": adapted,
+        "ratio_zero": zero_shot / source_mse,
+        "ratio_adapted": adapted / source_mse,
+    }
+```
+
+### What Makes a VALID Transfer Test
+
+✅ **Valid:**
+- Different operating conditions (FD001→FD002)
+- Different mass ratios (pendulum)
+- Different machines (Robot A → Robot B)
+- Different but related tasks
+
+❌ **Invalid:**
+- Target easier than source (ratio < 1.0)
+- Same data with different random split
+- Train/test from same time period with temporal data
+- "Transfer" where baseline also transfers perfectly
+
+### Success Criteria
+
+| Tier | Metric | Target | What It Proves |
+|------|--------|--------|----------------|
+| 1. Pendulum | Physics < CI ratio | Yes | Physics grouping helps with known structure |
+| 2. C-MAPSS | Transfer ratio < 4.0 | Yes | Works on real mechanical data |
+| 3. Action | Transfer ratio < 2.0 | Yes | Dynamics transfer across machines |
+
+**Paper threshold:** Physics grouping beats CI on 2/3 tiers with p < 0.05.
+
+---
+
 ## Communication
 
 ### Experiment Logs
