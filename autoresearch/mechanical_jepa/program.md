@@ -6,7 +6,203 @@
 
 ---
 
-## Phase 1: Data Setup (First 2 Hours)
+## Phase 0: Rapid Sanity Check (First 2-3 Hours)
+
+**Purpose:** Validate implementation before committing to full training. Catch bugs early.
+
+### 0.1 Micro Dataset
+
+```python
+# Use tiny subset — just enough to verify code works
+SANITY_DATA = {
+    'dataset': 'maniskill',  # Cleanest, most consistent
+    'n_episodes': 100,       # Not 30k
+    'window_size': 32,       # Not 128
+    'stride': 16,
+}
+# Total: ~500 windows, fits in memory
+```
+
+### 0.2 Tiny Model
+
+```python
+SANITY_MODEL = {
+    'd_model': 32,      # Not 128
+    'heads': 2,         # Not 4
+    'layers': 1,        # Not 4
+    'params': '~10K',   # Trains in seconds
+}
+```
+
+### 0.3 Sanity Checks (Must ALL Pass)
+
+| # | Check | How to Verify | Pass Criterion |
+|---|-------|---------------|----------------|
+| 1 | **Data loads** | Print shapes, sample values | No NaN, reasonable ranges |
+| 2 | **Forward pass** | `model(batch)` runs | No errors, output shape correct |
+| 3 | **Loss computes** | Print loss value | Finite, positive, ~1.0 initially |
+| 4 | **Loss decreases** | Train 10 steps | Loss drops >10% |
+| 5 | **Gradients flow** | Check `param.grad` | No NaN, no zeros, no exploding |
+| 6 | **EMA updates** | Compare encoder vs target | Target slightly behind encoder |
+| 7 | **Overfits 1 batch** | Train 100 steps on 1 batch | Loss → ~0 |
+| 8 | **Masking works** | Visualize masked positions | Correct positions masked |
+
+### 0.4 Sanity Check Script
+
+```python
+# autoresearch/experiments/sanity_check.py
+
+def run_sanity_checks():
+    print("=== SANITY CHECK ===\n")
+
+    # 1. Data
+    print("[1/8] Loading data...")
+    data = load_micro_dataset()
+    assert not torch.isnan(data).any(), "NaN in data!"
+    print(f"  Shape: {data.shape}, Range: [{data.min():.2f}, {data.max():.2f}]")
+    print("  ✓ Data loads\n")
+
+    # 2. Forward pass
+    print("[2/8] Forward pass...")
+    model = MechanicalJEPA(d_model=32, heads=2, layers=1)
+    batch = data[:8]
+    z = model.encode(batch)
+    print(f"  Input: {batch.shape} → Output: {z.shape}")
+    print("  ✓ Forward pass\n")
+
+    # 3. Loss
+    print("[3/8] Loss computation...")
+    loss = model.compute_loss(batch)
+    assert torch.isfinite(loss), f"Loss is {loss}!"
+    print(f"  Loss: {loss.item():.4f}")
+    print("  ✓ Loss computes\n")
+
+    # 4. Loss decreases
+    print("[4/8] Training 10 steps...")
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    losses = []
+    for i in range(10):
+        loss = model.compute_loss(batch)
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+        losses.append(loss.item())
+    print(f"  Loss: {losses[0]:.4f} → {losses[-1]:.4f}")
+    assert losses[-1] < losses[0] * 0.9, "Loss didn't decrease!"
+    print("  ✓ Loss decreases\n")
+
+    # 5. Gradients
+    print("[5/8] Checking gradients...")
+    loss = model.compute_loss(batch)
+    loss.backward()
+    for name, param in model.named_parameters():
+        if param.grad is not None:
+            assert torch.isfinite(param.grad).all(), f"Bad gradient in {name}"
+    print("  ✓ Gradients flow\n")
+
+    # 6. EMA
+    print("[6/8] EMA update...")
+    model.ema_update(decay=0.99)
+    # Target should be slightly different from encoder
+    enc_norm = sum(p.norm() for p in model.encoder.parameters())
+    tgt_norm = sum(p.norm() for p in model.target_encoder.parameters())
+    print(f"  Encoder norm: {enc_norm:.2f}, Target norm: {tgt_norm:.2f}")
+    print("  ✓ EMA updates\n")
+
+    # 7. Overfit 1 batch
+    print("[7/8] Overfitting 1 batch (100 steps)...")
+    model = MechanicalJEPA(d_model=32, heads=2, layers=1)  # Fresh model
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+    single_batch = data[:8]
+    for i in range(100):
+        loss = model.compute_loss(single_batch)
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+    print(f"  Final loss: {loss.item():.6f}")
+    assert loss.item() < 0.1, "Can't overfit single batch!"
+    print("  ✓ Overfits 1 batch\n")
+
+    # 8. Masking
+    print("[8/8] Checking masking...")
+    mask = model.create_mask(seq_len=32, mask_ratio=0.3)
+    masked_count = mask.sum().item()
+    print(f"  Masked: {masked_count}/32 positions ({masked_count/32*100:.0f}%)")
+    print("  ✓ Masking works\n")
+
+    print("=== ALL SANITY CHECKS PASSED ===")
+    return True
+```
+
+### 0.5 Quick Viability Test
+
+After sanity checks pass, run a **30-minute viability test**:
+
+```python
+VIABILITY_TEST = {
+    'dataset': 'maniskill',
+    'n_episodes': 1000,      # 3% of full
+    'model': 'small',        # 500K params
+    'epochs': 10,            # Not 100
+    'time_budget': '30 min',
+}
+```
+
+**Viability criteria:**
+
+| Check | Pass | Fail |
+|-------|------|------|
+| Training loss | Decreases smoothly | Stuck or NaN |
+| Validation loss | Decreases (slower than train) | Increases (overfit) |
+| Embeddings | Vary across samples | Collapse to constant |
+| Robot classification | >50% accuracy | Random (14%) |
+
+**If viability test fails:** Debug before scaling up.
+**If viability test passes:** Proceed to full training.
+
+### 0.6 Embedding Collapse Check
+
+JEPA can collapse (all embeddings become identical). Check for this:
+
+```python
+def check_collapse(model, data):
+    embeddings = []
+    for batch in dataloader:
+        z = model.encode(batch)
+        embeddings.append(z)
+    embeddings = torch.cat(embeddings)
+
+    # Check variance
+    var = embeddings.var(dim=0).mean()
+    print(f"Embedding variance: {var:.4f}")
+
+    # Check pairwise distances
+    dists = torch.cdist(embeddings[:100], embeddings[:100])
+    mean_dist = dists.mean()
+    print(f"Mean pairwise distance: {mean_dist:.4f}")
+
+    if var < 0.01 or mean_dist < 0.1:
+        print("⚠️ WARNING: Possible embedding collapse!")
+        return False
+    return True
+```
+
+---
+
+## Phase 0→1 Gate
+
+**Do NOT proceed to Phase 1 until:**
+
+- [ ] All 8 sanity checks pass
+- [ ] 30-min viability test passes
+- [ ] No embedding collapse
+- [ ] Robot classification >50% (random=14%)
+
+**If stuck:** Log the issue, investigate, fix before scaling.
+
+---
+
+## Phase 1: Data Setup (Hours 2-4)
 
 ### Datasets to Use
 
@@ -370,31 +566,67 @@ for n_shots in [10, 50, 100, 500]:
 
 ## Experiment Schedule
 
-### Night 1: Foundation
+### Session 1: Sanity & Viability (2-3 hours, interactive)
+
+**Goal:** Validate implementation before overnight run.
+
+| Step | Time | Task | Gate |
+|------|------|------|------|
+| 1 | 15 min | Download 100 ManiSkill episodes | Data loads, no NaN |
+| 2 | 15 min | Implement tiny model | Forward pass works |
+| 3 | 15 min | Run 8 sanity checks | All pass |
+| 4 | 30 min | Viability test (1k episodes, 10 epochs) | Loss decreases |
+| 5 | 15 min | Collapse check + robot classification | >50% acc, no collapse |
+| 6 | 30 min | Debug any issues | All gates pass |
+
+**Output:** Green light for overnight run, or list of bugs to fix.
+
+### Night 1: Foundation (Overnight, 8-12 hours)
+
+**Only start if Session 1 passed all gates.**
 
 | Hour | Task | Deliverable |
 |------|------|-------------|
-| 0-2 | Data download & preprocessing | Clean tensors for all datasets |
-| 2-4 | Implement architecture | Working forward pass |
-| 4-6 | Training loop | Pretraining running |
-| 6-8 | Continue pretraining | Checkpoint at epoch 50 |
+| 0-2 | Download full data (DROID, ManiSkill, KUKA) | ~100k episodes |
+| 2-4 | Preprocess & verify | Clean tensors, no issues |
+| 4-8 | Pretrain (Small model, 50 epochs) | Checkpoint every 10 epochs |
 | 8-10 | Embodiment classification | Accuracy numbers |
-| 10-12 | Task classification | F1 scores |
+| 10-12 | Forecasting eval (1-step) | MSE vs baselines |
 
-### Night 2: Forecasting
+**Morning checkpoint:** Review logs, verify no collapse, results make sense.
+
+### Session 2: Analysis & Decision (1-2 hours, interactive)
+
+| Step | Task | Decision |
+|------|------|----------|
+| 1 | Review overnight logs | Any red flags? |
+| 2 | Check classification results | >70% embodiment acc? |
+| 3 | Check forecasting MSE | Beats linear baseline? |
+| 4 | Decide: scale up or debug | Go/No-go for Night 2 |
+
+### Night 2: Scale Up (Overnight, 8-12 hours)
+
+**Only if Session 2 gives go-ahead.**
 
 | Hour | Task | Deliverable |
 |------|------|-------------|
-| 0-4 | Finish pretraining | Final pretrained model |
-| 4-8 | Next-state prediction | MSE vs baselines |
-| 8-12 | Multi-step rollout | Rollout curves |
+| 0-4 | Pretrain Base model (100 epochs) | Final checkpoint |
+| 4-8 | Multi-step rollout evaluation | Rollout curves |
+| 8-12 | Cross-embodiment transfer (KUKA, UR5) | Transfer ratios |
 
-### Night 3: Transfer
+### Session 3: Final Analysis (1-2 hours, interactive)
 
-| Hour | Task | Deliverable |
-|------|------|-------------|
-| 0-6 | Cross-embodiment transfer | Transfer ratios |
-| 6-12 | Few-shot experiments | Learning curves |
+| Step | Task | Output |
+|------|------|--------|
+| 1 | Compile all results | Tables, figures |
+| 2 | Statistical significance | p-values (5 seeds) |
+| 3 | Write up findings | Draft results section |
+| 4 | Decide: publish or iterate | Next steps |
+
+### Night 3: Polish or Iterate
+
+**If results are good:** Few-shot experiments, ablations, more baselines
+**If results are weak:** Debug, try different architecture/hyperparams
 
 ---
 
