@@ -320,11 +320,217 @@ Combine Slot-Concept Transformer (Direction 2) with Mechanical-JEPA objective (D
 
 ---
 
+---
+
+## Direction 3b: Robot-JEPA (Open X-Embodiment)
+
+### Vision Statement
+
+Build a **state-space foundation model for robot arms** — the industrial equivalent of Brain-JEPA. Just as Brain-JEPA learns transferable representations across 32K human brains (same structure, different individuals), Robot-JEPA learns across 300K+ robot trajectories (same structure, different tasks/conditions).
+
+### The Brain-JEPA Analogy
+
+| Brain-JEPA | Robot-JEPA |
+|------------|------------|
+| Brain = 450 ROIs × 160 timesteps | Robot arm = 28 sensors × T timesteps |
+| Patient = one individual | Trajectory = one task execution |
+| Cross-patient transfer | Cross-trajectory transfer |
+| UK Biobank (32K subjects) | OXE subset (~300K trajectories) |
+| Downstream: age/sex/cognition | Downstream: task type/success/failure |
+
+**Key insight**: Different human brains have the same structure (ROIs map 1:1). Similarly, different 7-DOF robot arms have the same joint structure — this is our "canonical brain."
+
+### Open X-Embodiment Dataset
+
+**Source**: https://robotics-transformer-x.github.io/
+
+**Scale**: 1M+ trajectories, 22 robot embodiments, 527 skills
+
+**Our target subset**: Franka Panda and similar 7-DOF arms
+- `fractal20220817_data` (Google, Franka)
+- `kuka` (7-DOF industrial)
+- `toto` (7-DOF, rich proprio)
+- `berkeley_autolab_ur5` (6-DOF, close enough)
+
+**Estimated usable trajectories**: ~300K with proprioceptive data
+
+### 7-DOF Robot State Structure
+
+```python
+# Per-joint signals (4 × 7 = 28 dimensions)
+JOINT_SIGNALS = {
+    "position": 7,      # q1...q7 (rad)
+    "velocity": 7,      # dq1...dq7 (rad/s)
+    "torque": 7,        # τ1...τ7 (Nm)
+    "external_torque": 7,  # τ_ext1...τ_ext7 (Nm) — contact forces
+}
+
+# Optional end-effector (Cartesian) space (+15 dimensions)
+EE_SIGNALS = {
+    "ee_position": 3,        # x, y, z
+    "ee_orientation": 4,     # quaternion
+    "ee_velocity_linear": 3,
+    "ee_velocity_angular": 3,
+    "gripper_width": 1,
+    "gripper_velocity": 1,
+}
+
+# Physics-informed groupings (two valid decompositions)
+ROBOT_GROUPS_BY_JOINT = {
+    "joint_1": [0, 7, 14, 21],   # q1, dq1, τ1, τ_ext1
+    "joint_2": [1, 8, 15, 22],
+    # ... through joint_7
+}
+
+ROBOT_GROUPS_BY_SIGNAL = {
+    "positions":  [0, 1, 2, 3, 4, 5, 6],
+    "velocities": [7, 8, 9, 10, 11, 12, 13],
+    "torques":    [14, 15, 16, 17, 18, 19, 20],
+    "external":   [21, 22, 23, 24, 25, 26, 27],
+}
+```
+
+### Architecture: Action-Conditioned JEPA
+
+```python
+class RobotJEPA(nn.Module):
+    """
+    Key difference from Brain-JEPA: We KEEP the predictor as a world model.
+    Brain-JEPA discards predictor after pretraining (classification only).
+    Robot-JEPA uses predictor for planning/control (world model).
+    """
+    def __init__(self, state_dim=28, action_dim=7, d=128, heads=8, layers=4):
+        # State encoder (processes robot state)
+        self.state_encoder = TransformerEncoder(state_dim, d, heads, layers)
+
+        # Action encoder (processes commanded actions)
+        self.action_encoder = nn.Sequential(
+            nn.Linear(action_dim, d),
+            nn.ReLU(),
+            nn.Linear(d, d)
+        )
+
+        # Predictor: (encoded_state_t, action_{t:t+k}) → predicted_state_{t+k}
+        self.predictor = TransformerDecoder(d, heads, layers=2)
+
+        # EMA target encoder (standard JEPA)
+        self.target_encoder = deepcopy(self.state_encoder)
+
+    def forward(self, state_t, actions, state_tk):
+        """
+        Pretraining objective:
+        - Encode current state
+        - Condition on action sequence
+        - Predict future state in latent space
+        - Match against EMA-encoded actual future state
+        """
+        # Encode current state
+        z_t = self.state_encoder(state_t)
+
+        # Encode action sequence
+        a_enc = self.action_encoder(actions)
+
+        # Predict future state
+        z_pred = self.predictor(z_t, a_enc)
+
+        # Target: EMA-encoded actual future
+        with torch.no_grad():
+            z_target = self.target_encoder(state_tk)
+
+        # L2 loss in latent space
+        return F.mse_loss(z_pred, z_target)
+
+    def world_model_rollout(self, state_t, action_sequence):
+        """
+        After pretraining: use predictor as world model for planning.
+        This is what makes Robot-JEPA different from Brain-JEPA.
+        """
+        z = self.state_encoder(state_t)
+        trajectory = [z]
+        for action in action_sequence:
+            a_enc = self.action_encoder(action)
+            z = self.predictor(z, a_enc)
+            trajectory.append(z)
+        return trajectory
+```
+
+### Evaluation Hierarchy
+
+**Level 1: Sanity Checks** (Week 1)
+- State reconstruction MSE (decode back to state space)
+- Next-step prediction accuracy
+- Must beat: persistence baseline, linear model
+
+**Level 2: World Model Quality** (Week 2-3)
+- Multi-step rollout accuracy (5, 10, 20 steps)
+- Action-conditional accuracy: given (s_t, a_{t:t+k}), predict s_{t+k}
+- Transfer: train on Franka, test on KUKA (same DOF, different dynamics)
+
+**Level 3: Downstream Tasks** (Week 4)
+- Task classification: predict task type from trajectory encoding
+- Success prediction: predict task success/failure from early trajectory
+- Anomaly detection: identify unusual trajectories
+
+### Risk Assessment
+
+| Factor | Assessment |
+|--------|------------|
+| **Success probability** | ~50% publishable result |
+| **High-impact probability** | ~15% (NeurIPS/ICML level) |
+| **Main risk** | OXE proprio data quality unknown |
+| **Mitigation** | Check data quality BEFORE architecture work |
+| **If fails** | Fall back to Slot-JEPA on C-MAPSS/pendulum |
+
+### De-risking Steps (Priority Order)
+
+1. **Week 0: Data audit**
+   - Download 1-2 OXE datasets with claimed proprio
+   - Verify: Are torques actually recorded? At what frequency?
+   - Check: Missing values? Sensor noise levels?
+
+2. **Week 1: Baseline establishment**
+   - Train simple LSTM on state prediction
+   - Establish baseline MSE for next-step and multi-step
+
+3. **Week 2: Minimal JEPA**
+   - Implement without action conditioning first
+   - Verify representation doesn't collapse
+
+4. **Week 3: Action conditioning**
+   - Add action encoder
+   - Test world model quality
+
+### Impact If Successful
+
+**Why this could be high-impact:**
+
+1. **First state-space foundation model for robots** (vision models exist, state models don't)
+2. **World model for planning** — goes beyond representation learning
+3. **Cross-embodiment transfer** — learns physics, not just correlations
+4. **Industrial applicability** — robot arms are the industrial workhorse
+
+**Citation potential**: 200+ (comparable to Brain-JEPA's trajectory)
+
+**Venue target**: NeurIPS 2026 / ICML 2026 / CoRL 2026
+
+### Connection to Other Directions
+
+| Direction | Relationship |
+|-----------|-------------|
+| Dir 1 (SparseGraph) | Could learn joint-coupling graph |
+| Dir 2 (Slot-Concept) | Joints ARE the natural "slots" |
+| Dir 3 (Mechanical-JEPA) | This IS the fixed version, with real data |
+
+**Robot-JEPA (3b) subsumes Dir 2 + Dir 3**: Joints provide physics-grounded slots, JEPA provides pretraining objective, OXE provides scale. This is Mechanical-JEPA done right — with real data at scale.
+
+---
+
 ## Evaluation Framework
 
 ### Datasets
 - **C-MAPSS** (FD001→FD002): Primary. Known physics for validation.
 - **ETTh1**: Forecasting baseline (7 channels, no transfer).
+- **OXE-Proprio** (Franka subset): Large-scale robot dynamics (NEW).
 
 ### Metrics
 1. **RUL RMSE**: Primary accuracy metric
