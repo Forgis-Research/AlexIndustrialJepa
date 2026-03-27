@@ -279,17 +279,168 @@ def validate(model, dataloader, device):
 # Data Loading (Placeholder)
 # ============================================================================
 
-def create_synthetic_dataloader(n_samples, seq_len, state_dim, action_dim, batch_size):
-    """Create synthetic dataloader for testing."""
+def generate_robot_trajectory_batch(n_episodes, seq_len, n_joints,
+                                     joint_limits=(-3.0, 3.0),
+                                     vel_scale=0.5, seed=None):
+    """Generate synthetic robot trajectories with realistic dynamics."""
+    if seed is not None:
+        np.random.seed(seed)
+    lo, hi = joint_limits
+    all_states = []
+    all_actions = []
+    for _ in range(n_episodes):
+        q = np.random.uniform(lo * 0.5, hi * 0.5, n_joints).astype(np.float32)
+        vel = np.zeros(n_joints, dtype=np.float32)
+        states = []
+        actions = []
+        for t in range(seq_len):
+            states.append(q.copy())
+            # Action: EE-space delta (7-dim even if fewer joints)
+            action = np.random.randn(7).astype(np.float32) * 0.1
+            actions.append(action)
+            accel = action[:n_joints] * 0.5 + np.random.randn(n_joints).astype(np.float32) * 0.02
+            vel = 0.85 * vel + accel * vel_scale * 0.1
+            vel = np.clip(vel, -vel_scale, vel_scale)
+            q = q + vel * 0.05
+            q = np.clip(q, lo, hi)
+        traj_states = np.array(states, dtype=np.float32)
+        traj_actions = np.array(actions, dtype=np.float32)
+        # Pad to 7 joints if needed
+        if n_joints < 7:
+            pad = np.zeros((seq_len, 7 - n_joints), dtype=np.float32)
+            traj_states = np.concatenate([traj_states, pad], axis=1)
+        all_states.append(traj_states)
+        all_actions.append(traj_actions)
+    return np.stack(all_states), np.stack(all_actions)
+
+
+def generate_distinct_robot_trajectories(robot_id, n_episodes, seq_len, seed=None):
+    """
+    Generate trajectories for 4 distinctly different synthetic robots.
+    Matched with eval_classification.py ROBOT_CONFIGS for consistent eval.
+
+    Robots:
+      0 (A_fast_oscillating): Fast sinusoidal, amp=1.5, freq 0.5-2.0 Hz
+      1 (B_slow_drift):       Slow momentum drift, tight limits=1.0
+      2 (C_6dof_jerky):       Jerky 6-DOF (zero-padded), wide limits=2.5
+      3 (D_sim_sinusoidal):   Slow sinusoidal, amp=0.4 (tight sim range)
+    """
+    if seed is not None:
+        np.random.seed(seed)
+
+    all_states = []
+    all_actions = []
+
+    for ep in range(n_episodes):
+        n_joints = 6 if robot_id == 2 else 7
+
+        if robot_id == 0:  # Fast oscillating
+            t_arr = np.arange(seq_len) * 0.05
+            freqs = np.random.uniform(0.5, 2.0, n_joints)
+            phases = np.random.uniform(0, 2 * np.pi, n_joints)
+            traj = (np.sin(t_arr[:, None] * freqs[None, :] + phases[None, :]) * 1.5
+                    + np.random.randn(seq_len, n_joints) * 0.05)
+        elif robot_id == 1:  # Slow drift
+            q = np.random.uniform(-0.5, 0.5, n_joints)
+            vel = np.zeros(n_joints)
+            traj = []
+            for t in range(seq_len):
+                traj.append(q.copy())
+                vel = 0.95 * vel + np.random.randn(n_joints) * 0.005
+                q = np.clip(q + vel, -1.0, 1.0)
+            traj = np.array(traj, dtype=np.float32)
+        elif robot_id == 2:  # Jerky 6-DOF
+            q = np.random.uniform(-2.5, 2.5, n_joints)
+            traj = []
+            for t in range(seq_len):
+                traj.append(q.copy())
+                if np.random.rand() < 0.1:
+                    q += np.random.randn(n_joints) * 0.5
+                else:
+                    q += np.random.randn(n_joints) * 0.02
+                q = np.clip(q, -2.5, 2.5)
+            traj = np.array(traj, dtype=np.float32)
+        elif robot_id == 3:  # Slow sinusoidal sim
+            t_arr = np.arange(seq_len) * 0.05
+            freqs = np.random.uniform(0.1, 0.3, n_joints)
+            phases = np.random.uniform(0, 2 * np.pi, n_joints)
+            traj = (np.sin(t_arr[:, None] * freqs[None, :] + phases[None, :]) * 0.4
+                    + np.random.randn(seq_len, n_joints) * 0.01)
+
+        traj = np.array(traj, dtype=np.float32)
+
+        # Zero-pad 6-DOF to 7-DOF
+        if n_joints == 6:
+            traj = np.pad(traj, ((0, 0), (0, 1)), mode='constant')
+
+        # Actions: EE-space random (7-dim)
+        actions = np.random.randn(seq_len, 7).astype(np.float32) * 0.1
+
+        all_states.append(traj)
+        all_actions.append(actions)
+
+    return np.stack(all_states), np.stack(all_actions)
+
+
+def create_multiRobot_dataloader(n_per_robot, seq_len, batch_size, seed=42):
+    """
+    Create dataloader mixing trajectories from 4 distinct robot types.
+    Uses the same robot definitions as eval_classification.py for consistency.
+    """
     from torch.utils.data import DataLoader, TensorDataset
 
+    all_states = []
+    all_actions = []
+
+    for robot_id in range(4):
+        states, actions = generate_distinct_robot_trajectories(
+            robot_id=robot_id,
+            n_episodes=n_per_robot,
+            seq_len=seq_len,
+            seed=seed + robot_id * 1000,
+        )
+        all_states.append(states)
+        all_actions.append(actions)
+
+    states_all = np.concatenate(all_states, axis=0)
+    actions_all = np.concatenate(all_actions, axis=0)
+
+    # Shuffle
+    perm = np.random.RandomState(seed).permutation(len(states_all))
+    states_all = states_all[perm]
+    actions_all = actions_all[perm]
+
+    states_t = torch.tensor(states_all)
+    actions_t = torch.tensor(actions_all)
+
+    dataset = TensorDataset(states_t, actions_t)
+
+    def collate_fn(batch):
+        states, actions = zip(*batch)
+        return {
+            'states': torch.stack(states),
+            'actions': torch.stack(actions),
+        }
+
+    return DataLoader(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
+
+
+N_ROBOT_TYPES = 4  # Number of distinct synthetic robot types
+
+
+def create_synthetic_dataloader(n_samples, seq_len, state_dim, action_dim, batch_size,
+                                 multi_robot=True):
+    """Create dataloader — multi-robot by default for cross-embodiment learning."""
+    if multi_robot:
+        n_per_robot = max(100, n_samples // N_ROBOT_TYPES)
+        return create_multiRobot_dataloader(n_per_robot, seq_len, batch_size)
+
+    # Single-robot fallback (for ablation)
+    from torch.utils.data import DataLoader, TensorDataset
     states = torch.randn(n_samples, seq_len, state_dim)
     actions = torch.randn(n_samples, seq_len, action_dim)
-
-    # Make states more realistic (smooth trajectories)
     for i in range(1, seq_len):
         states[:, i] = 0.9 * states[:, i-1] + 0.1 * states[:, i]
-
     dataset = TensorDataset(states, actions)
 
     def collate_fn(batch):
@@ -314,6 +465,10 @@ def main():
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--checkpoint-dir', type=str, default='checkpoints')
     parser.add_argument('--log-interval', type=int, default=10)
+    parser.add_argument('--single-robot', action='store_true',
+                        help='Use single-robot data (ablation baseline)')
+    parser.add_argument('--n-train', type=int, default=5000,
+                        help='Total training samples (across all robots if multi-robot)')
     args = parser.parse_args()
 
     # Setup
@@ -332,15 +487,19 @@ def main():
     ).to(device)
 
     n_params = sum(p.numel() for p in model.parameters())
+    multi_robot = not args.single_robot
     print(f"Model: {args.config} ({n_params:,} params)")
+    print(f"Data: {'multi-robot (4 embodiments)' if multi_robot else 'single-robot (ablation)'}")
 
-    # Data (placeholder - replace with real OXE loading)
+    # Data
     print("Loading data...")
     train_loader = create_synthetic_dataloader(
-        n_samples=5000, seq_len=128, state_dim=7, action_dim=7, batch_size=args.batch_size
+        n_samples=args.n_train, seq_len=128, state_dim=7, action_dim=7,
+        batch_size=args.batch_size, multi_robot=multi_robot
     )
     val_loader = create_synthetic_dataloader(
-        n_samples=500, seq_len=128, state_dim=7, action_dim=7, batch_size=args.batch_size
+        n_samples=max(500, args.n_train // 10), seq_len=128, state_dim=7, action_dim=7,
+        batch_size=args.batch_size, multi_robot=multi_robot
     )
     print(f"Train batches: {len(train_loader)}, Val batches: {len(val_loader)}")
 
