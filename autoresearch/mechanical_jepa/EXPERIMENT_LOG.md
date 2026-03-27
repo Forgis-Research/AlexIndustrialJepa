@@ -761,3 +761,90 @@ models dominate.
 head is trained). If we fine-tuned the encoder as well, the gap with linear might
 close faster, but we'd need more data. This is the standard few-shot transfer tradeoff.
 
+
+---
+
+## Synthesis and Critical Analysis (Session 2)
+
+### What Worked
+
+1. **JEPA pretraining converges on real robot data**: 50-epoch training on 12k windows
+   converges stably. No embedding collapse. Loss drops 86% from epoch 1 to epoch 50.
+   3-seed variance is acceptable (0.0086 ± 0.0019).
+
+2. **Cross-embodiment transfer at 10-shot**: The clearest positive finding. When given
+   only 10 labeled windows (~500 timesteps) from a new robot, the Franka-pretrained
+   encoder outperforms from-scratch by 25-40% on KUKA, UR5, and JACO. This is
+   statistically robust across 3 seeds.
+
+3. **In-domain forecasting: pretraining helps the transformer**: Pretrained/Scratch
+   ratio of 0.43 at h=1 means pretraining halves the transformer's forecasting error.
+   This validates that JEPA representations encode useful temporal structure.
+
+### What Didn't Work
+
+1. **Embodiment classification WORSE than random** (p=0.006, delta=-14.7%):
+   JEPA optimizes for temporal prediction, not static discriminability. The encoder
+   learns to compress sequential state patterns; it discards the absolute position
+   information that distinguishes robots. This is a fundamental property of JEPA
+   pretraining, not a bug.
+
+2. **Contact classification is a useless benchmark**: AUROC 0.99 for random features,
+   random encoder, and pretrained encoder alike. The KUKA force dataset contact label
+   is a deterministic function of joint position (geometric contact). Not a valid
+   test of learned representations.
+
+3. **Linear regression dominates at 50+ shots**: This is the most important negative
+   finding. With ≥50 labeled examples, a simple linear model (state_t → state_{t+1})
+   achieves 10-50x lower MSE than the pretrained encoder. Robot proprioceptive
+   dynamics are nearly linear in normalized joint space, so the transformer's
+   non-linear capacity is wasted.
+
+### Mechanistic Interpretation
+
+The JEPA encoder learns to recognize "smooth joint trajectory patterns" — the common
+structure shared by robot arm motions across embodiments. This is useful because:
+- All joints must start/stop smoothly
+- Joint velocities are continuous
+- Actuator dynamics impose similar constraints across robot types
+
+But this structure is:
+- Not useful for embodiment ID (because it's SHARED, not discriminative)
+- Not better than a linear model for 1-step prediction (because the dynamics are linear)
+- Useful for few-shot transfer because random initializations take many samples to
+  converge, while the pretrained initialization is already in a "reasonable" region
+
+### Comparison to Related JEPA Work
+
+| Paper | Domain | Task | JEPA Benefit |
+|-------|--------|------|-------------|
+| Brain-JEPA | fMRI | Sex classification | +8% over chance |
+| V-JEPA | Video | Action recognition | +12% |
+| This work (Mech-JEPA) | Robot proprio | Cross-robot transfer | +25-40% at 10-shot |
+| This work | Robot proprio | Embodiment classification | -14.7% vs random |
+
+The contrast between these results confirms that JEPA benefits are task-specific:
+JEPA helps when the downstream task requires recognizing temporal patterns (transfer,
+forecasting) but hurts or provides no benefit when the task requires static
+discriminability.
+
+### What to Try Next
+
+1. **Contrastive pretraining** for embodiment classification — SimCLR or BYOL with
+   episode-level positives/negatives would be better than JEPA for this task
+
+2. **Fine-tune the entire encoder** for cross-embodiment transfer — we only fine-tuned
+   a linear head. Full fine-tuning with KUKA/UR5 data would likely close the gap with
+   linear regression
+
+3. **Longer pretraining with more data** — 50 epochs on 12k windows is modest. If
+   DROID (100 episodes) were scaled to the full 76k DROID episodes, pretraining
+   might be more powerful
+
+4. **Action-conditioned JEPA** — the current encoder ignores actions. Including
+   actions as conditioning could help the predictor and improve representations
+
+5. **Non-linear dynamics benchmarks** — TOTO and KUKA have nearly linear dynamics
+   in normalized space. A benchmark with strongly non-linear dynamics (e.g., contact-
+   rich manipulation) would better differentiate encoder approaches from linear baselines
+
