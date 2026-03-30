@@ -1,2 +1,2 @@
-- [IndustrialJEPA Project Context](project_industrialjepa.md) — 57 experiments done, Mech-JEPA Session 2 complete: cross-embodiment transfer POSITIVE on 3/4 robots at 10-shot
+- [IndustrialJEPA Project Context](project_industrialjepa.md) — Mechanical-JEPA overnight done: 80.4% ± 2.6% bearing fault detection (3-seed), 96.1% MLP probe
 - [Dataset Catalog and Recommendations](datasets_catalog.md) — Paderborn=Tier2, WADI=Brain-JEPA, OXE proprio data verified and used

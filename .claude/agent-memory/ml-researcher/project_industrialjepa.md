@@ -1,46 +1,58 @@
 ---
 name: IndustrialJEPA Project Context
-description: Core project overview — physics-informed attention for industrial time series, 52 experiments complete (Phase 7 overnight session added robotics/JEPA)
+description: Core project overview — multiple JEPA experiments; Mechanical-JEPA overnight session (2026-03-30) achieves 80.4% bearing fault detection (3-seed validated)
 type: project
 ---
 
-IndustrialJEPA is a research project on physics-informed channel grouping in transformer attention for multivariate time series forecasting on mechanical/industrial systems.
+IndustrialJEPA is a research project on self-supervised learning (JEPA) for industrial time series.
 
-**Status as of 2026-03-26**: 52 experiments complete. Physics-mask story confirmed. Phase 7 added robotics datasets (KUKA, AURSAD, Voraus) and JEPA pretraining experiments.
+**Two main subprojects:**
 
-**Core finding**: Physics-masked attention provides principled constraint when physics groups are statistically independent. When groups are coupled (C-MAPSS, ETT) it does not help or hurts.
+## 1. Physics-Informed Attention (main paper)
+
+52+ experiments, core finding: Physics-masked attention provides principled constraint when physics groups are statistically independent.
 
 | System | Physics Mask Effect | Why |
 |---|---|---|
 | Double Pendulum | +7.4% over Full-Attn (p=0.0002) | Groups are truly independent |
 | C-MAPSS | ≈ random mask (p=0.528) | Correlated degradation |
 | ETT Weather | -1.3% vs Full-Attn | Thermal couples to all loads |
-| All vs CI-Trans | +5–34% | 2D treatment always helps |
 
-**Phase 7 findings (Exp 49-52)**:
-- **Exp 49 (KUKA EDA)**: GCS credentials unavailable → physics-based synthetic peg-insertion data. 12% success rate, force_mag_mean=0.617, weak joint-force correlation.
-- **Exp 50 (Force prediction)**: CI-Transformer fails on cross-channel causal tasks (MSE ≈ Linear = 0.083). Full-Attn best (0.0052), PhysMask competitive at 2.6x fewer params. Key insight: CI when channels independent, physics grouping when causal structure known.
-- **Exp 51 (AURSAD JEPA)**: 30-epoch JEPA on 151k windows → AUROC 0.5482±0.0111 vs random 0.5473±0.0038. Delta +0.0009. NO_BENEFIT.
-- **Exp 52 (Voraus JEPA)**: 30-epoch JEPA on 51k windows → AUROC 0.4828±0.0111 vs random 0.5083±0.0192. Delta -0.0254. NO_BENEFIT (JEPA slightly worse).
-- **JEPA pattern**: Consistent NO_BENEFIT on two independent industrial datasets. Temporal patch prediction doesn't capture episode-level distributional shift = industrial anomaly. Better approaches: MAE, contrastive learning, or density estimation baselines.
+---
 
-**Engineering notes from Phase 7**:
-- FactoryNetDataset OOM on Voraus (60 parquets × 107 MB = 6.25 GB). Fix: stream parquets one at a time, extract windows per-file.
-- Stanford KUKA dataset (gs://gresearch/robotics) requires Google Cloud credentials — unavailable on SageMaker.
-- Pre-materialization (numpy array from FactoryNetDataset) works for AURSAD (151k windows, ~1.6 GB) but not Voraus.
+## 2. Mechanical-JEPA: Bearing Fault Detection (autoresearch/mechanical_jepa/)
 
-**Paper title**: "When to Mask: Physics-Informed Attention for Multivariate Time Series"
+**Status as of 2026-03-30**: Overnight session complete. All Phase 1-3 goals achieved.
 
-**Mechanical-JEPA Session 2 findings (Exp 1-5 in autoresearch/mechanical_jepa/EXPERIMENT_LOG.md, 2026-03-27)**:
-- **Pretraining**: 50-epoch JEPA on 12k TOTO+DROID windows → val_loss=0.0086±0.0019, no collapse
-- **Embodiment classification**: Pretrained WORSE than random (65.1% vs 79.8%, p=0.006). JEPA discards discriminative features.
-- **Contact classification**: Trivially easy (AUROC 0.99 all methods). Dataset artifact.
-- **In-domain forecasting**: Linear regression best at h=1 (MSE=0.00007). Pretrained beats scratch (ratio=0.43) but can't beat linear.
-- **Cross-embodiment transfer (KEY RESULT)**: Franka-pretrained encoder beats from-scratch on KUKA/UR5/JACO at all budgets (ratios 0.5-0.7). Only FANUC shows no benefit at 10-shot.
-  - KUKA 10-shot: pretrained=0.584 vs scratch=0.862 (ratio=0.678)
-  - JACO 100-shot: pretrained=0.095 vs scratch=0.201 (ratio=0.473)
-  - Linear regression dominates at 50+ shots (MSE=0.005-0.02 vs encoder=0.2-0.4)
-- **Bottom line**: JEPA representations transfer usefully across robot embodiments in the truly data-scarce regime (10 windows), but simple linear regression wins once >50 labeled examples are available.
+### Best Result (3-seed validated):
+- JEPA (512-dim, mean-pool, 100ep): **80.4% ± 2.6%**
+- Random Init: 51.9% ± 3.4%
+- Improvement: **+28.5% ± 4.7%** (min across seeds: +22.7%)
+- MLP probe: **96.1%** (1 seed, 2-layer)
 
-**Why:** Session 2 complete 2026-03-27. Full real-data OXE suite done.
-**How to apply:** Cross-embodiment transfer result is the publishable positive finding. Linear regression dominance is the honest limitation to disclose.
+### Key Findings:
+1. **Mean-pool is critical**: CLS token never receives JEPA gradient directly. Mean-pool over patch tokens exposes the actually-trained representations. 96.1% with MLP probe vs ~84% with CLS.
+2. **embed_dim=512 >> 256**: +13% absolute improvement. Bigger width more important than depth.
+3. **100 epochs optimal**: 200ep overfits on small CWRU dataset (~2400 windows total).
+4. **Random init baseline is ~50%, not ~30%**: Untrained transformers have structured positional features.
+5. **Per-class difficulty**: Healthy/Ball ~100%, Inner race 50-80%, Outer race 0-55% (hardest).
+
+### Files:
+- Training: `/home/sagemaker-user/IndustrialJEPA/mechanical-jepa/train.py`
+- Model: `/home/sagemaker-user/IndustrialJEPA/mechanical-jepa/src/models/jepa.py`
+- Data: CWRU dataset, split by bearing_id (not window), stratified
+- Checkpoints: `/home/sagemaker-user/IndustrialJEPA/mechanical-jepa/checkpoints/`
+- Analysis notebook: `/home/sagemaker-user/IndustrialJEPA/mechanical-jepa/notebooks/03_results_analysis.ipynb`
+- Figures: `/home/sagemaker-user/IndustrialJEPA/mechanical-jepa/figures/` (11 figures)
+- Experiment log: `/home/sagemaker-user/IndustrialJEPA/autoresearch/mechanical_jepa/EXPERIMENT_LOG.md`
+- Lessons: `/home/sagemaker-user/IndustrialJEPA/autoresearch/mechanical_jepa/LESSONS_LEARNED.md`
+
+### Success Criteria Status:
+- [PASS] Multi-seed validation (3 seeds, all >22.7% improvement)
+- [PASS] Test accuracy > 60% (best: 84.1%)
+- [PASS] t-SNE clustering by fault type (notebook generated)
+- [PASS] Confusion matrix analysis
+- [PASS] All figures and analysis notebook complete
+
+**Why:** Overnight autoresearch run 2026-03-30. Analogous to Brain-JEPA (NeurIPS 2024) for vibration signals.
+**How to apply:** Use mean-pool for any future JEPA evaluation. The embed_dim=512, 100ep config is the production baseline.
