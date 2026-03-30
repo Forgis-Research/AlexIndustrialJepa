@@ -114,3 +114,55 @@ python train.py --eval-only --checkpoint checkpoints/jepa_xxx.pt
 4. **Brain-JEPA analogy holds** — Masked patch prediction works for vibration signals
 
 ---
+
+## Brain-JEPA Insights (NeurIPS 2024)
+
+### What Brain-JEPA Teaches Us
+
+**Brain-JEPA** (NeurIPS 2024 Spotlight) applies JEPA to fMRI time series — very similar modality to vibration signals!
+
+**Key innovations relevant to our work:**
+
+1. **Spatiotemporal Masking Strategy**
+   - Brain-JEPA uses three masking types: Cross-ROI, Cross-Time, and Double-Cross
+   - For vibration: Could mask across channels (Cross-Channel), time (Cross-Time), or both
+   - Current implementation uses random patch masking — may benefit from structured masking
+
+2. **Positional Encoding**
+   - Brain-JEPA uses Brain Gradient Positioning for ROI locations
+   - Sine/cosine for temporal positioning
+   - Our implementation uses learnable positional embeddings — could try sinusoidal
+
+3. **Patch Size Considerations**
+   - Brain-JEPA divides temporal signals into patches (similar to our approach)
+   - Patch size should capture meaningful temporal structures
+   - For vibration: p=256 samples captures ~1-2 fault cycles at 12kHz
+
+4. **Foundation Model Approach**
+   - Brain-JEPA achieves SOTA on multiple downstream tasks (demographics, disease, traits)
+   - Our goal: Similarly transfer to multiple bearing types and fault modes
+   - Cross-dataset transfer is THE test of foundation model quality
+
+**Differences between Brain-JEPA and Mechanical-JEPA:**
+
+| Aspect | Brain-JEPA (fMRI) | Mechanical-JEPA (Vibration) |
+|--------|-------------------|------------------------------|
+| Input | ROI time series (brain regions) | Multi-channel vibration |
+| Temporal resolution | TR ~2s | Sampling rate 12-20 kHz |
+| Data size | Large (multi-site datasets) | Small (CWRU: 40 episodes) |
+| Task | Brain age, disease | Fault classification |
+| Challenge | Heterogeneous ROIs | Heterogeneous bearing types |
+
+**Action items from Brain-JEPA:**
+- [ ] Try structured spatiotemporal masking (not just random)
+- [ ] Experiment with sinusoidal positional encoding
+- [ ] Test cross-dataset transfer rigorously (CWRU → IMS)
+- [ ] Consider multi-task fine-tuning (fault type + severity + RUL)
+
+### References
+
+- [Brain-JEPA Paper (NeurIPS 2024)](https://proceedings.neurips.cc/paper_files/paper/2024/hash/9c3828adf1500f5de3c56f6550dfe43c-Abstract-Conference.html)
+- [Brain-JEPA GitHub](https://github.com/Eric-LRL/Brain-JEPA)
+- [I-JEPA Paper (CVPR 2023)](https://arxiv.org/abs/2301.08243)
+
+---
