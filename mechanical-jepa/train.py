@@ -9,6 +9,7 @@ Usage:
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
 from datetime import datetime
@@ -18,6 +19,15 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
+
+# Load environment variables (for wandb API key)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(Path(__file__).parent.parent / '.env')
+except ImportError:
+    pass
+
+import wandb
 
 from src.data import create_dataloaders
 from src.models import MechanicalJEPA
@@ -82,6 +92,8 @@ def get_args():
     parser.add_argument('--eval-only', action='store_true', help='Only run evaluation')
     parser.add_argument('--checkpoint', type=str, default=None, help='Path to checkpoint')
     parser.add_argument('--no-save', action='store_true', help='Do not save checkpoints')
+    parser.add_argument('--no-wandb', action='store_true', help='Disable wandb logging')
+    parser.add_argument('--wandb-project', type=str, default='mechanical-jepa', help='Wandb project name')
 
     return parser.parse_args()
 
@@ -273,7 +285,18 @@ def train(config: dict, device: torch.device):
     print("=" * 60)
     print(f"\nConfig:")
     for key, value in config.items():
-        print(f"  {key}: {value}")
+        if not key.startswith('wandb'):
+            print(f"  {key}: {value}")
+
+    # Initialize wandb
+    use_wandb = not config.get('no_wandb', False)
+    if use_wandb:
+        wandb.init(
+            project=config.get('wandb_project', 'mechanical-jepa'),
+            config={k: v for k, v in config.items() if not k.startswith('wandb') and k != 'no_wandb'},
+            name=f"jepa_{config['dataset_filter']}_{config['epochs']}ep",
+        )
+        print(f"\nWandB run: {wandb.run.url}")
 
     # Set seed
     torch.manual_seed(config['seed'])
@@ -347,11 +370,30 @@ def train(config: dict, device: torch.device):
         epoch_time = time.time() - epoch_start
         print(f"Epoch {epoch+1}/{config['epochs']}: loss={avg_loss:.4f}, time={epoch_time:.1f}s")
 
+        # Log to wandb
+        if use_wandb:
+            wandb.log({
+                'epoch': epoch + 1,
+                'loss': avg_loss,
+                'lr': history['lr'][-1],
+                'epoch_time': epoch_time,
+            })
+
     total_time = time.time() - start_time
     print(f"\nTraining completed in {total_time/60:.1f} minutes")
 
     # Linear probe evaluation
     probe_results = train_linear_probe(model, train_loader, test_loader, config, device)
+
+    # Log probe results to wandb
+    if use_wandb:
+        wandb.log({
+            'probe/train_acc': probe_results['train_acc'],
+            'probe/test_acc': probe_results['test_acc'],
+            **{f'probe/{k}_acc': v for k, v in probe_results['per_class_acc'].items()},
+        })
+        wandb.summary['final_test_acc'] = probe_results['test_acc']
+        wandb.summary['training_time_min'] = total_time / 60
 
     # Save checkpoint
     if not config.get('no_save', False):
@@ -371,6 +413,16 @@ def train(config: dict, device: torch.device):
         }, checkpoint_path)
 
         print(f"\nCheckpoint saved to {checkpoint_path}")
+
+        # Log model artifact to wandb
+        if use_wandb:
+            artifact = wandb.Artifact('model', type='model')
+            artifact.add_file(str(checkpoint_path))
+            wandb.log_artifact(artifact)
+
+    # Finish wandb run
+    if use_wandb:
+        wandb.finish()
 
     return model, history, probe_results
 
@@ -404,6 +456,9 @@ def main():
         config['seed'] = args.seed
     if args.no_save:
         config['no_save'] = True
+    if args.no_wandb:
+        config['no_wandb'] = True
+    config['wandb_project'] = args.wandb_project
 
     # Device
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
