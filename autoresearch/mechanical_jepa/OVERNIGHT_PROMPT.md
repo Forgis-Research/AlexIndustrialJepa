@@ -72,7 +72,7 @@ For each experiment:
 Once you have strong results:
 1. Create/update `notebooks/03_results_analysis.ipynb` with:
    - Clear explanation of JEPA for bearing fault detection
-   - Some very foundational but telling plots (time series forecasted vs actual, classification based on the architecture, etc...). What helps a human understand what`s going on and also sanity check the results.
+   - Some very foundational but telling plots (time series forecasted vs actual, classification based on the architecture, etc...). What helps a human understand what's going on and also sanity check the results.
    - All baseline comparisons in a table
    - Best result with 3+ seeds (mean ± std)
    - t-SNE visualization by fault type
@@ -80,6 +80,44 @@ Once you have strong results:
    - Conclusions
 
 2. Update LESSONS_LEARNED.md with new insights
+
+### Phase 5: FINAL REPORT (Required)
+Create `notebooks/04_final_report.ipynb` — a concise, useful summary:
+
+**Structure (keep it tight):**
+```
+1. Executive Summary (3-5 bullet points)
+   - What worked, what didn't, key numbers
+
+2. Method (1 paragraph + 1 diagram)
+   - JEPA architecture for bearing signals
+
+3. Results Table
+   | Experiment | CWRU Acc | IMS Acc | Notes |
+   |------------|----------|---------|-------|
+   | Random init | 30% | - | baseline |
+   | JEPA 30ep | 66% | ? | ... |
+
+4. Key Visualizations (max 4 plots)
+   - t-SNE: Do faults cluster?
+   - Confusion matrix: What gets confused?
+   - Loss curve: Did training converge?
+   - Transfer plot: CWRU vs IMS embeddings
+
+5. Honest Assessment
+   - What ACTUALLY transfers vs what doesn't
+   - Limitations and caveats
+   - What would need to change for production use
+
+6. Next Steps (3 concrete items)
+```
+
+**Rules for the report:**
+- No fluff, no filler — every sentence must be useful
+- Include actual numbers, not vague claims
+- Show failure cases, not just successes
+- Be honest about limitations
+- A reader should understand the full story in 5 minutes
 
 ## Commands
 
@@ -119,6 +157,21 @@ python train.py --mask-ratio 0.7 --seed 42
 2. **Never claim with 1 seed** — 3+ seeds for any conclusion
 3. **Never tune on test set** — Only use test for final evaluation
 4. **Never ignore failures** — Negative results are information
+5. **Never assume — always verify** — Before reporting any result as "true" or "working", critically self-check:
+   - Could this be a bug? (data leakage, wrong split, mislabeled data)
+   - Could this be random chance? (run multiple seeds)
+   - Does this make physical sense? (bearings, fault signatures)
+   - What would disprove this claim? (try to falsify your own results)
+
+## Critical Self-Checking Protocol
+
+Before claiming any result:
+1. **Sanity check the numbers** — Is 90% accuracy suspicious? Is 25% just random guessing?
+2. **Check for data leakage** — Same bearing in train and test? Overlapping windows?
+3. **Verify the baseline** — Is random init actually random? Re-run to confirm.
+4. **Look at predictions** — Do per-class accuracies make sense? Any class at 0% or 100%?
+5. **Visualize embeddings** — Do t-SNE clusters match labels or something else (bearing ID)?
+6. **Question everything** — If it seems too good, it probably is. Investigate.
 
 ## Stopping Conditions
 
