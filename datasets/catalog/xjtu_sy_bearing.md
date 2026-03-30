@@ -7,8 +7,9 @@
 - **Sampling Rate**: 25,600 Hz (1.28-second snapshots every 1 minute)
 - **Real vs Synthetic**: Real — accelerated bearing degradation experiment
 - **License**: Free for research (requires registration on IEEE DataPort or direct request)
-- **Download URL**: https://biapy.readthedocs.io/en/latest/ (secondary); primary: IEEE DataPort
-  - IEEE DataPort: https://ieee-dataport.org/open-access/xjtu-sy-bearing-datasets
+- **Download URL**: ⚠️ **UNAVAILABLE** - IEEE DataPort page returns 404 (as of March 2026)
+  - IEEE DataPort (dead): https://ieee-dataport.org/open-access/xjtu-sy-bearing-datasets
+  - Alternative: Contact authors at Xi'an Jiaotong University directly
 - **Published SOTA**: Moderate — dozens of prognostics papers benchmark here
 
 ## Detailed Description
@@ -74,7 +75,11 @@ Note: Results reported as normalized RMSE (0–1 scale for RUL percentage). Tran
 **Not recommended** — too few channels for physics-informed attention. Use only if doing ablation on bearing RUL as a secondary task.
 
 ## Download Notes
-- IEEE DataPort: https://ieee-dataport.org/open-access/xjtu-sy-bearing-datasets
-  (requires free IEEE account)
-- Files in CSV format per bearing condition
-- Downloader: `datasets/downloaders/download_xjtu_sy.py`
+- ⚠️ **IEEE DataPort URL is dead** (404 as of March 2026)
+- Original URL: https://ieee-dataport.org/open-access/xjtu-sy-bearing-datasets
+- **Alternatives**:
+  - Contact authors at Xi'an Jiaotong University
+  - Search for mirrors on academic repositories
+  - Use IMS dataset instead (similar run-to-failure data, available via Kaggle)
+- Files were in CSV format per bearing condition
+- Downloader: `datasets/downloaders/download_xjtu_sy.py` (non-functional until new source found)

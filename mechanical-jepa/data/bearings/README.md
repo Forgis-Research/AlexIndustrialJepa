@@ -9,7 +9,7 @@ Aggregated bearing fault data from 4 public datasets for fault detection experim
 | **Paderborn** | Paderborn Univ. | 8 (multimodal) | Healthy, OR, IR, Combined | 64 kHz | 33 bearings |
 | **CWRU** | Case Western | 2-3 (vibration) | Healthy, OR, IR, Ball | 12 kHz | 40 files¹ |
 | **IMS** | NASA/Cincinnati | 4-8 (vibration) | Run-to-failure | 20 kHz | 3 test runs |
-| **XJTU-SY** | Xi'an Jiaotong | 2 (vibration) | Progressive degradation | 25.6 kHz | 15 bearings |
+| **XJTU-SY** | Xi'an Jiaotong | 2 (vibration) | Progressive degradation | 25.6 kHz | 15 bearings | ⚠️ Unavailable |
 
 ## Dataset Details
 
@@ -58,16 +58,18 @@ Aggregated bearing fault data from 4 public datasets for fault detection experim
 | Failure modes | Inner race, outer race, roller |
 | Download | Manual (Kaggle, requires account) |
 
-### 4. XJTU-SY (Progressive Degradation)
+### 4. XJTU-SY (Progressive Degradation) — ⚠️ UNAVAILABLE
 
-**Best for**: Degradation modeling
+**Status**: IEEE DataPort URL returns 404 (as of March 2026)
 
 | Property | Value |
 |----------|-------|
 | Bearings | 15 (5 per operating condition) |
 | Conditions | 3 speed/load combinations |
 | Channels | 2 (horizontal + vertical acceleration) |
-| Download | Manual (IEEE DataPort, requires registration) |
+| Download | ❌ IEEE DataPort page is dead |
+
+**Alternative**: Use IMS dataset for run-to-failure experiments instead.
 
 ## Replication Process
 
@@ -145,7 +147,7 @@ All datasets are processed into a common format:
 | **CWRU** | Downloaded | 40 | 6.1M | 8.5 min |
 | **IMS** | Downloaded | 9,464 | 193.8M | 2.7 hours |
 | Paderborn | Needs RAR tool | - | - | - |
-| XJTU-SY | Manual download | - | - | - |
+| XJTU-SY | ❌ URL dead | - | - | - |
 
 **Total**: 9,504 episodes, ~200M samples, ~2.8 hours
 
