@@ -1,0 +1,19 @@
+# Raw downloaded datasets (too large for git)
+raw/
+
+# Processed data (will be on HuggingFace)
+processed/
+
+# Temporary files
+*.tmp
+*.log
+__pycache__/
+.ipynb_checkpoints/
+
+# Keep scripts and documentation
+!scripts/
+!metadata/
+!analysis/
+!hf_upload/
+!*.md
+!*.py
