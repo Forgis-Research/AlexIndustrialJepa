@@ -3,24 +3,31 @@ import torch
 import numpy as np
 from pathlib import Path
 
+# Find all baseline checkpoints (30 epochs, various seeds)
 checkpoints = [
-    Path('checkpoints/jepa_20260330_232646.pt'),
-    Path('checkpoints/jepa_20260331_080504.pt'),
+    Path('checkpoints/jepa_20260330_232646.pt'),  # seed 42
+    Path('checkpoints/jepa_20260331_080504.pt'),  # seed 123
+    Path('checkpoints/jepa_20260331_102014.pt'),  # seed 456
 ]
 
 results = []
 for cp in checkpoints:
+    if not cp.exists():
+        continue
     ckpt = torch.load(cp, map_location='cpu', weights_only=False)
     config = ckpt['config']
     probe = ckpt['probe_results']
-    results.append({
-        'seed': config['seed'],
-        'test_acc': probe['test_acc'],
-        'train_acc': probe['train_acc'],
-        'per_class': probe['per_class_acc'],
-    })
 
-print('Multi-Seed Results (30 epochs):')
+    # Only include 30-epoch runs
+    if config['epochs'] == 30:
+        results.append({
+            'seed': config['seed'],
+            'test_acc': probe['test_acc'],
+            'train_acc': probe['train_acc'],
+            'per_class': probe['per_class_acc'],
+        })
+
+print(f'Multi-Seed Results ({len(results)} seeds, 30 epochs):')
 print('='*60)
 print(f"{'Seed':<10} {'Test Acc':<15} {'Train Acc':<15}")
 print('='*60)
@@ -31,8 +38,8 @@ for r in results:
 test_accs = [r['test_acc'] for r in results]
 
 print('='*60)
-print(f"Mean:      {np.mean(test_accs):.4f} ({np.mean(test_accs)*100:.1f}%)")
-print(f"Std:       {np.std(test_accs):.4f} ({np.std(test_accs)*100:.1f}%)")
+print(f"Mean:      {np.mean(test_accs):.4f} (+/- {np.std(test_accs):.4f})")
+print(f"           {np.mean(test_accs)*100:.1f}% (+/- {np.std(test_accs)*100:.1f}%)")
 print(f"Min:       {np.min(test_accs):.4f} ({np.min(test_accs)*100:.1f}%)")
 print(f"Max:       {np.max(test_accs):.4f} ({np.max(test_accs)*100:.1f}%)")
 
@@ -46,4 +53,4 @@ for r in results:
 
 for cls in sorted(all_classes):
     accs = [r['per_class'].get(cls, 0) for r in results]
-    print(f"{cls:15s}: {np.mean(accs):.4f} ± {np.std(accs):.4f}  (min={np.min(accs):.2f}, max={np.max(accs):.2f})")
+    print(f"{cls:15s}: {np.mean(accs):.4f} +/- {np.std(accs):.4f}  (min={np.min(accs):.2f}, max={np.max(accs):.2f})")
