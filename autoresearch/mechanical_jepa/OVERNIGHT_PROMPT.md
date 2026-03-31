@@ -327,10 +327,150 @@ Try one "wild card" experiment:
   - Better relative position encoding for sequential data
 
 ### =======================================================================
-### ROUND 6: FINAL ANALYSIS & DOCUMENTATION
+### ROUND 6: PADERBORN DATASET INTEGRATION & TRANSFER
 ### =======================================================================
 
-#### 6A. Update Jupyter Notebook
+Paderborn is the HARDEST transfer test: 64kHz sampling (vs 12kHz CWRU), 8 channels
+(vibration + motor current + temperature + torque), completely different test rig.
+Published cross-domain CWRU->Paderborn accuracy is 88-93% (supervised CNNs with
+domain adaptation). If JEPA transfer works here, it's a real result.
+
+#### 6A. Integrate Paderborn Data Loading
+
+**Current state:**
+- 3 sample bearings downloaded: K001 (healthy), KA01 (outer race), KI01 (inner race)
+- Located at: `/home/sagemaker-user/IndustrialJEPA/datasets/data/paderborn/`
+- Each has 20 MAT files (~4s recordings at 64kHz, 8 channels)
+- `prepare_bearing_dataset.py` has `process_paderborn()` — but it looks for data
+  in `mechanical-jepa/data/bearings/raw/paderborn/`, not `datasets/data/paderborn/`
+- `bearing_dataset.py` has NO `load_paderborn_signal()` — returns None for 'paderborn'
+- `bearing_episodes.parquet` has NO Paderborn entries
+
+**You must implement these steps IN ORDER:**
+
+**Step 1: Symlink or copy Paderborn data to expected location**
+```bash
+# Link the already-downloaded data to where prepare_bearing_dataset.py expects it
+ln -sf /home/sagemaker-user/IndustrialJEPA/datasets/data/paderborn/* \
+  /home/sagemaker-user/IndustrialJEPA/mechanical-jepa/data/bearings/raw/paderborn/
+# Create the raw/paderborn dir first if needed
+mkdir -p /home/sagemaker-user/IndustrialJEPA/mechanical-jepa/data/bearings/raw/paderborn
+```
+
+**Step 2: Run process step to add Paderborn to parquet**
+```bash
+cd /home/sagemaker-user/IndustrialJEPA/mechanical-jepa
+python data/bearings/prepare_bearing_dataset.py --process
+```
+Verify: `bearing_episodes.parquet` should now contain paderborn entries.
+If the process step doesn't pick up paderborn, debug why (check paths, check
+PADERBORN_BEARINGS dict in prepare_bearing_dataset.py).
+
+**Step 3: Implement `load_paderborn_signal()` in `bearing_dataset.py`**
+
+Add this function following the pattern of `load_cwru_signal()` and `load_ims_signal()`:
+
+```python
+def load_paderborn_signal(data_dir: Path, bearing_id: str, measurement_id: str) -> Optional[np.ndarray]:
+    """Load Paderborn bearing signal.
+
+    Paderborn MAT files have a struct with .Y attribute containing sensor data.
+    8 channels: a1, a2, a3 (vibration), v1 (velocity), temp1, torque, phase_a, phase_b
+    Sampling rate: 64kHz (vibration) / 4kHz (motor current)
+
+    Returns: (n_samples, n_channels) array or None
+    """
+    mat_file = data_dir / 'raw' / 'paderborn' / bearing_id / f'{measurement_id}.mat'
+    if not mat_file.exists():
+        return None
+    try:
+        data = loadmat(str(mat_file), squeeze_me=True, struct_as_record=False)
+        for key in data.keys():
+            if not key.startswith('_'):
+                val = data[key]
+                if hasattr(val, 'Y'):
+                    sensor_data = val.Y
+                    if sensor_data.ndim == 2:
+                        return sensor_data.astype(np.float32)
+        return None
+    except Exception:
+        return None
+```
+
+Then add the paderborn case in `_load_signal()`:
+```python
+elif dataset == 'paderborn':
+    signal = load_paderborn_signal(self.data_dir, bearing_id, measurement_id)
+```
+
+**Step 4: Handle sampling rate mismatch**
+
+CRITICAL: Paderborn is 64kHz, CWRU is 12kHz. With patch_size=256:
+- CWRU: 256/12000 = 21.3ms per patch
+- Paderborn: 256/64000 = 4.0ms per patch (5x shorter!)
+
+Options (try in order of simplicity):
+a) **Resample Paderborn to 12kHz** using scipy.signal.resample or decimate.
+   Add this in `load_paderborn_signal()` or in `__getitem__()`.
+   This is the cleanest approach — same temporal scale per patch.
+b) **Use larger patch size for Paderborn** (256 * 64/12 ~ 1365 -> round to 1280).
+   Messier, requires architecture changes.
+c) **Just use it as-is** and see what happens. The model might learn anyway.
+
+Try option (a) first. If resampling, also only use the 3 vibration channels
+(a1, a2, a3) to match CWRU's 3-channel format. Or use all 8 and pad CWRU to 8.
+Be pragmatic — start with 3 vibration channels resampled to 12kHz.
+
+**Step 5: Verify with a smoke test**
+```bash
+python train.py --epochs 2 --no-wandb --dataset-filter paderborn
+```
+If --dataset-filter doesn't exist, add it or use the data pipeline directly.
+The point is: can we load Paderborn data, create patches, and run a forward pass?
+
+#### 6B. Download More Paderborn Bearings (if needed)
+
+3 bearings (1 per class) is marginal for train/test splits. Consider downloading
+more — the download script supports it:
+```bash
+python data/bearings/prepare_bearing_dataset.py --download --dataset paderborn
+```
+This downloads all 33 bearings (~5.4GB). Only do this if you have time and disk space.
+With 3 bearings you can still do leave-one-bearing-out evaluation.
+
+#### 6C. Paderborn Transfer Experiments
+
+Once data loading works, run the transfer experiments:
+
+**Experiment 6C-1: CWRU -> Paderborn transfer (3-class: healthy/OR/IR)**
+- Load best CWRU-pretrained checkpoint (with fixed predictor from Round 3)
+- Linear probe on Paderborn (train on 2 bearings, test on 1, rotate)
+- Compare: JEPA-pretrained vs random init
+- 3 seeds minimum
+
+**Experiment 6C-2: Paderborn self-pretrain (upper bound)**
+- Pretrain JEPA on Paderborn data (no labels)
+- Linear probe on same Paderborn task
+- This shows how much room there is
+
+**Experiment 6C-3: CWRU+IMS -> Paderborn (multi-source transfer)**
+- Pretrain on CWRU AND IMS combined
+- Transfer to Paderborn
+- Does more pretraining data help?
+
+**Self-check for Paderborn experiments:**
+- [ ] Did resampling work correctly? Verify signal shapes and frequencies.
+- [ ] Is the train/test split by bearing (not by window)?
+- [ ] Are we comparing JEPA vs random init fairly (same architecture, same eval)?
+- [ ] With only 3 bearings and 20 files each, is the sample size adequate?
+- [ ] Does the FFT baseline beat everything here too? (Check it.)
+- [ ] Are results on wandb?
+
+### =======================================================================
+### ROUND 7: FINAL ANALYSIS & DOCUMENTATION
+### =======================================================================
+
+#### 7A. Update Jupyter Notebook
 
 Update `notebooks/03_results_analysis.ipynb` with:
 
@@ -347,21 +487,27 @@ Update `notebooks/03_results_analysis.ipynb` with:
 3. **t-SNE visualizations**
    - CWRU embeddings: old vs fixed JEPA
    - IMS embeddings: CWRU-pretrained (fixed) vs random init
+   - Paderborn embeddings (if transfer worked)
    - Color by fault type / degradation stage
 
 4. **Confusion matrices**
    - Best fixed-predictor model on CWRU (4-class)
    - Best fixed-predictor model on IMS (binary + 3-class)
+   - Paderborn results (if available)
 
-5. **The story**: Clear narrative from problem -> diagnosis -> fix -> result
+5. **Cross-dataset transfer summary table**
+   - All source->target combinations
+   - JEPA vs random vs FFT baseline
 
-#### 6B. Update Documentation
+6. **The story**: Clear narrative from problem -> diagnosis -> fix -> result
+
+#### 7B. Update Documentation
 
 - EXPERIMENT_LOG.md: All new experiments with full details
 - LESSONS_LEARNED.md: New insights about predictor collapse and fix
 - README.md: Update with new best results if improved
 
-#### 6C. Final Commit
+#### 7C. Final Commit
 
 Commit all changes with descriptive message summarizing findings.
 
@@ -396,20 +542,22 @@ Commit all changes with descriptive message summarizing findings.
 ### Stopping Conditions
 
 Stop and write final summary when:
-1. All 6 rounds complete
+1. All 7 rounds complete (including Paderborn)
 2. You achieve >85% CWRU linear probe (fixed predictor should unlock this)
 3. You achieve >5% transfer gain on IMS (double the current +2-4%)
-4. You've been running for 8+ hours
-5. You hit an irrecoverable error
+4. Paderborn integration complete with at least one transfer experiment
+5. You've been running for 10+ hours
+6. You hit an irrecoverable error
 
 ### Expected Timeline (rough)
 - Round 1 (Literature + Diagnostics): 30-60 min
 - Round 2 (PoC experiments): 60-90 min
 - Round 3 (Validation): 60-90 min
-- Round 4 (Transfer): 60-90 min
+- Round 4 (IMS Transfer): 60-90 min
 - Round 5 (Advanced): 60-90 min
-- Round 6 (Documentation): 30-60 min
-- Total: 5-8 hours
+- Round 6 (Paderborn integration + experiments): 90-120 min
+- Round 7 (Documentation): 30-60 min
+- Total: 6-10 hours
 
 Good luck. Be rigorous. Be honest. Fix this predictor.
 ```
@@ -422,11 +570,13 @@ Before starting the overnight run, verify:
 
 - [ ] Dataset downloaded: `ls mechanical-jepa/data/bearings/bearing_episodes.parquet`
 - [ ] IMS data available: `ls mechanical-jepa/data/bearings/ims/`
+- [ ] Paderborn data exists: `ls /home/sagemaker-user/IndustrialJEPA/datasets/data/paderborn/`
 - [ ] Smoke test passes: `cd mechanical-jepa && python train.py --epochs 2 --no-wandb`
 - [ ] Diagnostics work: `python quick_diagnose.py --checkpoint checkpoints/<latest>.pt`
 - [ ] WandB authenticated: `python -c "import wandb; print(wandb.api.api_key[:8])"`
 - [ ] Git is clean: `git status`
 - [ ] GPU available: `python -c "import torch; print(torch.cuda.is_available())"`
+- [ ] scipy available: `python -c "from scipy.io import loadmat; print('OK')"`
 
 ## How to Launch
 
@@ -443,6 +593,8 @@ After a successful overnight run:
 1. **Predictor collapse diagnosed and fixed** with before/after diagnostics
 2. **CWRU accuracy improved** beyond 80.4% linear probe baseline
 3. **IMS transfer improved** beyond +2-4% (target: +5-10%)
-4. **Ablation results** showing which fix components matter
-5. **Updated notebook** with full analysis and visualizations
-6. **All experiments on wandb** for inspection
+4. **Paderborn dataset integrated** — loading, resampling, parquet metadata working
+5. **Paderborn transfer tested** — CWRU->Paderborn with fixed predictor
+6. **Ablation results** showing which fix components matter
+7. **Updated notebook** with full analysis including 3-dataset results
+8. **All experiments on wandb** for inspection
