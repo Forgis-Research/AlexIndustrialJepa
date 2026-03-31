@@ -102,15 +102,27 @@ Use the data-curator agent to:
 
 ## COMPONENTS & SENSORS
 
-**Include:**
+**Components (include):**
 - Bearings (ball, roller)
 - Gears (spur, helical, bevel)
 - Gearboxes (assemblies)
 - Motor bearings (context: electric_motor)
 
-**Exclude:**
+**Components (exclude for now):**
 - Pumps, valves, hydraulics
-- Current/temperature/acoustic sensors (vibration only!)
+
+**Sensors (include ALL available):**
+- Accelerometers / vibration
+- Current sensors (motor current)
+- Tachometer / RPM
+- Temperature sensors
+- Acoustic emission
+
+**Multi-modal handling:**
+- Store all sensor types in same sample
+- Use `channel_names` to describe each: ["accel_x", "accel_y", "current_A", "temp"]
+- Use `channel_modalities` to tag type: ["vibration", "vibration", "current", "temperature"]
+- For slow signals (temperature): use `slow_signals` dict if rate differs significantly
 
 ## ENVIRONMENT
 

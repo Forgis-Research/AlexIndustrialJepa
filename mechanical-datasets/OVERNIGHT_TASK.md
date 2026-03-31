@@ -61,9 +61,9 @@ du -sh raw/ processed/
 ### Priority 3: Motor/Pump Datasets → `motors` config
 | Dataset | Size | Channels | Notes | Download |
 |---------|------|----------|-------|----------|
-| NLN-EMP | ~3GB | Multiple | **Vibration only** (ignore current data) | https://data.4tu.nl/datasets/2b61183e-c14f-4131-829b-cc4822c369d0 |
+| NLN-EMP | ~3GB | Multiple | Vibration + current + temperature | https://data.4tu.nl/datasets/2b61183e-c14f-4131-829b-cc4822c369d0 |
 
-**Important**: Extract ONLY accelerometer/vibration channels. Ignore current, voltage, temperature sensors.
+**Important**: Include ALL sensor modalities (vibration, current, temperature). Tag each channel with its modality.
 
 ### Meta-Resources
 - [awesome-bearing-dataset](https://github.com/VictorBauler/awesome-bearing-dataset)
@@ -74,8 +74,22 @@ du -sh raw/ processed/
 
 ## Phase 2: Two-Level Schema (Efficient, No Duplicates)
 
-### Data Type: Vibration Only
-Focus exclusively on **accelerometer/vibration signals**. No current, temperature, etc.
+### Data Type: Multi-Modal Sensors
+Include ALL available sensor types - they provide complementary views of component health:
+
+| Sensor Type | Typical Rate | What It Captures |
+|-------------|--------------|------------------|
+| Accelerometer | 10-50 kHz | Vibration, fault frequencies |
+| Current sensor | 10-100 kHz | Motor load, electrical faults |
+| Tachometer | Varies | RPM, shaft position |
+| Temperature | 1 Hz or slower | Thermal degradation, friction |
+| Acoustic emission | 100+ kHz | Early-stage cracks |
+
+**Handling different time scales:**
+- Store each modality with its own `sampling_rate_hz`
+- Fast signals (vibration, current): high-frequency arrays
+- Slow signals (temperature): can be scalar metadata OR low-freq array
+- Channel names describe modality: `["accel_x", "accel_y", "current_A", "temp_bearing"]`
 
 ### HuggingFace Structure
 ```
@@ -123,8 +137,16 @@ Config: `source_metadata`
     "citation": "CWRU Bearing Data Center",
 
     # === SIGNAL PROPERTIES (constant for this source) ===
-    "sampling_rate_hz": 12000,
+    "sampling_rate_hz": 12000,              # Primary sampling rate
     "signal_duration_sec": 10.0,
+
+    # === SENSOR MODALITIES AVAILABLE ===
+    "available_modalities": ["vibration", "current"],  # What sensor types are in this source
+    "modality_details": {
+        "vibration": {"channels": ["accel_x", "accel_y"], "rate_hz": 12000},
+        "current": {"channels": ["current_A", "current_B"], "rate_hz": 12000},
+        "temperature": {"channels": ["temp_bearing"], "rate_hz": 1},  # Slow!
+    },
 
     # === COMPONENT INFO ===
     "component_type": "bearing",            # bearing | gear | gearbox
@@ -161,10 +183,18 @@ Config: `bearings`, `gearboxes`, or `motors`
     "sample_id": "cwru_105_0",
     "original_file": "105.mat",
 
-    # === SIGNAL ===
+    # === SIGNAL (multi-modal) ===
     "signal": [[0.1, 0.2, ...], [...]],     # Shape: (n_channels, signal_length)
     "n_channels": 2,
-    "channel_names": ["DE_accel", "FE_accel"],
+    "channel_names": ["DE_accel", "FE_accel"],  # Descriptive names
+    "channel_modalities": ["vibration", "vibration"],  # What type each channel is
+
+    # === SLOW SIGNALS (optional - for temperature, etc.) ===
+    "slow_signals": {                       # null if not available
+        "temperature_c": 45.2,              # Scalar if single value
+        "temperature_array": [44.1, 44.5, 45.2],  # Array if time series
+        "temperature_rate_hz": 0.1,
+    },
 
     # === LABELS ===
     "health_state": "faulty",               # healthy | faulty | degrading | unknown
