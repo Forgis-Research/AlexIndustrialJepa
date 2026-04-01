@@ -1,6 +1,6 @@
 ---
 name: IndustrialJEPA Project Context
-description: Mechanical-JEPA V2: predictor collapse fixed; IMS transfer +8.8% (3.7x improvement over V1); cross-domain beats self-pretrain (142% efficiency)
+description: Mechanical-JEPA V3: frequency standardization breakthrough (+14.7% Paderborn), wav2vec2 comparison, complete transfer matrix. Best: 82.1%±5.4% CWRU, +8.8% IMS, +14.7% Paderborn (resampled)
 type: project
 ---
 
@@ -22,77 +22,98 @@ IndustrialJEPA is a research project on self-supervised learning (JEPA) for indu
 
 ## 2. Mechanical-JEPA: Bearing Fault Detection
 
-**Status as of 2026-04-01**: V2 complete. Predictor collapse fixed. Major IMS transfer improvement.
+**Status as of 2026-04-01 (V3 complete)**
 
-### V2 Architecture (src/models/jepa_v2.py)
+### Best Checkpoint
+`mechanical-jepa/checkpoints/jepa_v2_20260401_003619.pt` (seed=123, 89.7% CWRU, no collapse)
 
-Key changes from V1:
-- Sinusoidal positional encoding in predictor (fixed learnable collapse)
-- Mask ratio 0.5 → 0.625 (fewer context patches forces position use)
-- L1 loss instead of MSE (less incentive for safe mean prediction)
-- Variance regularization lambda=0.1 (direct collapse penalty)
-- Predictor depth 2 → 4
+### Best Training Command
+```bash
+python train_v2.py --epochs 100 --seed 123 --embed-dim 512 --predictor-pos sinusoidal \
+  --predictor-depth 4 --loss-fn l1 --var-reg 0.1 --mask-ratio 0.625
+```
 
-Files:
-- `mechanical-jepa/src/models/jepa_v2.py` — V2 model
-- `mechanical-jepa/train_v2.py` — training script with all CLI flags
-- `mechanical-jepa/train_spectral.py` — spectral input experiments
+### V2 Architecture (jepa_v2.py)
+- Sinusoidal positional encoding in predictor
+- Mask ratio 0.625 (key: forces position use, not context averaging)
+- L1 loss + variance regularization lambda=0.1
+- Predictor depth 4, encoder depth 4, embed_dim 512
 
-### V1 Results (CWRU, 3-seed):
-- JEPA mean-pool linear probe: **80.4% ± 2.6%**
-- MLP probe: **96.1%**
-- IMS transfer: +2.4% ± 2.9% (Test 1), +3.9% (Test 2)
+### Results Summary
 
-### V2 Results (CWRU, 3-seed validated):
-| Metric | V1 | V2 | Delta |
-|--------|----|----|-------|
-| CWRU linear probe | 80.4% ± 2.6% | **82.1% ± 5.4%** | +1.7% |
-| CWRU best (seed 123) | 84.1% | **89.7%** | +5.6% |
-| IMS Test1 transfer | +2.4% ± 2.9% | **+8.8% ± 0.7%** | 3.7x |
-| IMS 3-class transfer | +3.3% ± 1.3% | **+7.6% ± 1.8%** | 2.3x |
-| IMS self-pretrain gain | +3.4% | **+6.2% ± 1.7%** | 1.8x |
-| Transfer efficiency | 70% | **142%** | 2x |
-| Predictor collapse | Yes | **No** | Fixed |
+| Metric | V1 | V2 | V3 Best |
+|--------|----|----|---------|
+| CWRU linear probe (3-seed) | 80.4% ± 2.6% | 82.1% ± 5.4% | **83.7% ± 6.6%** (var_reg=0.05) |
+| CWRU best seed | 84.1% | 89.7% | 90.1% (patch=128, seed=123) |
+| IMS transfer gain | +2.4% ± 2.9% | **+8.8% ± 0.7%** | +8.8% (maintained) |
+| Paderborn transfer | -1.4% (failed) | -1.4% | **+14.7% ± 0.8%** (20kHz resample) |
+| Predictor collapse | Yes | No | No |
 
-### Key V2 Insights:
+### Complete Transfer Matrix (V3)
 
-1. **High mask ratio is the PRIMARY lever** — forces predictor to use position info (can't average context)
-2. **Sinusoidal pos encoding = largest individual contribution** (+4.3% at 30ep ablation)
-3. **CWRU pretraining beats IMS self-pretrain** (142% efficiency) — fault-diverse CWRU creates richer representations
-4. **Transfer boundary**: works at ≤2x sampling rate ratio; fails at 5.3x (CWRU→Paderborn)
-5. **Spectral inputs (dual=raw+FFT)**: 91-95% CWRU (high variance) but zero IMS transfer gain (sampling mismatch)
-6. **Few-shot**: V2 provides 6-12% gain at ALL N values vs V1 only at N≈100
+| Source → Target | Gain | Seeds |
+|---|---|---|
+| CWRU → IMS (binary, 20kHz) | **+8.8% ± 0.7%** | 3/3 |
+| CWRU → Paderborn @ 12kHz | **+8.5% ± 3.0%** | 3/3 |
+| CWRU → Paderborn @ 20kHz | **+14.7% ± 0.8%** | 3/3 |
+| CWRU → Paderborn (no resample) | -1.4% ± 1.0% | 0/3 |
+| IMS → IMS (self) | **+6.2% ± 1.7%** | 3/3 |
+| Paderborn → CWRU | +5.3% ± 9.0% | 2/3 |
+| IMS → CWRU | **-6.8% ± 1.1%** | 0/3 |
 
-### Transfer Boundary (sampling rate):
-- CWRU 12kHz → IMS 20kHz: +8.8% (works, 1.7x ratio)
-- CWRU 12kHz → Paderborn 64kHz: -1.4% (fails, 5.3x ratio)
-- Rule: transfer works when target sampling rate is within ~2x of pretrain
+### Key V3 Findings
 
-### IMS Dataset Insights:
-- IMS has 3140 files (2156 test1 + 984 test2), 8 channels, 20kHz
-- Fast loading: use `data/bearings/ims_npy_cache/` (npy cache of raw text files)
-- Raw IMS files deleted to save space; npy cache is the source of truth now
-- Symlink: `data/bearings/raw/ims → data/bearings/ims_npy_cache` (code expects raw/ims/)
-- RMS precomputed: `data/bearings/ims_rms_cache.npy`
-- Temporal split: first 25% = healthy, last 25% = failure (skip middle)
+1. **FREQUENCY STANDARDIZATION IS THE CRITICAL FIX**: Use `scipy.signal.resample_poly` to 20kHz before cross-dataset eval. Implemented in `paderborn_transfer.py`.
 
-### Disk Space Notes:
-- Raw IMS files (6.2GB) deleted; npy cache (1.7GB) is sufficient
-- Symlink at `data/bearings/raw/ims` → npy cache enables backward compat
-- ims_transfer.py and ims_pretrain.py both handle .npy files natively (patched)
-- Checkpoints: jepa_v2_20260401_003619.pt (seed=123, V2 best, 89.7%) and jepa_v2_dual_20260401.pt (dual-domain)
-- Wandb local logs deleted to save space; metrics are in wandb cloud
+2. **Transfer is asymmetric**: CWRU (diverse faults) → anything works. IMS (degradation dynamics) → CWRU fault classification FAILS (-6.8%).
 
-### Files:
-- Training V1 (CWRU): `mechanical-jepa/train.py`
-- Training V2: `mechanical-jepa/train_v2.py`
-- Spectral: `mechanical-jepa/train_spectral.py`
-- Transfer: `mechanical-jepa/ims_transfer.py`
-- IMS pretraining: `mechanical-jepa/ims_pretrain.py`
-- Best V2 ckpt: `mechanical-jepa/checkpoints/jepa_v2_20260401_003619.pt`
-- Experiment log: `autoresearch/mechanical_jepa/EXPERIMENT_LOG.md` (Exp 0-23)
+3. **JEPA 5M > wav2vec2 94M**: V2 JEPA (87.1%) beats frozen wav2vec2-base (77.2%) by +9.9% on vibration. Speech pretraining provides some transfer (+5.4% over random) but domain-specific wins.
+
+4. **Optimal mask ratio = 0.625**: Confirmed over fine sweep (0.5 to 0.875). Higher mask (0.75) wins at 30ep but loses at 100ep.
+
+5. **Block masking = random masking**: No benefit for vibration JEPA. Random masking is sufficient.
+
+6. **Multi-source pretraining dilutes features**: CWRU+Paderborn: 81.2% vs CWRU-only: 88.7% (-7.5%). Train on one domain at a time for in-domain tasks.
+
+7. **Patch size 256 near-optimal**: patch=128 marginally better (+0.3%), patch=512 dramatically worse (-23.7%).
+
+8. **100 epochs optimal**: 200ep hurts (-2.1%), confirmed twice across V1 and V2.
+
+### Experiment Log Range
+
+| Run | Experiments | Key Result |
+|-----|------------|-----------|
+| Overnight V1 | Exp 0-15 | 80.4% baseline, +28.5% over random |
+| Overnight V2 | Exp 16-23 | Fixed predictor collapse, +8.8% IMS transfer |
+| Overnight V3 | Exp 24-35 | +14.7% Paderborn (20kHz resample), wav2vec2 comparison |
+
+### Files
+- Training: `mechanical-jepa/train_v2.py` (main), `train_v3_block.py` (block masking variant)
+- Transfer: `mechanical-jepa/ims_transfer.py`, `paderborn_transfer.py`, `transfer_matrix.py`
+- Multi-source: `mechanical-jepa/multi_source_pretrain.py`
+- Pretrained encoder eval: `mechanical-jepa/pretrained_encoder_eval.py`
+- Models: `mechanical-jepa/src/models/jepa_v2.py` (main), `jepa_enhanced.py` (structured masking)
+- Experiment log: `autoresearch/mechanical_jepa/EXPERIMENT_LOG.md` (Exp 0-35)
 - Lessons: `autoresearch/mechanical_jepa/LESSONS_LEARNED.md`
-- HuggingFace: `Forgis/Mechanical-Components` (bearings+gearboxes, not yet downloaded)
 
-**Why:** V2 was needed to fix predictor collapse that was leaving performance on the table.
-**How to apply:** Use `train_v2.py` for future experiments. Check `ims_transfer.py` for cross-dataset eval.
+### IMS Data Notes
+- Raw IMS files deleted; npy cache is source of truth
+- `data/bearings/raw/ims` symlink → `data/bearings/ims_npy_cache/`
+- The symlink is BROKEN if ims_npy_cache doesn't exist (only RMS cache remains)
+- IMS experiments (Exp 8-21) used npy cache; cache no longer available
+- For new IMS experiments: need to re-download or use cached results from log
+
+### Paderborn Data
+- Location: `/home/sagemaker-user/IndustrialJEPA/datasets/data/paderborn/`
+- K001/ (healthy), KA01/ (outer race), KI01/ (inner race)
+- 80 MAT files each, ~256k samples per file at 64kHz
+- Load with: `scipy.io.loadmat(..., simplify_cells=True)` → `obj['Y'][6]['Data']` for vibration_1
+- MUST resample to 20kHz for best transfer with CWRU checkpoint
+
+### HuggingFace Dataset
+- `Forgis/Mechanical-Components`: only CWRU has actual samples (n_samples=16)
+- All other sources (IMS, Paderborn, MFPT, etc.) have n_samples=0 — metadata only
+- Token: `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`
+
+**Why:** V3 was needed to test frequency standardization, pretrained encoders, and complete the transfer matrix.
+**How to apply:** Use `paderborn_transfer.py` for Paderborn experiments. Always resample to 20kHz first.

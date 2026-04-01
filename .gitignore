@@ -108,5 +108,13 @@ results/**/
 .claude/settings.local.json
 
 # Windows artifacts
-nulmechanical-jepa/data/bearings/ims_npy_cache/
+nul
+
+# Mechanical-JEPA data caches
+mechanical-jepa/data/bearings/ims_npy_cache/
 mechanical-jepa/checkpoints/
+
+# Dataset curation temp files
+mechanical-datasets/raw/
+mechanical-datasets/processed/
+hf_cache/
