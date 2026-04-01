@@ -263,6 +263,41 @@ for evaluating predictor quality, not just in-distribution accuracy.**
 
 ---
 
+## Transfer Boundary: When Cross-Domain Transfer Works
+
+### Rule of Thumb: Sampling Rate Ratio
+
+| Transfer | Ratio | Result |
+|----------|-------|--------|
+| CWRU (12kHz) → IMS (20kHz) | 1.7x | +8.8% gain (works!) |
+| CWRU (12kHz) → Paderborn (64kHz) | 5.3x | -1.4% (fails) |
+
+**Threshold appears to be around 2-3x ratio.** Beyond this, the fault frequency signatures
+appear at fundamentally different relative positions in the spectrum.
+
+**Implication**: JEPA encoder should be pretrained on data within 2x of the target sampling rate.
+For deployment at 64kHz, pretrain on other 64kHz data, not 12kHz.
+
+---
+
+## V2 Key Findings: Cross-Domain Beats Self-Pretrain
+
+The V2 CWRU-pretrained encoder achieves 142% transfer efficiency:
+- CWRU→IMS gain: +8.8%
+- IMS→IMS gain: +6.2%
+- Efficiency: 8.8/6.2 = 142%
+
+This counter-intuitive result says: the CWRU encoder (pretrained on clean, well-labeled fault data)
+actually learns BETTER general vibration representations than IMS self-pretrain (on messy,
+continuous degradation data). The CWRU fault variety (healthy/outer/inner/ball) creates
+strong supervisory signal for learning discriminative vibration dynamics.
+
+**Practical implication**: When building a foundation model for industrial vibration, it's
+better to pretrain on a well-characterized, diverse fault dataset (even if smaller) than on
+domain-matched but unlabeled degradation data.
+
+---
+
 ## Spectral Inputs: High Accuracy, Poor Transfer
 
 ### What Works

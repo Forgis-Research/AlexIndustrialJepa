@@ -72,12 +72,16 @@ class IMSPretrainDataset(Dataset):
     def __getitem__(self, idx):
         f, start = self.windows[idx]
 
-        # Use fast numpy cache
-        npy_f = self.npy_cache_dir / f.parent.name / (f.name + '.npy')
-        if npy_f.exists():
-            data = np.load(npy_f)
+        # Use fast numpy cache, handle both .npy symlinks and raw text files
+        if f.suffix == '.npy':
+            # File is already a numpy cache (symlinked directory)
+            data = np.load(f)
         else:
-            data = np.loadtxt(f, dtype=np.float32)
+            npy_f = self.npy_cache_dir / f.parent.name / (f.name + '.npy')
+            if npy_f.exists():
+                data = np.load(npy_f)
+            else:
+                data = np.loadtxt(f, dtype=np.float32)
 
         window = data[start:start + self.window_size].T  # (8, window_size)
 
