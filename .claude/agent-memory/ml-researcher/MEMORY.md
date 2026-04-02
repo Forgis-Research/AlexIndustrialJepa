@@ -1,2 +1,3 @@
 - [IndustrialJEPA Project Context](project_industrialjepa.md) — Mechanical-JEPA overnight done: 80.4% ± 2.6% bearing fault detection (3-seed), 96.1% MLP probe
 - [Dataset Catalog and Recommendations](datasets_catalog.md) — Paderborn=Tier2, WADI=Brain-JEPA, OXE proprio data verified and used
+- [JEPA + PHM Literature Review 2025-2026](literature_review_2025_2026.md) — Confirmed gaps: no JEPA+RUL, no JEPA+cross-machine, SIGReg not tried on 1D signals; MTS-JEPA/TS-JEPA/LeJEPA/RmGPT are closest work
