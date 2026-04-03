@@ -1,6 +1,6 @@
 ---
 name: IndustrialJEPA Project Context
-description: Mechanical-JEPA V4 COMPLETE: F1=0.773±0.018, JEPA RUL (Test1 Spearman=0.08, 60% early warning), 3-seed ablation (V2 full 0.743 vs minimal 0.711, all collapsed), collapse visualizations done
+description: Mechanical-JEPA V5 COMPLETE: JEPA transfer gain +0.453 (46x better than supervised Transformer's -0.011). CNN supervised wins abs F1 (0.921 Paderborn) but needs labels. MAE fails transfer (-0.015). SIGReg V3 inferior (EMA needed for small datasets).
 type: project
 ---
 
@@ -104,6 +104,35 @@ python train_v2.py --epochs 100 --seed 123 --embed-dim 512 --predictor-pos sinus
 5. Cross-component gain modest (+2.5%) because bearing impulses vs gearbox tooth-mesh modulation are different physics
 6. EMA + low LR (5e-5) prevents catastrophic forgetting in continual learning
 
+### V5 Results (2026-04-02) — COMPREHENSIVE BASELINE COMPARISON
+
+| Method | CWRU F1 | Paderborn F1 | Transfer Gain | Supervision |
+|--------|---------|-------------|---------------|-------------|
+| CNN Supervised | 1.000 ± 0.000 | 0.921 ± 0.041 | +0.757 | Supervised |
+| **JEPA V2 (ours)** | **0.773 ± 0.018** | **0.795 ± 0.002** | **+0.453** | **Self-supervised** |
+| JEPA V3 (SIGReg) | 0.531 ± 0.008 | 0.540 ± 0.025 | +0.193 | Self-supervised |
+| MAE (reconstruct) | 0.643 ± 0.144 | 0.609 ± 0.008 | -0.015 | Self-supervised |
+| Transformer Supervised | 0.969 ± 0.026 | 0.609 ± 0.051 | -0.011 | Supervised |
+| Random init | ~0.342 | ~0.342 | 0.000 | N/A |
+
+**Key V5 findings:**
+1. **Supervised Transformer provides ZERO transfer benefit (-0.011) despite 0.969 CWRU F1.** JEPA is 46x better for cross-domain transfer (+0.453 vs -0.011).
+2. **MAE reconstruction fails for transfer** (-0.015): predicting in latent space > pixel space.
+3. **SIGReg V3 is inferior to V2** (0.531 vs 0.773 CWRU): EMA is essential for small datasets (<10K windows).
+4. **Frequency masking**: helps at 30ep (+0.037) but HURTS at 100ep (-0.111). Not a contribution.
+5. **IMS RUL**: constant baseline (RMSE=0.086) beats all methods. Dataset too small and label-imbalanced.
+6. **Handcrafted features + LogReg**: 0.999 CWRU F1 — CWRU is too easy for meaningful in-domain benchmarking.
+
+**V5 New Files:**
+- `mechanical-jepa/baselines_comparison.py`: All baselines in one script (CNN, Transformer, MAE)
+- `mechanical-jepa/transfer_baselines.py`: Full cross-domain transfer comparison
+- `mechanical-jepa/freq_masking.py`: Frequency-domain masking experiment
+- `mechanical-jepa/rul_ims_pretrained.py`: JEPA pretrain on IMS + RUL regression
+- `mechanical-jepa/train_v3_sigreg.py`: V3 SIGReg training
+- `mechanical-jepa/src/models/sigreg.py`: SIGReg regularizer (from LeJEPA)
+- `mechanical-jepa/src/models/jepa_v3.py`: V3 architecture (no EMA, stop-gradient)
+- `mechanical-jepa/notebooks/05_v5_baselines_and_analysis.ipynb`: Publication-ready analysis
+
 ### Experiment Log Range
 
 | Run | Experiments | Key Result |
@@ -111,7 +140,8 @@ python train_v2.py --epochs 100 --seed 123 --embed-dim 512 --predictor-pos sinus
 | Overnight V1 | Exp 0-15 | 80.4% baseline, +28.5% over random |
 | Overnight V2 | Exp 16-23 | Fixed predictor collapse, +8.8% IMS transfer |
 | Overnight V3 | Exp 24-35 | +14.7% Paderborn (20kHz resample), wav2vec2 comparison |
-| Overnight V4 | Exp 36-40 | F1 metrics, RUL, cross-component, continual learning |
+| Overnight V4 | Exp 36-41 | F1 metrics, RUL, cross-component, continual learning |
+| Overnight V5 | Exp V5-1 to V5-10 | Comprehensive baseline comparison, SIGReg, freq masking |
 
 ### Files
 - Training: `mechanical-jepa/train_v2.py` (main), `train_v3_block.py` (block masking variant)
