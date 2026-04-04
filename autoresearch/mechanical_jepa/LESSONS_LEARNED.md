@@ -793,3 +793,19 @@ Always: `export PYTHONUNBUFFERED=1` before Python commands in background.
 Use absolute paths for log files: `/mnt/sagemaker-nvme/my_job.log`.
 Check progress with `tail -f /mnt/sagemaker-nvme/my_job.log`.
 
+### Handcrafted Features vs JEPA for Cross-Domain Transfer
+
+**The most powerful argument for JEPA**: handcrafted FFT features from CWRU applied to Paderborn achieve F1=0.167 (WORSE than random 0.333). JEPA achieves 0.900.
+
+Why handcrafted features fail for cross-domain transfer:
+1. FFT band energy features are computed at CWRU's 12kHz. The same bands don't have the same physical meaning at Paderborn's 20kHz (after resampling).
+2. The decision boundary (LogReg) learned on CWRU class distributions doesn't generalize to Paderborn class distributions.
+3. Bearing defect frequencies at CWRU's test rig ≠ defect frequencies at Paderborn's test rig (different shaft speeds, loads, bearing geometry).
+
+**Key contrast**:
+- Handcrafted on Paderborn (using Paderborn features): F1=1.000 (trivially solvable with domain knowledge)
+- Handcrafted CWRU→Paderborn (zero-shot, cross-domain): F1=0.167 (catastrophic failure)
+- JEPA V2 CWRU→Paderborn (zero-shot, cross-domain): F1=0.900 (excellent transfer)
+
+**Implication for paper**: The comparison "JEPA vs handcrafted transfer" is stronger than "JEPA vs supervised Transformer transfer". Neither works for cross-domain without access to target domain data, but JEPA is 73 F1 points better.
+
