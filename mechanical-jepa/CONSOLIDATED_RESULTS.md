@@ -14,9 +14,12 @@ Per-seed breakdowns are provided for all key claims.
 | **JEPA V2 (ours)** | 0.773 ± 0.018 | **0.900 ± 0.008** | **+0.371 ± 0.026** | 5.1M | Self-supervised | transfer_baselines_v6_final.json |
 | Transformer Supervised | 0.969 ± 0.026 | 0.673 ± 0.063 | +0.144 ± 0.044 | 5.1M | Supervised | transfer_baselines_v6_final.json |
 | MAE (reconstruct) | 0.643 ± 0.144 | 0.587 ± 0.049 | ~+0.001 | 5M | Self-supervised | baselines_comparison.json + [LOG ONLY] |
-| Handcrafted + LogReg | 0.999 ± 0.001 | N/A | N/A | N/A | Supervised | baselines_comparison.json |
+| Handcrafted + LogReg | 0.999 ± 0.001 | 1.000 ± 0.000 | +0.471 | N/A | Supervised (Paderborn features) | handcrafted_paderborn.json |
+| **Handcrafted CWRU→Paderborn** | 0.999 ± 0.001 | **0.167 ± 0.000** | **-0.362** | N/A | CWRU features applied to Paderborn | handcrafted_transfer.json |
 | JEPA V3 (SIGReg) | 0.531 ± 0.008 | 0.540 ± 0.025 | +0.193 | 4M | Self-supervised | [LOG ONLY Exp V5-7] |
 | Random Init | ~0.412 | ~0.529 ± 0.024 | 0.000 | 5.1M | N/A | transfer_baselines_v6_final.json |
+
+**KEY INSIGHT**: Handcrafted FFT features computed ON CWRU and applied to Paderborn achieve F1=0.167 (worse than random 0.333). JEPA V2 achieves 0.900 (+73.3 percentage points). Handcrafted features that achieve perfect in-domain accuracy fail catastrophically at cross-domain transfer. JEPA learns features that ARE domain-agnostic.
 
 **Transfer Gain** = Paderborn F1 (pretrained encoder) − Paderborn F1 (random init encoder, same architecture)
 The random init baseline uses seeds 42/123/456 giving Paderborn F1 of 0.521/0.563/0.505 = **0.529 ± 0.024** on average.
