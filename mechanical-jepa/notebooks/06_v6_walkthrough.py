@@ -82,10 +82,11 @@ def fig_classification():
 # ============================================================================
 
 def fig_transfer():
-    """Side-by-side: Paderborn F1 and Transfer Gain."""
+    """Side-by-side: Paderborn F1 and Transfer Gain (including handcrafted baseline)."""
     with open(RESULTS_DIR / 'transfer_baselines_v6_final.json') as f:
         data = json.load(f)
 
+    # Include handcrafted CWRU→Paderborn transfer (the strongest baseline)
     methods_keys = ['cnn', 'transformer', 'jepa_v2']
     method_labels = ['CNN\nSupervised', 'Transformer\nSupervised', 'JEPA V2\n(Ours)']
     colors = ['#2196F3', '#9C27B0', '#F44336']
@@ -95,37 +96,53 @@ def fig_transfer():
     gain_means = [data['_summary'][m]['gain_mean'] for m in methods_keys]
     gain_stds = [data['_summary'][m]['gain_std'] for m in methods_keys]
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4))
+    # Add handcrafted transfer (0.167) and random init to comparison
+    all_labels = ['Handcrafted\nCWRU→Pad'] + method_labels + ['Random\nInit']
+    all_pads = [0.167] + pad_means + [0.529]
+    all_pads_std = [0.000] + pad_stds + [0.024]
+    all_colors = ['#795548'] + colors + ['#9E9E9E']
 
-    # Left: Paderborn F1
-    bars1 = ax1.bar(method_labels, pad_means, yerr=pad_stds, capsize=5, color=colors, alpha=0.85, width=0.5)
-    ax1.axhline(y=0.529, color='#9E9E9E', linestyle='--', linewidth=1.5, alpha=0.7, label='Random init (0.529)')
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 4))
+
+    # Left: Paderborn F1 (all methods including handcrafted)
+    x = np.arange(len(all_labels))
+    bars1 = ax1.bar(x, all_pads, yerr=all_pads_std, capsize=5, color=all_colors, alpha=0.85, width=0.6)
+    ax1.axhline(y=1/3, color='#FF9800', linestyle=':', linewidth=1.5, alpha=0.8, label='Chance (0.333)')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(all_labels, fontsize=9)
     ax1.set_ylabel('Paderborn F1 (Macro)')
-    ax1.set_title('Cross-Domain Transfer Performance\nCWRU → Paderborn')
-    ax1.set_ylim([0.4, 1.05])
+    ax1.set_title('Cross-Domain Transfer: CWRU → Paderborn\n(Higher is better)')
+    ax1.set_ylim([-0.05, 1.05])
     ax1.legend(fontsize=9)
-    for bar, f1 in zip(bars1, pad_means):
-        ax1.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.01,
-                f'{f1:.3f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
+    for bar, f1 in zip(bars1, all_pads):
+        ypos = max(bar.get_height(), 0) + 0.02
+        ax1.text(bar.get_x() + bar.get_width()/2., ypos,
+                f'{f1:.3f}', ha='center', va='bottom', fontsize=9, fontweight='bold')
 
-    # Right: Transfer Gain
+    # Annotation: handcrafted fails
+    ax1.annotate('Handcrafted FFT\nfails: worse\nthan random!',
+                xy=(0, 0.167), xytext=(1.2, 0.35),
+                arrowprops=dict(arrowstyle='->', color='#795548', lw=1.5),
+                fontsize=8, color='#795548',
+                bbox=dict(boxstyle='round', facecolor='#EFEBE9', alpha=0.9))
+
+    # Right: Transfer Gain (non-random methods only)
     bars2 = ax2.bar(method_labels, gain_means, yerr=gain_stds, capsize=5, color=colors, alpha=0.85, width=0.5)
     ax2.axhline(y=0, color='#9E9E9E', linestyle='-', linewidth=1, alpha=0.5)
     ax2.set_ylabel('Transfer Gain (F1 over random init)')
-    ax2.set_title('Transfer Gain\n(Paderborn F1 - Random Init)')
+    ax2.set_title('Transfer Gain\n(Paderborn F1 - Random Init F1)')
     ax2.set_ylim([-0.05, 0.55])
     for bar, g in zip(bars2, gain_means):
         ax2.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.01,
                 f'{g:+.3f}', ha='center', va='bottom', fontsize=10, fontweight='bold')
 
-    supervision_labels = {'cnn': 'Supervised', 'transformer': 'Supervised', 'jepa_v2': 'Self-supervised'}
     patches = [mpatches.Patch(color='#2196F3', label='CNN (Supervised)'),
                mpatches.Patch(color='#9C27B0', label='Transformer (Supervised)'),
                mpatches.Patch(color='#F44336', label='JEPA V2 (Self-supervised)')]
     ax2.legend(handles=patches, loc='upper right', fontsize=8)
 
-    plt.suptitle('JEPA V2 provides 2.6× better transfer gain than supervised Transformer\n'
-                 '(+0.371 vs +0.144) while requiring NO labels during pretraining',
+    plt.suptitle('JEPA V2: 0.900 F1 vs Handcrafted CWRU→Paderborn: 0.167 F1\n'
+                 'JEPA provides 2.6x better transfer gain than supervised Transformer',
                  fontsize=10, y=1.02, color='#333333')
     plt.tight_layout()
     plt.savefig(PLOTS_DIR / 'fig2_transfer_comparison.pdf', bbox_inches='tight')
