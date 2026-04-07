@@ -257,5 +257,45 @@
       "seu"
     ],
     "n_train": 200
+  },
+  "_feature_distribution_analysis": {
+    "note": "Feature distributions differ dramatically across sources",
+    "spectral_centroid_hz": {
+      "cwru": {
+        "mean": 2930,
+        "std": 694
+      },
+      "mafaulda": {
+        "mean": 57,
+        "std": 16
+      },
+      "paderborn": {
+        "mean": 2504,
+        "std": 502
+      },
+      "ottawa": {
+        "mean": 1351,
+        "std": 856
+      }
+    },
+    "kurtosis": {
+      "cwru": {
+        "mean": 6.24,
+        "std": 7.04
+      },
+      "mafaulda": {
+        "mean": 2.85,
+        "std": 0.68
+      },
+      "paderborn": {
+        "mean": 13.2,
+        "std": 8.57
+      },
+      "ottawa": {
+        "mean": 6.26,
+        "std": 10.94
+      }
+    },
+    "conclusion": "MAFAULDA spectral centroid (57 Hz) is 50x lower than CWRU/Paderborn (2500-3000 Hz). MAFAULDA operates at 12.3 Hz shaft speed, so energy is at very low frequencies. Including MAFAULDA in training misleads the classifier about what bearing faults look like. Best training set for cross-domain: CWRU + SEU (similar operating frequencies)."
   }
 }
