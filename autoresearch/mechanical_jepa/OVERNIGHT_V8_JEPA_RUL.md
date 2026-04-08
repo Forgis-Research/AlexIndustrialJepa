@@ -221,13 +221,80 @@ Implement ALL of these on the same episode split:
 | 5 | Envelope RMS + LSTM | Scalar envelope RMS per step | LSTM over HI sequence | Classic prognostics approach |
 | 6 | JEPA + MLP | Frozen V8 encoder | MLP([z_t, elapsed_time]) | JEPA single-snapshot + clock |
 | 7 | **JEPA + LSTM** | Frozen V8 encoder | LSTM over z sequence | **Our main method** |
-| 8 | End-to-end CNN-LSTM | Jointly trained | CNN encoder + LSTM | Supervised SOTA comparison |
+| 8 | End-to-end CNN-LSTM | Jointly trained | CNN encoder + LSTM | Supervised baseline |
+| 9 | **TCN + Attention** | TCN encoder | Self-attention over sequence | Near-SOTA supervised |
+| 10 | **Transformer encoder-decoder** | Transformer | Full sequence → RUL | SOTA supervised |
+| 11 | **CNN-GRU-MHA** | CNN + GRU + multi-head attention | Full sequence | Published SOTA on FEMTO (nRMSE=0.044) |
 
-For baselines 4, 5, 7, 8: include `delta_t` (seconds since last snapshot) as per-step input to handle irregular sampling.
+For baselines 4, 5, 7, 8, 9, 10, 11: include `delta_t` (seconds since last snapshot) as per-step input to handle irregular sampling.
 
-For all LSTM-based methods: include `elapsed_time` as input to the final prediction layer.
+For all sequence-based methods: include `elapsed_time` as input to the final prediction layer.
 
 **Seeds**: 42, 123, 456
+
+### Phase 4B: SOTA Baselines — Build and Validate (1.5 hours)
+
+**This is critical.** We need supervised SOTA baselines that reproduce published numbers. If our supervised baselines don't match literature, our comparison is meaningless.
+
+**Baseline 9: TCN + Attention**
+```
+Input: sequence of 1024-sample windows (1 per snapshot)
+TCN: 4 layers of dilated causal convolutions (dilation 1,2,4,8), channels 64→128→128→64
+Self-attention: 2-layer Transformer over TCN output sequence
+Output: Linear → sigmoid → RUL% per step
+```
+TCN is a standard strong baseline for sequence prediction. Temporal Convolutional Network with dilated convolutions captures multi-scale temporal patterns without recurrence.
+
+**Baseline 10: Transformer encoder-decoder**
+```
+Input: sequence of handcrafted features per snapshot (18-dim + positional encoding)
+Encoder: 4-layer Transformer (d=128, 4 heads)
+Decoder: Linear(128 → 1) per step → sigmoid → RUL%
+```
+Tests whether Transformer attention over feature sequences beats LSTM.
+
+**Baseline 11: CNN-GRU-MHA (reproduce published SOTA)**
+```
+Architecture from Applied Sciences 2024 (nRMSE=0.044 on FEMTO):
+- 1D CNN feature extractor (3 conv layers)
+- Bidirectional GRU (2 layers, hidden=64)
+- Multi-head attention (4 heads)
+- FC → RUL%
+```
+**Implement this faithfully.** Train on the same FEMTO episodes used in the paper. Compare our result to their published 0.044 nRMSE. If our reproduction gets within 20% of their number (nRMSE < 0.053), our implementation is validated. If not, debug until it matches.
+
+**Validation target**: The MDSCT paper (Heliyon 2024) provides a multi-method comparison table on FEMTO. Reproduce at least 2 methods from their table and verify our numbers are in the same ballpark. This confirms our evaluation protocol is correct.
+
+### Phase 4C: RUL Label Convention (30 min)
+
+**CRITICAL**: Many papers use **piecewise-linear RUL labels**:
+```
+If t < T_onset:  rul(t) = 1.0        (clamped during healthy phase)
+If t >= T_onset: rul(t) = 1 - (t - T_onset) / (T - T_onset)  (linear decline)
+```
+Where T_onset is the degradation onset point (detected by kurtosis jump, RMS threshold, etc.).
+
+Our dataset uses **pure linear**: `rul(t) = 1 - t/T` from start.
+
+**Implement both conventions.** Run all methods with both label types. Report which we use and note any discrepancy. If published SOTA uses piecewise-linear and we use pure linear, the numbers are NOT comparable — this is a common source of misleading comparisons in the field.
+
+### Phase 4D: Cross-Dataset RUL Transfer (30 min)
+
+The experiment that should showcase JEPA's pretraining advantage:
+
+| Train RUL on | Test RUL on | What it tests |
+|--------------|-------------|---------------|
+| FEMTO episodes | FEMTO episodes (held out) | Standard within-dataset |
+| XJTU-SY episodes | XJTU-SY episodes (held out) | Standard within-dataset |
+| **FEMTO episodes** | **XJTU-SY episodes** | Cross-dataset transfer |
+| **XJTU-SY episodes** | **FEMTO episodes** | Cross-dataset transfer |
+
+The cross-dataset transfer is where JEPA should win big:
+- Supervised methods overfit to FEMTO-specific patterns (sensor placement, operating conditions)
+- JEPA encoder pretrained on ALL sources should produce dataset-agnostic embeddings
+- The LSTM temporal model should transfer because degradation physics are the same
+
+Report cross-dataset RMSE for all methods. This is potentially the strongest result.
 
 ### Phase 5: Evaluation & Metrics (1 hour)
 
@@ -391,11 +458,16 @@ mechanical-jepa/v8/
 
 1. Phase 0-1 (data + architecture) — foundation, must complete
 2. Phase 2-3 (pretraining + quality check) — core contribution
-3. Phase 4-5 (RUL baselines + evaluation) — the comparison
-4. Phase 7 rounds 1-2 (sanity check + literature) — validation
-5. Phase 6 (FFT ablation) — bonus
-6. Phase 7 rounds 3-5 (hyperparameters + analysis) — polish
-7. Phase 8 (notebook) — documentation
+3. Phase 4 baselines 1-7 (our methods + simple baselines) — the core comparison
+4. Phase 4B baseline 11 CNN-GRU-MHA (reproduce published SOTA) — validates our eval protocol
+5. Phase 4C (label convention) — without this, numbers aren't comparable to literature
+6. Phase 5 (evaluation) — metrics and analysis
+7. Phase 4D (cross-dataset transfer) — potentially strongest result
+8. Phase 7 rounds 1-2 (sanity + literature review) — validation
+9. Phase 4B baselines 9-10 (TCN, Transformer) — additional SOTA
+10. Phase 6 (FFT ablation) — bonus
+11. Phase 7 rounds 3-5 (hyperparameters + analysis) — polish
+12. Phase 8 (notebook) — documentation
 
 ## Success Criteria
 
@@ -403,6 +475,9 @@ The session is successful if:
 - [ ] JEPA V8 pretrains without collapse (prediction variance > 0.01 throughout)
 - [ ] JEPA embeddings show structure (health_state linear probe >> random encoder)
 - [ ] JEPA + LSTM beats handcrafted + LSTM on RUL RMSE (main claim)
+- [ ] CNN-GRU-MHA baseline reproduces published FEMTO nRMSE within 20% (validates eval protocol)
+- [ ] Both RUL label conventions (pure linear + piecewise) implemented and compared
+- [ ] Cross-dataset transfer (FEMTO→XJTU-SY) evaluated for all methods
 - [ ] Results are compared against published SOTA numbers from literature
 - [ ] All results in JSON with 3-seed statistics
 - [ ] Honest assessment of where JEPA helps and where it doesn't
