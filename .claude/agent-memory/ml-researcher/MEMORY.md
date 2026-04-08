@@ -1,4 +1,4 @@
-- [IndustrialJEPA Project Context](project_industrialjepa.md) — V6 JEPA+0.371 transfer gain; V7 baselines: RF cross-domain F1=0.216, kurtosis AUROC=0.779, XGBoost RUL RMSE=0.212
+- [IndustrialJEPA Project Context](project_industrialjepa.md) — V8 complete: JEPA RUL RMSE=0.189 (+15.8%), Contrastive cross-domain RMSE=0.227 (+38.1%, p<0.001 vs JEPA); spectral centroid key
 - [Dataset Catalog and Recommendations](datasets_catalog.md) — Paderborn=Tier2, WADI=Brain-JEPA, OXE proprio data verified and used
 - [JEPA + PHM Literature Review 2025-2026](literature_review_2025_2026.md) — Confirmed gaps: no JEPA+RUL, no JEPA+cross-machine, SIGReg not tried on 1D signals; MTS-JEPA/TS-JEPA/LeJEPA/RmGPT are closest work
 - [Bearing RUL SOTA Literature Review (April 2026)](literature_review_rul_sota.md) — FEMTO best nRMSE=0.0443; single-window RUL formulation does NOT exist; DCSSL is only SSL+RUL paper on FEMTO

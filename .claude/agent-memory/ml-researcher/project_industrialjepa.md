@@ -96,3 +96,66 @@ This is the primary publishable result using local CWRU (134 samples) and local 
 
 **Why:** V7 establishes the bar that JEPA-V7 needs to beat for publication. Cross-domain classification is the primary publishable target.
 **How to apply:** For any new JEPA model evaluation, compare against RF cross-domain F1=0.216 (no MAFAULDA) and Kurtosis AUROC=0.779.
+
+---
+
+## V8: JEPA-Based RUL% Prediction (Completed 2026-04-08)
+
+### Task: Bearing RUL% Prediction on FEMTO (16 eps) + XJTU-SY (7 eps)
+
+**Formulation:** RUL(t) = 1 - t/T_failure (linear), episode-based train/test split (no leakage).  
+**Primary metric:** RMSE on normalized RUL (0=new, 1=failure at test snapshots).
+
+### In-Domain Results (18 train, 5 test episodes, 5 seeds)
+
+| Method | RMSE | vs Elapsed-time |
+|--------|------|----------------|
+| Elapsed-time baseline | 0.224 | baseline |
+| JEPA+LSTM (ours) | 0.189 ± 0.015 | +15.8%, p=0.010 |
+| Random JEPA+LSTM (ablation) | 0.221 ± 0.008 | - |
+| Handcrafted+MLP | 0.085 ± 0.004 | +62.1% |
+| Transformer+HC | 0.070 ± 0.006 | +68.8% |
+
+**JEPA beats random encoder (p=0.010) but NOT handcrafted (p=0.40).**
+
+### Cross-Domain Results (FEMTO -> XJTU-SY, 10 seeds)
+
+| Method | RMSE | vs Elapsed |
+|--------|------|-----------|
+| Elapsed-time | 0.367 | baseline |
+| JEPA+LSTM | 0.279 ± 0.006 | +23.9% |
+| Temporal Contrastive+LSTM | 0.227 ± 0.015 | +38.1%, p<0.001 |
+
+### Key Finding: Why Temporal Contrastive Beats JEPA Cross-Domain
+
+Root cause: spectral centroid shift is the primary bearing degradation indicator (r=0.585 with RUL).
+
+- JEPA PC1 correlation with spectral_centroid: **0.071** (doesn't capture it)
+- Contrastive PC1 correlation with spectral_centroid: **0.856** (captures it strongly)
+
+**Mechanism:** JEPA objective (predict masked patches) learns waveform texture. Temporal contrastive objective (adjacent=positive, distant=negative) forces learning what changes over bearing life, which is the spectral centroid. This shift is universal across FEMTO and XJTU-SY, so it transfers.
+
+### JEPA Pretraining Instability
+
+All JEPA configs show loss minimum at epoch 2-5, then oscillation. Root cause: heterogeneous 8-source data (FEMTO, XJTU, CWRU, IMS, MAFAULDA, Paderborn, SGV, UOC) with very different signal characteristics causes EMA target encoder to drift. Use epoch-2 checkpoint (val_loss=0.01662).
+
+### Checkpoints (v8/)
+
+- `jepa_v8_best.pt`: epoch=2, val=0.01662 (standard JEPA)
+- `jepa_v8_contrastive_best.pt`: epoch=97 (narrow temporal contrastive, best cross-domain)
+- `jepa_v8_fft_best.pt`: epoch=2, val=0.01492 (2-channel FFT, similar downstream)
+- `jepa_v8_contrastive_broad_best.pt`: broader data, WORSE downstream
+
+### Files (v8/)
+
+- `data_pipeline.py`: loads 33,939 pretrain windows + 23 RUL episodes, episode splits
+- `jepa_v8.py`: 4.0M encoder, 16 patches, embed_dim=256, `get_embeddings()` → (B,256)
+- `rul_model.py`: RULLSTM, HandcraftedLSTM, CNNGRUMHAEncoder, TransformerRUL
+- `rul_baselines.py`: 11 methods, 3+ seeds, JSON output
+- `evaluate.py`: 4-way cross-dataset transfer evaluation
+- `analyze.py`: encoder quality, PCA, trajectory plots
+- `results/`: all JSON result files
+- `notebooks/08_rul_jepa.ipynb`: documentation notebook
+
+**How to apply:** For RUL tasks, temporal contrastive > JEPA for cross-domain transfer.  
+For in-domain RUL, handcrafted features (spectral centroid) still beat JEPA.
