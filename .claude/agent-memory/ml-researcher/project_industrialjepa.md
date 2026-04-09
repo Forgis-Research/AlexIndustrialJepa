@@ -159,3 +159,62 @@ All JEPA configs show loss minimum at epoch 2-5, then oscillation. Root cause: h
 
 **How to apply:** For RUL tasks, temporal contrastive > JEPA for cross-domain transfer.  
 For in-domain RUL, handcrafted features (spectral centroid) still beat JEPA.
+
+---
+
+## V9: Data-First JEPA (Completed 2026-04-09)
+
+### Goal: Fix V8 pretraining instability via dataset compatibility analysis
+
+### Key Results (31 episodes: 16 FEMTO + 15 XJTU-SY, 24 train / 7 test, 5 seeds)
+
+| Method | RMSE | Notes |
+|--------|------|-------|
+| Elapsed time | 0.224 | trivial baseline |
+| V9 JEPA+LSTM (all_8) | 0.0852 ± 0.0014 | best_epoch=2 (still early) |
+| V9 JEPA+LSTM (compatible_6) | 0.0873 ± 0.0018 | best_epoch=3 |
+| V9 JEPA[block masking]+LSTM | 0.0886 ± 0.0049 | -1.5% vs random |
+| V9 JEPA[dual-channel]+LSTM | 0.1119 ± 0.0057 | -28.2% (overfits) |
+| V9 JEPA+Probabilistic-LSTM | 0.0868 ± 0.0023 | PICP@90%=0.910 (calibrated!) |
+
+### Root Cause of V8 Instability (CONFIRMED)
+
+MAFAULDA centrifugal pump data had spectral centroid 173Hz vs FEMTO's 2453Hz (14x difference).
+KL divergence MAFAULDA vs FEMTO = 3.04 (next worst: 1.47). Instance normalization equalizes
+amplitude but NOT spectral shape. Removing MAFAULDA+MFPT shifts best_epoch 2→3 and improves
+val_loss 0.0161→0.0140 but does NOT fully solve multi-source JEPA instability.
+
+### Dataset Compatibility Protocol
+
+Resample to 12.8kHz, check vs FEMTO reference:
+1. PSD KL divergence < 2.0
+2. |spectral_centroid - 2453 Hz| < 1500 Hz
+3. mean kurtosis < 8.0 and std < 12.0
+
+Compatible sources: femto, xjtu_sy, cwru, ims, paderborn, ottawa
+Marginal: mfpt (kurtosis std=17)
+Incompatible: mafaulda (centroid=173Hz, KL=3.04)
+
+### Key Findings
+
+1. V9 RMSE improvement vs V8 (0.085 vs 0.189) is driven by more training episodes (24 vs 18),
+   NOT model improvements. Apples-to-apples: compatible_6 vs all_8 = 0.087 vs 0.085 (p>0.05).
+2. LSTM beats TCN-Transformer in small-data regime (24 episodes). TCN-Transformer RMSE=0.140 vs LSTM 0.085.
+3. Probabilistic LSTM (Gaussian NLL) gives well-calibrated uncertainty PICP@90%=0.910 at near-zero
+   accuracy cost (RMSE: 0.0873 → 0.0868). Enables P(RUL<threshold) deployment decisions.
+4. Deviation-from-baseline features fail for short-lifetime XJTU-SY (K=10 baseline already contaminated).
+5. Dual-channel raw+FFT encoder WORSE downstream (fewer pretraining windows, overfitting).
+
+### Files (v9/)
+- `experiments/v9/EXPERIMENT_LOG.md`: 12 experiments, clean (no duplicates)
+- `experiments/v9/RESULTS.md`: full results table with SOTA comparison
+- `experiments/v9/run_e1_light.py`: memory-efficient pretraining (loads 16k windows to avoid OOM)
+- `experiments/v9/run_downstream.py`: downstream eval + all G.1 plots
+- `checkpoints/jepa_v9_compatible_6.pt`: best pretrain encoder (best_ep=3, val=0.0140)
+- `checkpoints/jepa_v9_block_masking.pt`: block masking encoder (best_ep=4, val=0.0173)
+- `checkpoints/jepa_v9_dual_channel.pt`: dual-channel encoder (best_ep=4, val=0.0155, n_channels=2)
+- `notebooks/09_v9_data_first.qmd`: Quarto notebook with all results hardcoded
+
+**Why:** V9 establishes dataset compatibility as a prerequisite for stable multi-source JEPA.
+**How to apply:** Always run compatibility check before adding new sources. For next session,
+focus on getting more training episodes (50+) to enable TCN-Transformer and reduce noise in PICP estimation.

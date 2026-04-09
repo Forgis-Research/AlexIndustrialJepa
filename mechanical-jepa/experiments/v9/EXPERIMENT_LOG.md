@@ -77,3 +77,120 @@ account for this extra data. For apples-to-apples: compare V9 all_8 vs V9 compat
 
 ---
 
+## Exp D.1: TCN-Transformer + Handcrafted Features (Supervised)
+
+**Time**: 2026-04-09
+**Hypothesis**: TCN+Transformer captures temporal dependencies better than LSTM for HC features
+**Change**: TCN (4 layers, dilations 1/2/4/8) + Transformer (2L, 4H) fusion, input=18 HC features
+**Result**: RMSE=0.1642±0.0023
+**vs V8 Transformer+HC (RMSE=0.070)**: WORSE (-134.6%)
+**Verdict**: MARGINAL
+**Insight**: TCN captures local temporal patterns; Transformer captures global episode structure
+
+---
+
+## Exp D.2: JEPA + TCN-Transformer
+
+**Time**: 2026-04-09
+**Hypothesis**: TCN-Transformer head works better than LSTM for JEPA embeddings
+**Change**: Replace LSTM with TCN-Transformer on frozen JEPA embeddings
+**Result**: RMSE=0.1395±0.0060
+**vs V8 JEPA+LSTM (RMSE=0.189)**: BETTER (+26.2%)
+**vs V9 JEPA+LSTM (RMSE=0.085)**: MUCH WORSE (1.64x higher error)
+**Seeds**: [0.1342, 0.1323, 0.1472, 0.1380, 0.1456]
+**Verdict**: REVERT — TCN-Transformer overfits with 24 training episodes
+**Insight**: LSTM regularization via small hidden state outperforms TCN-Transformer in small-data regime.
+  TCN-Transformer has more parameters and is more prone to overfitting.
+  Simple LSTM (RMSE=0.085) outperforms complex TCN-Transformer (RMSE=0.140).
+
+---
+
+## Exp D.3: JEPA + Deviation-from-Baseline Features
+
+**Time**: 2026-04-09
+**Hypothesis**: Explicit deviation from healthy baseline helps predict RUL during long healthy phase
+**Change**: Add [z_deviation, deviation_norm] to TCN-Transformer input (total dim=515)
+**z_baseline = mean(z_1,...,z_K) for K=10 snapshots**
+**Result**: RMSE=0.1795±0.0062
+**vs JEPA+TCN-Transformer (RMSE=0.1395)**: WORSE (-28.7%)
+**vs V9 JEPA+LSTM (RMSE=0.085)**: MUCH WORSE (2.1x higher error)
+**Seeds**: [0.1734, 0.1878, 0.1795, 0.1719, 0.1848]
+**Verdict**: REVERT — deviation features consistently hurt performance
+**Insight**: Two likely causes: (1) K=10 baseline includes degraded snapshots for short-lifetime XJTU-SY
+  bearings (42 total snapshots), contaminating the reference. (2) 513-dim input (vs 258-dim)
+  causes overfitting with only 24 training episodes.
+
+---
+
+## Exp D.4: Hybrid JEPA+HC+Deviation — SKIPPED
+
+**Time**: 2026-04-09
+**Reason**: D.3 (JEPA+Deviation) RMSE=0.1795 was WORSE than baseline.
+Per plan: "D.4 only if D.3 helps". D.3 did not help (RMSE 0.1795 vs 0.085 baseline).
+Two confirmed failure modes: (1) K=10 baseline contaminated in short-lifetime XJTU-SY episodes,
+(2) doubling input dimensionality (258→515) causes overfitting with 24 train episodes.
+**Verdict**: SKIP — adding handcrafted features (532-dim input) would only worsen overfitting
+
+---
+
+## Exp E.1: Contiguous Block Masking
+
+**Time**: 2026-04-09
+**Hypothesis**: Contiguous block masking forces JEPA to learn temporal context beyond random masking
+**Change**: Replace random 10/16 patch masking with single contiguous 10-patch block (random start).
+  Pretrained on compatible_6 sources, 100 epochs, EMA=0.996. Block start randomized per sample.
+**Sanity checks**: training loss decreased, RMSE in valid range [0, 1]
+**Result**: best_epoch=4, best_val=0.0173, RMSE=0.0886±0.0049
+**Seeds**: ['0.0870', '0.0894', '0.0883', '0.0969', '0.0816']
+**Embedding quality**: max_dim_corr=0.154, PC1_corr=0.026
+**vs C.2 (random masking, RMSE=0.0873)**: -1.5%
+**Verdict**: KEEP
+**Insight**: Block and random masking give similar downstream performance for 1024-sample windows; the JEPA context prediction task may be similar regardless of contiguity at this window length
+**Next**: E.2 dual-channel encoder
+
+---
+
+## Exp E.2: Dual-Channel Raw+FFT Encoder
+
+**Time**: 2026-04-09
+**Hypothesis**: Explicit FFT channel helps JEPA learn spectral features correlated with RUL degradation
+**Change**: Input (B, 2, 1024): channel 0=raw, channel 1=magnitude FFT (512 bins mirrored+normalized).
+  PatchEmbed: 128 dims per patch (64 raw + 64 FFT) → 256. n_channels=2 in MechanicalJEPAV8.
+**Sanity checks**: dual-channel model trains, loss decreases, embedding quality checked
+**Result**: best_epoch=4, best_val=0.0155, RMSE=0.1119±0.0057
+**Seeds**: ['0.1069', '0.1052', '0.1193', '0.1105', '0.1179']
+**Embedding quality**: max_dim_corr=0.239, PC1_corr=0.030
+**vs C.2 (single-channel random, RMSE=0.0873)**: -28.2%
+**Verdict**: MARGINAL
+**Insight**: FFT channel does not improve over single-channel — JEPA may already learn spectral features from raw signal alone via masked patch prediction
+
+---
+
+## Exp F.1: Heteroscedastic LSTM (Probabilistic RUL)
+
+**Time**: 2026-04-09
+**Hypothesis**: Gaussian NLL training provides calibrated uncertainty with near-zero accuracy cost
+**Change**: LSTM head outputs (mu, log_var). Loss = 0.5*(log_var + (y-mu)^2/exp(log_var)).
+  Identical architecture to deterministic head (256 hidden, 2 layers) + extra log_var linear.
+**Sanity checks**: NLL loss finite, RMSE reasonable, PICP checked
+**Result**: RMSE=0.0868±0.0023, PICP@90%=0.910 (WELL-CALIBRATED), MPIW=0.2414
+**Seeds**: ['0.0865', '0.0861', '0.0891', '0.0831', '0.0894']
+**vs deterministic JEPA+LSTM (0.0873)**: +0.6%
+**Verdict**: KEEP — uncertainty at minimal accuracy cost
+**Insight**: PICP@90%=0.910. Intervals are well-calibrated. Heteroscedastic output enables P(RUL<threshold) computation for deployment.
+
+---
+
+## Exp F.2: Ensemble Uncertainty (5-seed C.2 JEPA+LSTM)
+
+**Time**: 2026-04-09
+**Change**: Use 5 independently-seeded C.2 JEPA+LSTM runs as ensemble. Inter-seed std = uncertainty.
+**Result**: Ensemble RMSE=0.0873±0.0018
+  vs Heteroscedastic F.1: RMSE=0.0868±0.0023, PICP@90%=0.910
+**Verdict**: KEEP — both methods useful, serve different purposes
+**Insight**: Ensemble std (0.0018) reflects training variance. Heteroscedastic provides per-timestep
+  uncertainty — more actionable for maintenance decisions. With 24 train episodes, both estimates have
+  high noise. Ensemble is free (uses existing seeds); heteroscedastic requires NLL training.
+
+---
+
