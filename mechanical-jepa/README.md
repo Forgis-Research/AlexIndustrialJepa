@@ -1,173 +1,110 @@
-# Mechanical-JEPA
+# IndustrialJEPA: Self-Supervised Bearing RUL Prediction
 
-Self-supervised learning for mechanical systems using Joint Embedding Predictive Architectures.
+Self-supervised learning for predicting Remaining Useful Life (RUL) from bearing vibration signals. Uses JEPA (Joint Embedding Predictive Architecture) pretraining on heterogeneous bearing datasets, with temporal contrastive learning for cross-machine transfer.
 
-## Overview
-
-This project explores whether JEPA-style pretraining can learn useful representations from mechanical sensor data. We focus on **bearing fault detection** - a domain where:
-
-1. **Labels are physics-governed** - Fault type is physical damage, not policy-dependent
-2. **Detection is non-trivial** - Requires learning spectral signatures, not simple thresholds
-3. **Multi-modal sensors enable physics-aware masking** - 4 distinct physics groups
-
-### Why Not Robots?
-
-Rigid-body robot proprioception is too simple for JEPA:
-- Dynamics are nearly linear (forward kinematics = matrix multiplication)
-- Contact detection is trivial from force sensors, or policy-dependent (gripper state)
-- Previous experiments showed linear regression beats JEPA by 64x
-
-## Datasets: 4 Bearing Fault Sources
-
-| Dataset | Channels | Fault Types | Sampling | Size | Download |
-|---------|----------|-------------|----------|------|----------|
-| **Paderborn** | 8 (multimodal) | Healthy, OR, IR, Combined | 64 kHz | 33 bearings | Auto (needs RAR tool) |
-| **CWRU** | 2-3 | Healthy, OR, IR, Ball | 12 kHz | 40 files, 6M samples | Auto |
-| **IMS** | 4-8 | Run-to-failure | 20 kHz | 3 test runs | Manual (Kaggle) |
-| **XJTU-SY** | 2 | Progressive degradation | 25.6 kHz | 15 bearings | Manual (IEEE) |
-
-### Physics Groups (Paderborn)
-
-| Group | Channels | Modality |
-|-------|----------|----------|
-| 1 | a1, a2 | Radial vibration |
-| 2 | a3, v1 | Axial vibration |
-| 3 | temp1, torque | Thermal/mechanical |
-| 4 | ia, ib | Motor current |
-
-## Project Structure
+## Architecture
 
 ```
-mechanical-jepa/
-├── README.md                           # This file
-├── data/
-│   └── bearings/                       # All 4 datasets
-│       ├── README.md                   # Dataset documentation
-│       ├── prepare_bearing_dataset.py  # Download & processing
-│       └── raw/                        # Downloaded data (gitignored)
-├── notebooks/
-│   └── 01_bearing_faults_analysis.ipynb  # Data exploration
-└── src/                                # Model implementations (TBD)
+Raw vibration (1024 samples @ 12.8kHz)
+        |
+  [Patch split: 16 x 64]
+        |
+  [Context encoder: ViT 4L, d=256]
+        |
+  [Frozen JEPA embeddings: 256-dim per snapshot]
+        |
+  [Temporal head: LSTM/TCN-Transformer]
+        |
+  RUL% prediction per snapshot
 ```
+
+## Best Results (V8, 5 seeds)
+
+| Method | RMSE | vs Elapsed-Time-Only |
+|--------|------|---------------------|
+| Elapsed time only (baseline) | 0.224 | -- |
+| JEPA + LSTM | 0.189 +/-0.015 | +15.8% (p=0.010) |
+| HC + LSTM | 0.177 +/-0.016 | +21.2% |
+| Transformer + HC | 0.070 +/-0.006 | +68.9% |
+| Hybrid JEPA+HC | 0.055 +/-0.004 | +75.5% |
+
+Cross-dataset transfer (FEMTO->XJTU-SY, 10 seeds):
+- Temporal Contrastive + LSTM: RMSE=0.227 +/-0.015 (+38.1% vs elapsed time)
+- JEPA + LSTM: RMSE=0.280 +/-0.007 (+23.8%)
 
 ## Quick Start
 
-### 1. Set up environment
-
 ```bash
-pip install numpy pandas matplotlib scipy scikit-learn
+# 1. Dataset analysis (start here -- understand the data)
+python data/analysis/dataset_compatibility.py
+
+# 2. JEPA pretraining
+python pretraining/train.py --config data/configs/pretrain_compatible.yaml
+
+# 3. RUL downstream evaluation
+python downstream/rul/train.py --encoder checkpoints/jepa_best.pt
+
+# 4. All baselines
+python downstream/rul/baselines.py
 ```
 
-### 2. Prepare datasets
+## Directory Structure
 
-```bash
-cd mechanical-jepa/data/bearings
-
-# Download samples from Paderborn + CWRU
-python prepare_bearing_dataset.py --download --sample --dataset all
-
-# Process into unified format
-python prepare_bearing_dataset.py --process
-
-# Verify
-python prepare_bearing_dataset.py --verify
+```
+mechanical-jepa/
+data/
+    analysis/         # Dataset compatibility analysis + plots
+    loader.py         # Data loading from HuggingFace cache
+    preprocessing.py  # Resample, filter, normalize, window
+    registry.py       # Dataset metadata (SR, channels, domain)
+    configs/          # YAML configs for source selection
+pretraining/
+    jepa.py           # JEPA architecture (ViT encoder + predictor + EMA)
+    train.py          # Pretraining loop
+    masking.py        # Masking strategies (random, block, multi-block)
+downstream/
+    rul/
+        models.py     # LSTM, TCN-Transformer heads
+        baselines.py  # All 11 baselines
+        train.py      # RUL training loop
+        evaluate.py   # RMSE, calibration, uncertainty metrics
+analysis/
+    embeddings.py     # PCA, t-SNE, Spearman correlation
+    plots/            # Generated figures
+notebooks/            # Quarto walkthroughs
+experiments/
+    v8/               # V8 results + experiment log
+    v9/               # V9 results + experiment log
+archive/              # Legacy scripts
 ```
 
-### 3. Explore data
+## Key Findings
 
-```bash
-jupyter notebook notebooks/01_bearing_faults_analysis.ipynb
-```
+1. JEPA pretraining problem: Loss collapses to minimum at epoch 2/100.
+   Root cause: 8 heterogeneous sources with incompatible spectral characteristics.
+   V9 addresses this with dataset compatibility analysis.
 
-## Comparison to Brain-JEPA
+2. JEPA is complementary: JEPA alone underperforms expert handcrafted features,
+   but Hybrid JEPA+HC beats either alone by >20%.
 
-[Brain-JEPA](https://arxiv.org/abs/2409.19407) (NeurIPS 2024 Spotlight) applies JEPA to fMRI data for brain disorder diagnosis. Our bearing fault detection task shares key structural similarities.
+3. Contrastive wins cross-domain: Temporal contrastive pretraining achieves
+   18.8% better RMSE than JEPA for cross-dataset transfer.
 
-### Scale
+4. Spectral centroid is the key feature: Max correlation with RUL is 0.585
+   (spectral centroid) vs 0.144 (JEPA embedding).
 
-| Metric | Brain-JEPA (fMRI) | Bearing Faults |
-|--------|-------------------|----------------|
-| Pretraining units | 40,162 subjects | 33-100+ bearings |
-| Spatial features | 450 ROIs | 2-8 channels |
-| Timepoints/episode | 160 (~5 min) | 100K-500K (~seconds) |
-| Total tokens | **~2.3B** | **~100M+** (all datasets) |
+## Datasets
 
-### Temporal Resolution
+- FEMTO (PHM 2012): 17 episodes, 25.6kHz, ball bearings
+- XJTU-SY (2019): 15 episodes, 25.6kHz, ball bearings
+- IMS (NASA): 4 bearings, 20.48kHz, roller bearings
+- CWRU: 40 signals, 12kHz, motor bearings (classification only)
+- MFPT: 23 signals, 48.8kHz (classification only)
+- Paderborn: 32 signals, 64kHz (classification only)
+- Ottawa: 3 episodes, 42kHz (run-to-failure)
+- MAFAULDA: 1951 signals, 50kHz (centrifugal pump)
 
-| | Brain-JEPA | Bearings |
-|-|------------|----------|
-| Sampling rate | **0.5 Hz** (TR=2s) | **12-64 kHz** |
-| Dynamics | Slow hemodynamics | Fast mechanical vibration |
-| Window duration | ~5 minutes | ~0.1-0.3 seconds |
+## Notebooks
 
-fMRI is **~100,000× slower** than vibration data. Brain-JEPA compensates with more subjects; bearings compensate with temporal density.
-
-### Tasks: Classification + Regression
-
-| Task Type | Brain-JEPA | Bearings |
-|-----------|------------|----------|
-| **Classification** | Sex, Disease (NC/MCI, Amyloid) | Fault type (4-class) |
-| **Regression** | Age, Personality traits | RUL, Severity |
-| **Prognosis** | MCI → AD progression | Degradation trajectory |
-
-### SOTA Benchmarks
-
-**Brain-JEPA** (targets to match):
-
-| Task | Accuracy/Performance |
-|------|---------------------|
-| Sex classification | 88% |
-| Age prediction | MSE = 0.50 |
-| NC/MCI diagnosis | 77% |
-| Cross-ethnic generalization | 66% |
-
-**CWRU Bearing** (⚠️ [data leakage concerns](https://www.sciencedirect.com/science/article/abs/pii/S0888327021010499)):
-
-| Setting | Reported Accuracy |
-|---------|-------------------|
-| Same-domain (clean) | 99%+ |
-| Noisy (-6dB SNR) | 92-96% |
-| Cross-load | ~95% |
-
-**Paderborn** (more realistic):
-
-| Setting | Accuracy |
-|---------|----------|
-| Same-domain (artificial faults) | 97-99% |
-| **Cross-domain (artificial → real)** | **72%** |
-
-### Why This Comparison Matters
-
-| Aspect | Brain-JEPA | Bearing Faults |
-|--------|------------|----------------|
-| Physics groups | Brain regions (450 ROIs) | Sensor modalities (4 groups) |
-| Masking strategy | Spatiotemporal + gradient | Physics-aware (by modality) |
-| Generalization test | Cross-ethnic cohorts | Artificial → real faults |
-| Hard benchmark | 66% (Asian cohort) | 72% (cross-domain) |
-
-Both domains benefit from **physics-aware masking** over random masking, and face similar **domain shift** challenges in realistic evaluation.
-
-### Targets for Mechanical-JEPA
-
-| Task | Target | Rationale |
-|------|--------|-----------|
-| 4-class fault (cross-load) | >90% | Match supervised baselines |
-| Cross-domain (artificial→real) | **>75%** | Beat current 72% SOTA |
-| Few-shot (10 labels) | >80% | Demonstrate transfer |
-| Physics masking vs random | +5% | Validate approach |
-
-## References
-
-### JEPA Methods
-- [Brain-JEPA](https://arxiv.org/abs/2409.19407) - Brain dynamics foundation model (NeurIPS 2024 Spotlight)
-- [I-JEPA](https://arxiv.org/abs/2301.08243) - Image JEPA from Meta AI
-
-### Bearing Datasets
-- [Paderborn Bearing Dataset](https://groups.uni-paderborn.de/kat/BearingDataCenter/) - 8-channel multimodal
-- [CWRU Bearing Data](https://engineering.case.edu/bearingdatacenter/) - Most cited benchmark
-- [NASA IMS Dataset](https://ti.arc.nasa.gov/tech/dash/groups/pcoe/prognostic-data-repository/) - Run-to-failure
-
-### Benchmark Analysis
-- [CWRU Data Leakage Analysis](https://www.sciencedirect.com/science/article/abs/pii/S0888327021010499) - Realistic evaluation methodology
-- [CWRU Multi-label Benchmarking](https://arxiv.org/html/2407.14625v1) - Deep learning comparison (2024)
-- [Paderborn Cross-domain Evaluation](https://arxiv.org/html/2509.22267) - Artificial vs real faults
+- notebooks/08_rul_jepa.qmd -- V8 complete walkthrough
+- notebooks/09_v9_data_first.qmd -- V9: data analysis + TCN-Transformer
