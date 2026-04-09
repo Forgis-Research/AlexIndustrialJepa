@@ -176,8 +176,11 @@ def finetune_rul(
         for batch in train_loader:
             x = batch["x"].to(device)
             rul = batch["rul"].to(device).squeeze()
+            elapsed_time = batch.get("elapsed_time", None)
+            if elapsed_time is not None:
+                elapsed_time = elapsed_time.to(device)
 
-            pred = model.predict_rul(x)
+            pred = model.predict_rul(x, elapsed_time)
             if pred.dim() > 1:
                 pred = pred.squeeze()
 
@@ -249,8 +252,11 @@ def evaluate_rul(
         for batch in data_loader:
             x = batch["x"].to(device)
             rul = batch["rul"].squeeze().cpu().numpy()
+            elapsed_time = batch.get("elapsed_time", None)
+            if elapsed_time is not None:
+                elapsed_time = elapsed_time.to(device)
 
-            pred = model.predict_rul(x)
+            pred = model.predict_rul(x, elapsed_time)
             if pred.dim() > 1:
                 pred = pred.squeeze()
             pred = pred.cpu().numpy()

@@ -392,12 +392,21 @@ def supcon_loss(
 # =====================================================================
 
 class RULHead(nn.Module):
-    """MLP prediction head for RUL regression."""
+    """
+    MLP prediction head for RUL regression.
 
-    def __init__(self, in_dim: int, hidden_dim: int = 64):
+    Optionally takes elapsed time as additional input (strongly improves
+    performance on bearings with long healthy phases — the model learns
+    that early in life = high RUL).
+    """
+
+    def __init__(self, in_dim: int, hidden_dim: int = 64, use_elapsed_time: bool = True):
         super().__init__()
+        self.use_elapsed_time = use_elapsed_time
+        actual_in = in_dim + 1 if use_elapsed_time else in_dim
         self.net = nn.Sequential(
-            nn.Linear(in_dim, hidden_dim),
+            nn.Linear(actual_in, hidden_dim),
+            nn.BatchNorm1d(hidden_dim),
             nn.ReLU(),
             nn.Dropout(0.1),
             nn.Linear(hidden_dim, 32),
@@ -406,7 +415,10 @@ class RULHead(nn.Module):
             nn.Sigmoid(),  # RUL in [0, 1]
         )
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor,
+                elapsed_time: Optional[torch.Tensor] = None) -> torch.Tensor:
+        if self.use_elapsed_time and elapsed_time is not None:
+            x = torch.cat([x, elapsed_time.view(-1, 1)], dim=-1)
         return self.net(x).squeeze(-1)
 
 
@@ -455,7 +467,7 @@ class DCSSSLModel(nn.Module):
             dropout=dropout,
         )
         self.projector = ProjectionHead(encoder_out, proj_hidden, proj_out)
-        self.rul_head = RULHead(encoder_out, rul_hidden)
+        self.rul_head = RULHead(encoder_out, rul_hidden, use_elapsed_time=True)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """Encode input to representation space."""
@@ -465,10 +477,11 @@ class DCSSSLModel(nn.Module):
         """Project to contrastive space."""
         return self.projector(h)
 
-    def predict_rul(self, x: torch.Tensor) -> torch.Tensor:
+    def predict_rul(self, x: torch.Tensor,
+                    elapsed_time: Optional[torch.Tensor] = None) -> torch.Tensor:
         """End-to-end RUL prediction."""
         h = self.encoder(x)
-        return self.rul_head(h)
+        return self.rul_head(h, elapsed_time)
 
     def contrastive_loss(
         self,
@@ -557,14 +570,14 @@ class SimCLRModel(nn.Module):
             dropout=dropout,
         )
         self.projector = ProjectionHead(encoder_out, proj_hidden, proj_out)
-        self.rul_head = RULHead(encoder_out, rul_hidden)
+        self.rul_head = RULHead(encoder_out, rul_hidden, use_elapsed_time=True)
 
     def encode(self, x):
         return self.encoder(x)
 
-    def predict_rul(self, x):
+    def predict_rul(self, x, elapsed_time=None):
         h = self.encoder(x)
-        return self.rul_head(h)
+        return self.rul_head(h, elapsed_time)
 
     def contrastive_loss(self, view1, view2, **kwargs):
         h1 = self.encoder(view1)
@@ -611,14 +624,14 @@ class SupConModel(nn.Module):
             dropout=dropout,
         )
         self.projector = ProjectionHead(encoder_out, proj_hidden, proj_out)
-        self.rul_head = RULHead(encoder_out, rul_hidden)
+        self.rul_head = RULHead(encoder_out, rul_hidden, use_elapsed_time=True)
 
     def encode(self, x):
         return self.encoder(x)
 
-    def predict_rul(self, x):
+    def predict_rul(self, x, elapsed_time=None):
         h = self.encoder(x)
-        return self.rul_head(h)
+        return self.rul_head(h, elapsed_time)
 
     def contrastive_loss(self, view1, view2, rul=None, **kwargs):
         h1 = self.encoder(view1)

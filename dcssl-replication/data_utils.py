@@ -440,6 +440,19 @@ class FEMTORULDataset(Dataset):
         self.snapshots = np.array(self.snapshots, dtype=np.float32)
         self.rul_labels = np.array(self.rul_labels, dtype=np.float32)
 
+        # Time indices per bearing (for elapsed time feature)
+        self.time_indices = []
+        self.n_snapshots_per_item = []
+        for b_idx, bdata in enumerate(bearing_data_list):
+            n = bdata["n_snapshots"]
+            for t in range(n):
+                self.time_indices.append(t)
+                self.n_snapshots_per_item.append(n)
+        self.time_indices = np.array(self.time_indices, dtype=np.float32)
+        self.n_snapshots_per_item = np.array(self.n_snapshots_per_item, dtype=np.float32)
+        # Normalized elapsed time [0, 1]
+        self.elapsed_time = self.time_indices / self.n_snapshots_per_item
+
     def __len__(self):
         return len(self.rul_labels)
 
@@ -461,6 +474,7 @@ class FEMTORULDataset(Dataset):
             "x": torch.FloatTensor(snap),
             "rul": torch.FloatTensor([self.rul_labels[idx]]),
             "bearing_idx": self.bearing_indices[idx],
+            "elapsed_time": torch.FloatTensor([self.elapsed_time[idx]]),
         }
 
 
