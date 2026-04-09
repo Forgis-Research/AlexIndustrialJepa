@@ -91,6 +91,28 @@ and instance normalization.
 : Per-source signal statistics after resampling to 12.8kHz and instance normalization.
 KL = PSD KL divergence vs FEMTO (symmetric). {#tbl-compatibility}
 
+### Dataset Label Structure and Usability per Stage
+
+| Source | Label Type | Run-to-Failure? | Episodes | Stage 1 (snapshot) | Stage 2 (trajectory) | Fine-tuning (RUL) |
+|--------|:----------:|:---------------:|:--------:|:------------------:|:-------------------:|:-----------------:|
+| femto | Degradation (continuous) | Yes | 17 | Yes | Yes | Yes |
+| xjtu\_sy | Degradation (continuous) | Yes | 15 | Yes | Yes | Yes |
+| ims | Degradation (coarse) | Yes (3 tests) | 3 | Yes | Partial | Partial |
+| paderborn | Mixed | Partial (endurance subset) | ~6 | Yes | Partial | Partial |
+| cwru | Classification (constant) | No | 0 | Yes | No | No |
+| ottawa | Classification (constant) | No | 0 | Yes | No | No |
+| mfpt | Classification (constant) | No | 0 | Yes (marginal) | No | No |
+| mafaulda | Classification (constant) | No | 0 | No (incompatible) | No | No |
+
+: Dataset usability per training stage. Classification datasets have constant labels per recording
+(fault pre-seeded before recording). Only run-to-failure datasets have the healthy$\to$failed
+transition needed for trajectory-level training. {#tbl-stage-usability}
+
+**Key implication**: Classification datasets (CWRU, Ottawa, MFPT) contribute to Stage 1 snapshot
+encoder pretraining (learning what vibration signals look like) but cannot contribute to Stage 2
+trajectory JEPA or RUL fine-tuning. Only 32 clean run-to-failure episodes (17 FEMTO + 15 XJTU-SY)
+are available for learning degradation dynamics.
+
 ### The MAFAULDA Problem
 
 MAFAULDA is a centrifugal pump database, not a bearing database. After resampling to 12.8kHz:
@@ -378,13 +400,13 @@ LSTM. Ideal behavior follows the diagonal.](../analysis/plots/uncertainty_calibr
 
 ![PCA of JEPA embeddings (compatible\_6 encoder, test episodes): left = colored by RUL%, right =
 colored by dataset source. If the encoder captures degradation, the color gradient should be smooth
-from green (healthy) to red (failed).](../analysis/plots/pca_compatible6_by_rul_and_source.png){#fig-pca width=100%}
+from green (healthy) to red (failed).](../analysis/plots/pca_compatible_6_by_rul_and_source.png){#fig-pca width=100%}
 
 ### t-SNE (compatible\_6)
 
 ![t-SNE of JEPA embeddings (perplexity=30, test episodes). The ideal result: embeddings cluster by
 health state (green=healthy, red=failed) regardless of source. Clustering by source (shape) rather
-than health would indicate domain bias.](../analysis/plots/tsne_compatible6_by_rul_and_source.png){#fig-tsne width=100%}
+than health would indicate domain bias.](../analysis/plots/tsne_compatible_6_by_rul_and_source.png){#fig-tsne width=100%}
 
 ### Encoder Comparison
 
@@ -396,13 +418,13 @@ mixing.](../analysis/plots/encoder_comparison_tsne.png){#fig-encoder-comparison 
 
 ![Spearman correlation heatmap: top embedding dimensions vs RUL%, spectral centroid, kurtosis, and
 RMS. Strong correlation of embedding dims with RUL% indicates the encoder has learned degradation
-structure.](../analysis/plots/correlation_heatmap_compatible6.png){#fig-corr-heatmap width=90%}
+structure.](../analysis/plots/correlation_heatmap_compatible_6.png){#fig-corr-heatmap width=90%}
 
 ### Degradation Trajectories
 
 ![JEPA embedding PC1 over normalized episode time for 5 test episodes (compatible\_6 encoder). A good
 encoder shows monotonic drift as bearings degrade. Left: PC1 trajectory. Right: deviation from
-healthy baseline $||z_t - z_{\text{baseline}}||$.](../analysis/plots/degradation_trajectories_compatible6.png){#fig-traj width=100%}
+healthy baseline $||z_t - z_{\text{baseline}}||$.](../analysis/plots/degradation_trajectories_compatible_6.png){#fig-traj width=100%}
 
 ### Embedding Quality Summary
 
