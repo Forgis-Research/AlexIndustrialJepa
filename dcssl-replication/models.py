@@ -467,7 +467,7 @@ class DCSSSLModel(nn.Module):
             dropout=dropout,
         )
         self.projector = ProjectionHead(encoder_out, proj_hidden, proj_out)
-        self.rul_head = RULHead(encoder_out, rul_hidden, use_elapsed_time=True)
+        self.rul_head = RULHead(encoder_out, rul_hidden, use_elapsed_time=False)
 
     def encode(self, x: torch.Tensor) -> torch.Tensor:
         """Encode input to representation space."""
@@ -570,7 +570,7 @@ class SimCLRModel(nn.Module):
             dropout=dropout,
         )
         self.projector = ProjectionHead(encoder_out, proj_hidden, proj_out)
-        self.rul_head = RULHead(encoder_out, rul_hidden, use_elapsed_time=True)
+        self.rul_head = RULHead(encoder_out, rul_hidden, use_elapsed_time=False)
 
     def encode(self, x):
         return self.encoder(x)
@@ -624,7 +624,7 @@ class SupConModel(nn.Module):
             dropout=dropout,
         )
         self.projector = ProjectionHead(encoder_out, proj_hidden, proj_out)
-        self.rul_head = RULHead(encoder_out, rul_hidden, use_elapsed_time=True)
+        self.rul_head = RULHead(encoder_out, rul_hidden, use_elapsed_time=False)
 
     def encode(self, x):
         return self.encoder(x)

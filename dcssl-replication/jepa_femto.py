@@ -115,7 +115,7 @@ class MaskedJEPALoss(nn.Module):
             nn.Linear(predictor_hidden, encoder_out),
         )
 
-        self.rul_head = RULHead(encoder_out, hidden_dim=64)
+        self.rul_head = RULHead(encoder_out, hidden_dim=64, use_elapsed_time=False)
 
     @torch.no_grad()
     def update_target(self):
