@@ -1,0 +1,32 @@
+project:
+  type: website
+  output-dir: _output
+
+website:
+  title: "Mechanical-JEPA Research"
+  navbar:
+    left:
+      - text: "V8: RUL Prediction"
+        href: 08_rul_jepa.qmd
+
+format:
+  html:
+    theme: cosmo
+    code-fold: true
+    code-summary: "Show code"
+    toc: true
+    toc-depth: 3
+    number-sections: true
+    fig-width: 12
+    fig-height: 6
+  pdf:
+    toc: true
+    number-sections: true
+    fig-width: 10
+    fig-height: 5
+    documentclass: article
+    geometry: margin=1in
+
+execute:
+  warning: false
+  freeze: auto
