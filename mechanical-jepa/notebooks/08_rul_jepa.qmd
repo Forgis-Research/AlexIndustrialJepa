@@ -5,24 +5,16 @@ author: "IndustrialJEPA"
 date: "2026-04-09"
 format:
   html:
-    code-fold: true
-    code-summary: "Show code"
     toc: true
     toc-depth: 3
     number-sections: true
-    fig-width: 12
-    fig-height: 6
     theme: cosmo
+    self-contained: true
   pdf:
     toc: true
     number-sections: true
-    fig-width: 10
-    fig-height: 5
     documentclass: article
     geometry: margin=1in
-execute:
-  warning: false
-  echo: true
 bibliography: references.bib
 ---
 
@@ -36,35 +28,10 @@ This document covers the complete V8 research session:
 4. Baselines Table: all 11 methods with RMSE $\pm$ std
 5. Key Comparison: JEPA+LSTM vs Handcrafted+LSTM
 6. Piecewise Label Ablation
-7. Per-Episode Analysis
-8. Latent Trajectories
-9. Cross-Dataset Transfer: Temporal Contrastive vs JEPA
-10. Encoder Analysis: what JEPA vs Contrastive learn
-11. Summary and Honest Limitations
+7. Cross-Dataset Transfer: Temporal Contrastive vs JEPA
+8. Encoder Analysis: what JEPA vs Contrastive learn
+9. Summary and Honest Limitations
 
-```{python}
-#| label: setup
-#| code-fold: true
-
-import sys
-import json
-import numpy as np
-import matplotlib.pyplot as plt
-from pathlib import Path
-
-sys.path.insert(0, str(Path('../v8').resolve()))
-
-RESULTS_DIR = Path('../v8/results')
-PLOTS_DIR = Path('plots')
-
-plt.rcParams.update({
-    'font.size': 12,
-    'axes.titlesize': 13,
-    'axes.labelsize': 12,
-    'figure.dpi': 120,
-    'figure.facecolor': 'white',
-})
-```
 
 ## Motivation
 
@@ -87,86 +54,6 @@ A naive predictor using only elapsed time cannot work across machines because:
 The elapsed-time baseline achieves RMSE = 0.224 in-domain and 0.367 cross-domain. Signal-based methods must beat these to be useful.
 
 
-## Data: Episode Lifetime Distributions
-
-```{python}
-#| label: fig-lifetimes
-#| fig-cap: "Episode lifetime distributions for FEMTO and XJTU-SY run-to-failure datasets. FEMTO lifetimes cluster tightly (CV=0.05); XJTU-SY varies widely (CV=0.46)."
-
-from data_pipeline import load_rul_episodes, episode_train_test_split
-
-all_episodes = load_rul_episodes(['femto', 'xjtu_sy'], verbose=False)
-
-femto_eps = {ep: snaps for ep, snaps in all_episodes.items() if snaps[0]['source'] == 'femto'}
-xjtu_eps = {ep: snaps for ep, snaps in all_episodes.items() if snaps[0]['source'] == 'xjtu_sy'}
-
-femto_lifetimes = [snaps[-1]['elapsed_sec'] / 3600 for snaps in femto_eps.values()]
-xjtu_lifetimes = [snaps[-1]['elapsed_sec'] / 3600 for snaps in xjtu_eps.values()]
-femto_snapshots = [len(snaps) for snaps in femto_eps.values()]
-xjtu_snapshots = [len(snaps) for snaps in xjtu_eps.values()]
-
-fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-
-ax = axes[0]
-ax.bar(range(len(femto_lifetimes)), sorted(femto_lifetimes), color='steelblue', alpha=0.8, label='FEMTO')
-ax.bar(range(len(femto_lifetimes), len(femto_lifetimes)+len(xjtu_lifetimes)),
-       sorted(xjtu_lifetimes), color='coral', alpha=0.8, label='XJTU-SY')
-ax.axvline(len(femto_lifetimes)-0.5, color='gray', linestyle='--', linewidth=1)
-ax.set_xlabel('Episode (sorted by lifetime)')
-ax.set_ylabel('Lifetime (hours)')
-ax.set_title('Episode Lifetimes: FEMTO vs XJTU-SY')
-ax.legend()
-
-ax2 = axes[1]
-ax2.hist(femto_snapshots, bins=10, alpha=0.7, color='steelblue', label=f'FEMTO (n={len(femto_eps)})')
-ax2.hist(xjtu_snapshots, bins=10, alpha=0.7, color='coral', label=f'XJTU-SY (n={len(xjtu_eps)})')
-ax2.set_xlabel('Number of snapshots per episode')
-ax2.set_ylabel('Count')
-ax2.set_title('Snapshots per Episode')
-ax2.legend()
-
-plt.tight_layout()
-plt.show()
-
-print(f'FEMTO: {len(femto_eps)} episodes, {min(femto_snapshots)}-{max(femto_snapshots)} snapshots (10s intervals)')
-print(f'XJTU-SY: {len(xjtu_eps)} episodes, {min(xjtu_snapshots)}-{max(xjtu_snapshots)} snapshots (60s intervals)')
-print(f'FEMTO CV: {np.std(femto_lifetimes)/np.mean(femto_lifetimes):.3f}')
-print(f'XJTU-SY CV: {np.std(xjtu_lifetimes)/np.mean(xjtu_lifetimes):.3f}')
-```
-
-```{python}
-#| label: fig-waveforms
-#| fig-cap: "Representative vibration waveforms from a FEMTO bearing at different degradation stages. RMS amplitude increases as the bearing approaches failure."
-
-ep_id = list(femto_eps.keys())[0]
-snaps = femto_eps[ep_id]
-n = len(snaps)
-
-early_idx = n // 10
-mid_idx = n // 2
-late_idx = int(n * 0.9)
-
-fig, axes = plt.subplots(3, 1, figsize=(12, 6), sharex=True)
-labels = [('Early (RUL=0.9)', early_idx, 'steelblue'),
-          ('Mid (RUL=0.5)', mid_idx, 'orange'),
-          ('Late (RUL=0.1)', late_idx, 'red')]
-
-for ax, (label, idx, color) in zip(axes, labels):
-    sig = snaps[idx]['signal'][:1024]
-    t = np.arange(len(sig)) / 25600
-    ax.plot(t * 1000, sig, color=color, linewidth=0.5, alpha=0.8)
-    ax.set_ylabel('Amplitude')
-    ax.set_title(label)
-    rms = np.sqrt(np.mean(sig**2))
-    ax.text(0.02, 0.95, f'RMS={rms:.4f}', transform=ax.transAxes, va='top', fontsize=10, color=color)
-
-axes[-1].set_xlabel('Time (ms)')
-plt.suptitle(f'Bearing Waveforms: {ep_id}', y=1.01)
-plt.tight_layout()
-plt.show()
-```
-
-
 ## JEPA Pretraining
 
 ### Architecture
@@ -187,202 +74,98 @@ plt.show()
 
 ### Loss Curves
 
-```{python}
-#| label: fig-pretrain
-#| fig-cap: "JEPA pretraining loss history. Loss reaches minimum at epoch 2 then oscillates --- characteristic of EMA-based JEPA on heterogeneous multi-source data."
+JEPA pretraining loss reaches minimum at epoch 2 then oscillates --- characteristic of EMA-based JEPA on heterogeneous multi-source data. Best checkpoint at epoch 2 (val_loss=0.0166).
 
-pretrain_img = plt.imread(str(PLOTS_DIR / 'v8_pretrain_history.png'))
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.imshow(pretrain_img)
-ax.axis('off')
-plt.tight_layout()
-plt.show()
-```
+![JEPA pretraining loss history](plots/v8_pretrain_history.png){#fig-pretrain width=80%}
 
 ### Embedding Quality
 
-```{python}
-#| label: embedding-quality
-
-with open(RESULTS_DIR / 'embedding_quality.json') as f:
-    eq = json.load(f)
-
-print(f'Max per-dim correlation with RUL:    {eq["z_corrs_max"]:.4f}')
-print(f'Mean per-dim correlation with RUL:   {eq["z_corrs_mean"]:.4f}')
-print(f'Best handcrafted feature corr:       {eq["hc_corrs_max"]:.4f}')
-print(f'Embedding spectral entropy:          {eq["spectral_entropy"]:.4f}')
-```
+- Max per-dim correlation with RUL: **0.144** (vs random: 0.094)
+- Best handcrafted feature correlation (spectral centroid): **0.585**
+- Embedding spectral entropy: 4.94/5.55 (89% of max --- not collapsed)
 
 JEPA embeddings have low per-dim correlation with RUL (0.144) compared to handcrafted spectral centroid (0.585). The JEPA objective learns waveform texture, not the spectral centroid shift that dominates bearing degradation.
 
 
 ## Baselines: All 11 Methods {#sec-baselines}
 
-```{python}
-#| label: tbl-baselines
-#| tbl-cap: "RUL prediction results with linear labels. 23 episodes (16 FEMTO + 7 XJTU-SY), 75/25 episode-based split."
+23 episodes (16 FEMTO + 7 XJTU-SY), 75/25 episode-based split, linear RUL labels. Time-only baseline RMSE: 0.224.
 
-with open(RESULTS_DIR / 'rul_baselines_linear.json') as f:
-    linear_data = json.load(f)
+| Method | RMSE | $\pm$std | vs Time-Only |
+|--------|-----:|--------:|-------------:|
+| Constant mean | 0.290 | --- | -29.4% |
+| **Elapsed time only** | **0.224** | --- | 0% |
+| Envelope RMS + LSTM | 0.287 | 0.001 | -28.1% |
+| Random JEPA + LSTM | 0.221 | 0.008 | +1.5% |
+| End-to-end CNN-LSTM | 0.195 | 0.005 | +13.0% |
+| CNN-GRU-MHA | 0.185 | 0.005 | +17.4% |
+| HC + LSTM | 0.177 | 0.016 | +21.2% |
+| **JEPA + LSTM** | **0.189** | **0.015** | **+15.8%** |
+| HC + MLP | 0.085 | 0.004 | +62.0% |
+| Transformer + HC | 0.070 | 0.006 | +68.9% |
+| **Hybrid (JEPA + HC)** | **0.055** | **0.004** | **+75.5%** |
 
-results = linear_data['results']
-time_rmse = linear_data['time_only_rmse']
-
-print(f'Time-only baseline RMSE: {time_rmse:.4f}')
-print()
-print(f'{"Method":<32} {"RMSE":>8} {"±std":>7} {"vs Time-Only":>14}')
-print('-' * 65)
-
-method_order = [
-    'constant_mean', 'elapsed_time_linear',
-    'envelope_rms_lstm', 'random_jepa_lstm',
-    'cnn_lstm_e2e', 'cnn_gru_mha',
-    'handcrafted_lstm', 'jepa_lstm',
-    'handcrafted_mlp', 'transformer_handcrafted',
-]
-
-for method in method_order:
-    r = results.get(method, {})
-    if 'rmse_mean' in r:
-        rmse = r['rmse_mean']
-        std = r['rmse_std']
-        vs = (time_rmse - rmse) / time_rmse * 100
-        print(f'{method:<32} {rmse:8.4f} {std:7.4f} {vs:+13.1f}%')
-    elif 'rmse' in r:
-        rmse = r['rmse']
-        vs = (time_rmse - rmse) / time_rmse * 100
-        print(f'{method:<32} {rmse:8.4f} {"":>7} {vs:+13.1f}%')
-```
+: RUL prediction results with linear labels, 5-seed average {#tbl-baselines}
 
 
 ## Key Comparison: JEPA+LSTM vs Handcrafted+LSTM
 
-```{python}
-#| label: fig-comparison
-#| fig-cap: "RUL prediction RMSE across all methods. Left: linear labels. Right: piecewise-linear labels. Red dashed line = elapsed-time-only baseline."
+![RUL prediction RMSE across all methods. Left: linear labels. Right: piecewise-linear labels. Red dashed line = elapsed-time-only baseline.](plots/v8_rul_comparison.png){#fig-comparison}
 
-comparison_img = plt.imread(str(PLOTS_DIR / 'v8_rul_comparison.png'))
-fig, ax = plt.subplots(figsize=(14, 6))
-ax.imshow(comparison_img)
-ax.axis('off')
-plt.tight_layout()
-plt.show()
-```
+### Statistical Tests (5 seeds, paired)
 
-```{python}
-#| label: statistical-tests
+| Comparison | $p$-value | Significant? |
+|-----------|----------:|:------------:|
+| JEPA+LSTM vs Elapsed Time | 0.010 | Yes |
+| Random JEPA+LSTM vs Elapsed Time | 0.435 | No |
+| JEPA+LSTM vs HC+LSTM | 0.402 | No |
 
-with open(RESULTS_DIR / 'final_comparison.json') as f:
-    final = json.load(f)
+: Statistical significance of key comparisons {#tbl-stats}
 
-jepa = final['jepa_lstm']
-rnd = final['random_jepa_lstm']
-hc = final['hc_lstm']
-
-print('5-seed paired statistical tests:')
-print(f'  JEPA+LSTM:        RMSE={jepa["rmse_mean"]:.4f} ± {jepa["rmse_std"]:.4f}  ({jepa["improvement_vs_time"]:+.1f}% vs time)')
-print(f'  Random JEPA+LSTM: RMSE={rnd["rmse_mean"]:.4f} ± {rnd["rmse_std"]:.4f}')
-print(f'  HC+LSTM:          RMSE={hc["rmse_mean"]:.4f} ± {hc["rmse_std"]:.4f}')
-print()
-print(f'  JEPA vs Random: p={final["jepa_vs_random_pval"]:.4f} (significant)')
-print(f'  JEPA vs HC:     p={final["jepa_vs_hc_pval"]:.4f} (not significant)')
-```
-
-JEPA significantly beats random initialization ($p$=0.010) confirming the encoder learned useful representations. However, it does *not* significantly beat handcrafted features ($p$=0.40).
+JEPA significantly beats random initialization ($p$=0.010) --- the encoder learned useful representations. However, it does *not* significantly beat handcrafted features ($p$=0.40).
 
 
 ## Piecewise Label Ablation
 
-```{python}
-#| label: piecewise-ablation
+| Method | Linear RMSE | Piecewise RMSE | $\Delta$ |
+|--------|------------:|---------------:|---------:|
+| JEPA + LSTM | 0.189 | 0.310 | +0.121 |
+| HC + MLP | 0.085 | 0.114 | +0.029 |
+| HC + LSTM | 0.177 | 0.214 | +0.037 |
+| Transformer + HC | 0.070 | 0.114 | +0.044 |
 
-with open(RESULTS_DIR / 'rul_baselines_piecewise.json') as f:
-    piecewise_data = json.load(f)
-
-pw_results = piecewise_data['results']
-lin_results = linear_data['results']
-
-print(f'{"Method":<25} {"Linear":>10} {"Piecewise":>12} {"Delta":>8}')
-print('-' * 58)
-
-for method in ['jepa_lstm', 'handcrafted_mlp', 'handcrafted_lstm', 'transformer_handcrafted']:
-    lr = lin_results.get(method, {})
-    pr = pw_results.get(method, {})
-    l_rmse = lr.get('rmse_mean', lr.get('rmse', float('nan')))
-    p_rmse = pr.get('rmse_mean', pr.get('rmse', float('nan')))
-    print(f'{method:<25} {l_rmse:10.4f} {p_rmse:12.4f} {p_rmse - l_rmse:+8.4f}')
-```
+: Linear vs piecewise-linear RUL labels {#tbl-piecewise}
 
 Piecewise labels are harder because the constant-RUL healthy phase makes prediction ambiguous --- the signal changes but the label stays at 1.0.
 
 
 ## Latent Trajectories
 
-```{python}
-#| label: fig-latent
-#| fig-cap: "JEPA embedding trajectories for FEMTO episodes projected to 2D via PCA. Color indicates RUL% (green=healthy, red=failed). Arrows show degradation direction."
-
-lat_img = plt.imread(str(PLOTS_DIR / 'v8_latent_trajectories.png'))
-fig, ax = plt.subplots(figsize=(12, 6))
-ax.imshow(lat_img)
-ax.axis('off')
-plt.tight_layout()
-plt.show()
-```
+![JEPA embedding trajectories for FEMTO episodes projected to 2D via PCA. Color indicates RUL% (green=healthy, red=failed). Arrows show degradation direction.](plots/v8_latent_trajectories.png){#fig-latent}
 
 
 ## Cross-Dataset Transfer {#sec-transfer}
 
-```{python}
-#| label: fig-cross-dataset
-#| fig-cap: "Cross-dataset RUL transfer. Temporal contrastive pretraining significantly outperforms JEPA for FEMTO-to-XJTU and XJTU-to-FEMTO transfer."
+![Cross-dataset RUL transfer comparison: Elapsed time, HC+LSTM, and JEPA+LSTM across within-dataset and cross-dataset settings.](plots/v8_cross_dataset.png){#fig-cross-dataset}
 
-cd_img = plt.imread(str(PLOTS_DIR / 'v8_cross_dataset.png'))
-fig, ax = plt.subplots(figsize=(12, 5))
-ax.imshow(cd_img)
-ax.axis('off')
-plt.tight_layout()
-plt.show()
-```
+| Configuration | Elapsed Time | JEPA+LSTM | Contrastive+LSTM | Contrastive vs JEPA |
+|:--------------|------------:|----------:|------------------:|--------------------:|
+| FEMTO$\to$FEMTO (within) | 0.027 | 0.113 $\pm$ 0.011 | 0.142 $\pm$ 0.012 | -20.4% |
+| XJTU$\to$XJTU (within) | 0.159 | 0.195 | 0.214 | -9.7% |
+| **FEMTO$\to$XJTU (cross)** | **0.367** | **0.280 $\pm$ 0.007** | **0.227 $\pm$ 0.015** | **+18.8%** |
+| **XJTU$\to$FEMTO (cross)** | **0.336** | **0.403** | **0.309 $\pm$ 0.007** | **+23.2%** |
 
-```{python}
-#| label: cross-dataset-numbers
+: Cross-dataset transfer results. Contrastive significantly outperforms JEPA for cross-dataset (p<0.001). {#tbl-cross}
 
-with open(RESULTS_DIR / 'cross_dataset_contrastive.json') as f:
-    cd_cont = json.load(f)
-
-print(f'{"Configuration":<22} {"Elapsed":>9} {"JEPA":>9} {"Contrastive":>13} {"Gain":>7}')
-print('-' * 65)
-
-for key, label in [('femto_to_femto', 'FEMTO->FEMTO'), ('xjtu_to_xjtu', 'XJTU->XJTU'),
-                    ('femto_to_xjtu', 'FEMTO->XJTU'), ('xjtu_to_femto', 'XJTU->FEMTO')]:
-    r = cd_cont[key]
-    gain = (r['jepa_lstm_rmse'] - r['contrastive_lstm_rmse']) / r['jepa_lstm_rmse'] * 100
-    print(f'{label:<22} {r["elapsed"]:9.4f} {r["jepa_lstm_rmse"]:9.4f} {r["contrastive_lstm_rmse"]:13.4f} {gain:+6.1f}%')
-
-with open(RESULTS_DIR / 'final_10seed_results.json') as f:
-    f10 = json.load(f)
-fxj = f10['femto_to_xjtu']
-print(f'\nFEMTO->XJTU (10 seeds): Contrastive {fxj["contrastive_mean"]:.3f}±{fxj["contrastive_std"]:.3f} vs JEPA {fxj["jepa_mean"]:.3f}±{fxj["jepa_std"]:.3f}, p={fxj["contrastive_vs_jepa_pval"]:.2e}')
-```
+**Key finding**: Temporal contrastive learning significantly outperforms JEPA for cross-dataset transfer (+19%, $p$<0.001). However, JEPA wins within-source (especially FEMTO).
 
 
 ## Encoder Analysis
 
-```{python}
-#| label: fig-encoder
-#| fig-cap: "What each encoder learns. JEPA captures waveform texture; temporal contrastive captures spectral centroid shift (the dominant degradation indicator)."
-
-enc_img = plt.imread(str(PLOTS_DIR / 'v8_encoder_analysis.png'))
-fig, ax = plt.subplots(figsize=(14, 8))
-ax.imshow(enc_img)
-ax.axis('off')
-plt.tight_layout()
-plt.show()
-```
+![What each encoder learns. JEPA captures waveform texture; temporal contrastive captures spectral centroid shift (the dominant degradation indicator).](plots/v8_encoder_analysis.png){#fig-encoder}
 
 | Metric | JEPA | Contrastive | HC (spectral centroid) |
-|--------|------|-------------|----------------------|
+|--------|-----:|------------:|-----------------------:|
 | PC1 corr w/ RUL | 0.186 | 0.648 | 0.585 |
 | PC1 corr w/ spectral centroid | 0.071 | 0.856 | 1.000 |
 | Max per-dim corr w/ RUL | 0.144 | 0.648 | 0.585 |
@@ -397,7 +180,7 @@ plt.show()
 ### Key Results
 
 | Setting | Method | RMSE | vs Time-Only |
-|---------|--------|------|-------------|
+|:--------|:-------|-----:|-------------:|
 | In-domain | Time-only baseline | 0.224 | --- |
 | In-domain | JEPA+LSTM (5 seeds) | 0.189 $\pm$ 0.015 | +15.8% |
 | In-domain | Transformer+HC | 0.070 $\pm$ 0.006 | +68.8% |

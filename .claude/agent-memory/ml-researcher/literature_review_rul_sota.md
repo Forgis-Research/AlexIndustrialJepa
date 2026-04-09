@@ -58,12 +58,15 @@ Lower is better.
 
 | Method | Year | RMSE (FEMTO) | MAE (FEMTO) | Notes |
 |---|---|---|---|---|
-| CNN-GRU-MHA (transfer learning) | 2024 | **0.0443** | -- | Transfer learning, small sample |
-| MDSCT (Multi-scale Separable Conv+Transformer) | 2024 | 0.124 | 0.100 | PMC11481647 |
-| Bi-LSTM-Transformer + EMD | 2025 | 0.0563 | 0.0469 | On XJTU-SY; FEMTO ~similar |
-| TCN-SA (baseline in MDSCT paper) | 2024 | 0.148 | 0.114 | |
+| CNN-GRU-MHA (transfer learning) | 2024 | **0.0443** | -- | Applied Sci 14/19/9039; transfer learning, small sample |
+| Bi-LSTM-Transformer + EMD | 2025 | 0.0563 | 0.0469 | Applied Sci 15/17/9529; XJTU primary, FEMTO also tested |
+| TCN-Transformer parallel | 2025 | ~0.12 (inferred) | -- | Sensors 25/11/3571 PMC12158285; FEMTO+XJTU; 14.6% RMSE improvement over TCN-SA |
+| MDSCT (Multi-scale Separable Conv+Transformer) | 2024 | 0.124 | 0.100 | PMC11481647; FEMTO+XJTU |
+| HIWSAN (Health Indicator-Weighted Subdomain Align.) | 2025 | ~0.12 | ~0.10 | Sensors 25/15/4536; cross-condition transfer |
 | CVT (baseline in MDSCT paper) | 2024 | 0.131 | 0.112 | |
+| TCN-SA (baseline in MDSCT paper) | 2024 | 0.148 | 0.114 | |
 | DCNN (baseline) | 2024 | 0.175 | 0.145 | On XJTU-SY |
+| TcLstmNet-CBAM | 2025 | ~3.1 absolute min | -- | Scientific Reports; PHM2012+XJTU-SY; different scale |
 
 The CNN-GRU-MHA result of 0.0443 appears to be among the best reported on FEMTO as of
 early 2025. The MDSCT paper (Heliyon/PMC 2024) provides the cleanest apples-to-apples
@@ -78,9 +81,11 @@ Note: results are NOT fully comparable across papers due to:
 
 | Method | Year | RMSE (XJTU-SY) | MAE (XJTU-SY) | Notes |
 |---|---|---|---|---|
-| Bi-LSTM-Transformer + EMD | 2025 | 0.0563 | 0.0469 | |
-| MDSCT | 2024 | 0.160 | 0.134 | |
-| SAGCN-SA | 2024 | **0.170** | -- | Best in that paper |
+| Bi-LSTM-Transformer + EMD | 2025 | **0.0563** | 0.0469 | Applied Sci 15/17/9529 |
+| CNN-GRU-MHA (transfer) | 2024 | 0.0693 | -- | Applied Sci 14/19/9039 |
+| TCN-Transformer parallel | 2025 | -- | -- | Sensors 25/11/3571; XJTU also tested |
+| MDSCT | 2024 | 0.160 | 0.134 | PMC11481647 |
+| SAGCN-SA | 2024 | 0.170 | -- | Best in that paper |
 | TCN-SA (baseline) | 2024 | 0.194 | 0.158 | |
 | CVAER (envelope spectrum + VAE) | 2024 | 28.47 min | -- | Absolute time, not normalized |
 
@@ -202,6 +207,32 @@ it enables RUL estimation from a single accelerometer capture, with no historica
 and no assumption about where in the lifecycle the window sits.
 
 ---
+
+## Cross-Dataset Transfer Results (FEMTO <-> XJTU-SY)
+
+This is rare but does exist. Key papers:
+
+**ERCDAN (Enhanced Residual Conv Domain Adaptation Network, Reliability Eng. & System Safety 2024)**
+DOI: 10.1016/j.ress.2024.110516 (ScienceDirect). Uses CBAM + residual conv + MK-MMD domain adaptation.
+Validates on PHM2012, XJTU-SY, and EBFL datasets in cross-machine transfer scenarios.
+Does not report normalized RUL RMSE — uses a different scale.
+Architecture: CNN feature extractor + CBAM + MK-MMD + RUL regressor.
+
+**Cross-condition/cross-platform adversarial domain adaptation (Scientific Reports 2021, still widely cited)**
+PMC8766616. Uses 12 transfer tasks between FEMTO conditions and XJTU-SY conditions.
+First paper to explicitly frame cross-platform (FEMTO->XJTU) as a formal benchmark.
+
+**CNN-Bi-LSTM Domain Adaptation (Sensors 2024)**
+MDPI 1424-8220/24/21/6906. PHM2012 as source, tests cross-condition transfer within FEMTO.
+Does not test cross-dataset (FEMTO->XJTU) directly.
+
+**HIWSAN (Health Indicator-Weighted Subdomain Alignment Network, Sensors 2025)**
+MDPI 1424-8220/25/15/4536. Cross-condition transfer, combined FEMTO+XJTU evaluation.
+Average MAE 0.0989, average RMSE 0.1189 across both datasets (not separate per-dataset numbers).
+
+Key insight: Cross-dataset transfer (train on FEMTO, test on XJTU-SY or vice versa) is an active but
+small sub-field. No paper does it as a single-window JEPA transfer problem. Most use domain
+adaptation (DANN, MMD), not representation pretraining. This is a gap IndustrialJEPA can fill.
 
 ## Top Papers to Compare Against
 
