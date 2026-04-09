@@ -4,7 +4,14 @@
 
 **Agent**: ml-researcher  
 **Estimated duration**: 4 hours  
-**Output**: Dataset analysis report, restructured repo, trained models, plots (PCA + t-SNE), RESULTS.md, Quarto notebook
+**Output**: Dataset analysis report, restructured repo, trained models, plots (PCA + t-SNE), RESULTS.md, **Quarto notebook (`notebooks/09_v9_data_first.qmd`) — REQUIRED DELIVERABLE**
+
+**REQUIRED DELIVERABLES** (the session is NOT done without these):
+1. `data/analysis/COMPATIBILITY_REPORT.md` — dataset compatibility verdict
+2. `experiments/v9/RESULTS.md` — full results table with statistical tests
+3. `experiments/v9/EXPERIMENT_LOG.md` — every experiment logged
+4. `notebooks/09_v9_data_first.qmd` — complete Quarto walkthrough with embedded plots and hardcoded tables (engine: markdown, self-contained: true, follow format of `notebooks/08_rul_jepa.qmd`)
+5. All plots saved to `analysis/plots/`
 
 ---
 
