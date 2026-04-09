@@ -119,3 +119,10 @@ High EMA & $10^{-4}$ & 0.999 & 62.5\% & 0.0178 & Worse \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.8\linewidth]{figures/v8_pretrain_history.pdf}
+\caption{JEPA pretraining loss over 100 epochs on heterogeneous multi-source data. The best checkpoint occurs at epoch 2, after which loss oscillates, suggesting instability in the EMA dynamics with highly heterogeneous data.}
+\label{fig:pretrain_history}
+\end{figure}

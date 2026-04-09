@@ -1,13 +1,19 @@
-\documentclass[11pt]{article}
+\documentclass{article}
 
-% NeurIPS style
-\usepackage[preprint]{neurips_2024}
+% NeurIPS 2026 style
+% For submission (default/anonymous): \usepackage{neurips_2026}
+% For preprint: \usepackage[preprint]{neurips_2026}
+% For camera-ready: \usepackage[main, final]{neurips_2026}
+\usepackage[preprint]{neurips_2026}
 
 % Standard packages
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{booktabs}
+\usepackage{nicefrac}
 \usepackage{graphicx}
 \usepackage{xcolor}
 \usepackage{cleveref}
@@ -82,6 +88,7 @@
 % ============================================================
 % References
 % ============================================================
+\bibliographystyle{plainnat}
 \bibliography{references}
 
 % ============================================================
@@ -90,5 +97,11 @@
 \newpage
 \appendix
 \input{sections/appendix}
+
+% ============================================================
+% NeurIPS Paper Checklist (required  -  desk rejection without it)
+% ============================================================
+\newpage
+\input{checklist}
 
 \end{document}

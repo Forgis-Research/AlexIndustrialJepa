@@ -151,6 +151,7 @@ Gap: [What it doesn't address that we do]
 6. **The Orphan Figure** — a figure that's never discussed in the text
 7. **The Wall of Math** — notation without intuition
 8. **Overclaiming** — "state-of-the-art" when you only tested on one dataset
+9. **LLM em-dashes** — never use "---" (em-dash). Use " - " (space-hyphen-space) instead. This is a telltale sign of LLM-generated text and must be avoided throughout all writing.
 
 ---
 
