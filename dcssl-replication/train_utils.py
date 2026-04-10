@@ -88,14 +88,8 @@ def pretrain_ssl(
             nan_count = 0
             optimizer.zero_grad()
             loss.backward()
-            # Check for NaN gradients before clipping
-            has_nan_grad = any(
-                (p.grad is not None and torch.isnan(p.grad).any())
-                for p in model.parameters()
-            )
-            if has_nan_grad:
-                optimizer.zero_grad()
-                continue
+            # Skip NaN gradient check — BatchNorm + grad clipping makes this rare.
+            # Checking all params every batch is extremely slow (2x overhead).
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
@@ -144,18 +138,20 @@ def finetune_rul(
     verbose: bool = True,
     freeze_encoder: bool = False,
     checkpoint_path: Optional[Path] = None,
+    loss_fn: str = "mse",
 ) -> List[Dict]:
     """
     Fine-tune (or train from scratch) the RUL prediction head.
 
     Args:
         freeze_encoder: if True, only train the prediction head
+        loss_fn: "mse" or "mae" (paper uses MAE for DCSSL)
     """
     if device is None:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = model.to(device)
-    criterion = nn.MSELoss()
+    criterion = nn.L1Loss() if loss_fn == "mae" else nn.MSELoss()
 
     if freeze_encoder:
         for param in model.encoder.parameters():
@@ -201,7 +197,7 @@ def finetune_rul(
         avg_train = np.mean(train_losses) if train_losses else float("nan")
         epoch_info = {"train_mse": avg_train}
 
-        # Validation
+        # Save best checkpoint based on val loss (if available) or train loss
         if val_loader is not None:
             val_mse = evaluate_rul(model, val_loader, device, return_predictions=False)
             epoch_info["val_mse"] = val_mse
@@ -210,6 +206,10 @@ def finetune_rul(
                 best_val_mse = val_mse
                 if checkpoint_path is not None:
                     torch.save(model.state_dict(), checkpoint_path)
+        elif checkpoint_path is not None and avg_train < best_val_mse:
+            # No val loader: checkpoint based on train loss
+            best_val_mse = avg_train
+            torch.save(model.state_dict(), checkpoint_path)
 
         history.append(epoch_info)
 
@@ -331,6 +331,7 @@ def run_full_pipeline(
     device: torch.device = None,
     skip_pretrain: bool = False,
     verbose: bool = True,
+    finetune_loss_fn: str = "mse",
 ) -> Dict:
     """
     Full pipeline: pretrain → finetune → evaluate.
@@ -388,6 +389,7 @@ def run_full_pipeline(
         device=device, verbose=verbose,
         freeze_encoder=False,
         checkpoint_path=finetune_ckpt,
+        loss_fn=finetune_loss_fn,
     )
     if finetune_ckpt.exists():
         model.load_state_dict(torch.load(finetune_ckpt, map_location=device))

@@ -85,10 +85,12 @@ def create_model(model_name: str, device: torch.device) -> torch.nn.Module:
         temperature=0.1,
     )
     if model_name == "dcssl":
+        # Paper Table 2: temperature=0.07, b=0.3 (L = b*temporal + (1-b)*instance)
+        # So lambda_temporal=0.3, lambda_instance=0.7
         model = DCSSSLModel(
-            **kwargs,
-            lambda_temporal=1.0,
-            lambda_instance=1.0,
+            **{**kwargs, "temperature": 0.07},
+            lambda_temporal=0.3,
+            lambda_instance=0.7,
             temporal_window=0.1,
             rul_window=0.1,
         )
@@ -164,6 +166,8 @@ def run_single_experiment(
 
     # Run pipeline
     exp_output_dir = output_dir / exp_name
+    # Paper uses MAE loss for DCSSL finetuning (MSE for baselines)
+    finetune_loss = "mae" if model_name == "dcssl" else "mse"
     results = run_full_pipeline(
         model, train_data, test_data,
         output_dir=exp_output_dir,
@@ -176,6 +180,7 @@ def run_single_experiment(
         crop_length=crop_length,
         device=device,
         verbose=verbose,
+        finetune_loss_fn=finetune_loss,
     )
 
     # Compare to paper
