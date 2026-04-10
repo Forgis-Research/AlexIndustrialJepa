@@ -87,8 +87,18 @@ def create_model(model_name: str, device: torch.device) -> torch.nn.Module:
     if model_name == "dcssl":
         # Paper Table 2: temperature=0.07, b=0.3 (L = b*temporal + (1-b)*instance)
         # So lambda_temporal=0.3, lambda_instance=0.7
+        # Paper Table 10: output_dims=1024 is optimal (we use 128 for baselines)
+        # Paper Table 11: hidden_dims=32 (we use 64)
+        dcssl_kwargs = {**kwargs,
+                        "temperature": 0.07,
+                        "encoder_out": 1024,
+                        "encoder_hidden": 32,
+                        "proj_hidden": 512,
+                        "proj_out": 256,
+                        "rul_hidden": 128,
+                       }
         model = DCSSSLModel(
-            **{**kwargs, "temperature": 0.07},
+            **dcssl_kwargs,
             lambda_temporal=0.3,
             lambda_instance=0.7,
             temporal_window=0.1,
