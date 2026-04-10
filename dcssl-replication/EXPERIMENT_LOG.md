@@ -117,6 +117,23 @@ train_utils.py: NaN gradient check REMOVED (was doubling epoch time).
 
 ---
 
+## Exp 6: SupCon Condition 3 — COMPLETE (02:16 UTC 2026-04-10)
+
+**Time:** 02:16 UTC 2026-04-10 (18.8 min total — no GPU contention)
+**Config:** 300 pretrain + 150 finetune epochs, lr=1e-3/5e-4, batch=64, crop=1024
+**Result: Bearing3_3 MSE = 0.0273 (paper SupCon: 0.0017, paper DCSSL: 0.0068 — WORSE)**
+
+Training bearings: 3_1 (FPT=96%), 3_2 (FPT=88%) — both very late FPT
+Test bearing: 3_3 (FPT=73%) — also late but earlier than training
+
+Our 0.0273 vs paper SupCon 0.0017 — 16x worse. However paper DCSSL gets 0.0068 (4x worse than paper SupCon), and we're only 4x worse than DCSSL.
+
+**Sanity checks:** ✓ Loss decreased (6.0716 best), ✓ Train MSE→0.0002, ✓ Checkpoint loaded
+**Verdict:** KEEP — poor absolute result but model trained correctly; condition 3 is small (2152 train snapshots)
+**DCSSL cond1 started at 02:16 UTC**
+
+---
+
 ## Exp 5: SupCon Condition 2 — COMPLETE (01:57 UTC 2026-04-10)
 
 **Time:** 01:57 UTC 2026-04-10 (31.9 min — CNN-GRU-MHA contention ended at ~01:57)
