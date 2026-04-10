@@ -1,0 +1,62 @@
+{
+  "meta": {
+    "paper": "When Will It Fail?: Anomaly to Prompt for Forecasting Future Anomalies in Time Series",
+    "venue": "ICML 2025",
+    "session_date": "2026-04-10",
+    "status": "AWAITING_EXECUTION",
+    "note": "Bash execution was not available in this session. Run python run_replication.py --dataset mba to populate this file. Paper numbers are pre-populated for reference."
+  },
+  "paper_results": {
+    "MBA": {
+      "100": {"f1_mean": 67.55, "f1_std": 5.62, "source": "Table 1"},
+      "200": {"f1_mean": 74.63, "f1_std": 5.92, "source": "Table 1"},
+      "400": {"f1_mean": 69.35, "f1_std": 7.15, "source": "Table 1"}
+    },
+    "Exathlon": {
+      "100": {"f1_mean": 18.64, "f1_std": 0.16, "source": "Table 1"},
+      "200": {"f1_mean": 28.71, "f1_std": 0.54, "source": "Table 1"},
+      "400": {"f1_mean": 43.57, "f1_std": 1.10, "source": "Table 1"}
+    },
+    "SMD": {
+      "100": {"f1_mean": 36.29, "f1_std": 0.18, "source": "Table 1"},
+      "200": {"f1_mean": 42.36, "f1_std": 0.80, "source": "Table 1"},
+      "400": {"f1_mean": 48.10, "f1_std": 2.55, "source": "Table 1"}
+    },
+    "WADI": {
+      "100": {"f1_mean": 64.91, "f1_std": 0.47, "source": "Table 1"},
+      "200": {"f1_mean": 66.65, "f1_std": 1.93, "source": "Table 1"},
+      "400": {"f1_mean": 74.57, "f1_std": 6.37, "source": "Table 1"}
+    }
+  },
+  "paper_ablations": {
+    "table2_aaf_sap": {
+      "no_aaf_no_sap": {"MBA": 36.26, "Exathlon": 17.65, "SMD": 34.74, "WADI": 58.66, "Avg": 36.82},
+      "aaf_only": {"MBA": 50.57, "Exathlon": 17.76, "SMD": 34.87, "WADI": 62.31, "Avg": 38.89},
+      "sap_only": {"MBA": 55.95, "Exathlon": 18.29, "SMD": 36.05, "WADI": 59.36, "Avg": 42.41},
+      "full_a2p": {"MBA": 67.55, "Exathlon": 18.64, "SMD": 36.29, "WADI": 64.91, "Avg": 46.84}
+    },
+    "table4_shared_backbone": {
+      "not_shared": {"MBA": 51.53, "Exathlon": 18.00, "SMD": 35.60, "WADI": 60.70, "Avg": 41.45},
+      "shared": {"MBA": 67.55, "Exathlon": 18.64, "SMD": 36.29, "WADI": 64.91, "Avg": 46.84}
+    },
+    "table5_anomaly_probability": {
+      "plain_mse": {"MBA": 64.20, "Exathlon": 18.24, "SMD": 36.13, "WADI": 59.19, "Avg": 44.44},
+      "mse_with_ap": {"MBA": 67.55, "Exathlon": 18.64, "SMD": 36.29, "WADI": 64.91, "Avg": 46.84}
+    }
+  },
+  "our_results": [],
+  "improvement_probes": {
+    "grey_swan_regime": {
+      "status": "ANALYTICAL_ONLY",
+      "prediction": "F1 collapse from ~67.55 to ~2-3% when anomaly rate drops to 0.1%",
+      "method": "Subsample MBA test set, rerun threshold with anormly_ratio=0.1",
+      "note": "Near-certain result based on threshold mechanism analysis"
+    },
+    "calibration_ece": {
+      "status": "ANALYTICAL_ONLY",
+      "prediction": "ECE > 0.15 (poor calibration)",
+      "method": "Platt scaling on saved energy scores",
+      "note": "No calibration objective in training; expected poor calibration"
+    }
+  }
+}
