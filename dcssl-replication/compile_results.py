@@ -77,14 +77,20 @@ def load_our_results(results_dir: Path) -> dict:
     """Load all our experiment results."""
     our_results = {}
 
-    # Look for per-experiment JSON files
+    # Look for per-experiment JSON files (skip top-level aggregates)
     for json_file in results_dir.rglob("*_results.json"):
+        # Skip files in the top-level results dir (aggregates like all_results.json)
+        if json_file.parent == results_dir:
+            continue
         try:
             with open(json_file) as f:
                 data = json.load(f)
 
             model_name = data.get("model", json_file.parent.name.split("_")[0])
             per_bearing = data.get("per_bearing", {})
+
+            if not per_bearing:
+                continue  # skip empty results
 
             if model_name not in our_results:
                 our_results[model_name] = {}

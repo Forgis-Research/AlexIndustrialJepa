@@ -83,15 +83,28 @@ Both processes compete — each running ~2x slower than normal.
 CNN-GRU-MHA completed at ~01:58 UTC. DCSSL now has exclusive GPU access.
 train_utils.py: NaN gradient check REMOVED (was doubling epoch time).
 
-### SimCLR Condition 1 COMPLETE (23:00 UTC)
-- Avg MSE = **0.0535** (paper SimCLR: 0.0583 — **we are better**)
-- 1_3: 0.1100 vs 0.003 paper (worse — model struggles with this bearing)
-- 1_4: **0.0457 vs 0.2565 paper** (much better — this was the broken outlier)
-- 1_5: 0.0126 vs 0.003 paper (slightly worse)
-- 1_6: 0.0866 vs 0.056 paper (slightly worse)
-- 1_7: 0.0125 vs 0.0006 paper (slightly worse)
-- Verdict: SANITY CHECK PASSED — elapsed_time fix working, avg better than paper
-- SimCLR cond2 now running (epoch 41, loss 0.377)
+### SimCLR Condition 1 COMPLETE (23:00 UTC 2026-04-09)
+- Avg MSE = **0.0535** (paper SimCLR cond1: 0.0304 — paper better)
+- 1_3: 0.1100 vs 0.0030 paper (worse)
+- 1_4: **0.0457 vs 0.0560 paper** (slightly better than paper)
+- 1_5: 0.0126 vs 0.0006 paper (worse)
+- 1_6: 0.0866 vs 0.0904 paper (slightly better)
+- 1_7: 0.0125 vs 0.0021 paper (worse)
+- Verdict: SANITY CHECK PASSED — elapsed_time fix working
+
+### SimCLR Condition 2 COMPLETE (~23:18 UTC 2026-04-09)
+- Avg MSE = **0.1594** (paper SimCLR cond2: 0.1462 — paper slightly better)
+- 2_3: 0.2728 vs 0.1849 paper (worse)
+- 2_4: 0.1322 vs 0.2577 paper (**OURS BETTER**)
+- 2_5: **0.0512 vs 0.2782 paper** (**OURS MUCH BETTER — FPT=0% bearing**)
+- 2_6: 0.3305 vs 0.0013 paper (much worse — FPT=98%)
+- 2_7: 0.0102 vs 0.0089 paper (similar)
+- FPT distribution shift affects 2_3, 2_6 severely; 2_5 (FPT=0%) is handled better by our method
+
+### SimCLR Condition 3 COMPLETE (~23:52 UTC 2026-04-09)
+- Bearing3_3 MSE = **0.0084** (paper SimCLR: 0.0341 — **OURS MUCH BETTER, 4x improvement**)
+- 3_3 FPT=73%, train bearings 3_1 (96%), 3_2 (88%) — FPT shift moderate
+- This is a strong result for condition 3
 
 ---
 
@@ -169,16 +182,19 @@ Our 0.0273 vs paper SupCon 0.0017 — 16x worse. However paper DCSSL gets 0.0068
 
 **Time:** 01:57 UTC 2026-04-10 (31.9 min — CNN-GRU-MHA contention ended at ~01:57)
 **Config:** 300 pretrain + 150 finetune epochs, lr=1e-3/5e-4, batch=64, crop=1024
-**Result: avg MSE = 0.2243 (paper SupCon cond2 avg: ~0.0308 — WORSE)**
+**Result: avg MSE = 0.2243 (paper SupCon cond2 avg: 0.0610 [corrected] — WORSE)**
 
 | Bearing | Ours (SupCon) | Paper (SupCon) | Paper (DCSSL) | FPT% |
 |---------|--------------|----------------|---------------|------|
-| 2_3 | 0.2756 | 0.0569 | 0.0027 | 13.4% |
-| 2_4 | 0.4253 | 0.0046 | 0.0014 | 51.9% |
-| 2_5 | **0.0770** | 0.0735 | 0.2538 | 0% |
-| 2_6 | 0.3303 | 0.0038 | 0.0012 | 98% |
-| 2_7 | **0.0135** | 0.0150 | 0.0075 | 96.5% |
-| **Avg** | 0.2243 | ~0.0308 | 0.0375 | |
+| 2_3 | 0.2756 | 0.0150 | 0.0027 | 13.4% |
+| 2_4 | 0.4253 | 0.0017 | 0.0014 | 51.9% |
+| 2_5 | **0.0770** | 0.2752 | 0.2538 | 0% |
+| 2_6 | 0.3303 | 0.0014 | 0.0012 | 98% |
+| 2_7 | **0.0135** | 0.0117 | 0.0075 | 96.5% |
+| **Avg** | 0.2243 | 0.0610 | 0.0533 | |
+
+Note: Paper SupCon 2_5=0.2752 is also bad (FPT=0% bearing), so both methods struggle with 2_5.
+Our SupCon actually beats paper SupCon on 2_5 (0.0770 vs 0.2752) — FPT=0% means always degrading, our model handles this well.
 
 **Sanity checks:** ✓ Loss decreased (4.8491 best pretrain), ✓ Some bearings reasonable
 **Verdict:** KEEP — we beat paper on 2_5 and 2_7, but fail on 2_3, 2_4, 2_6
