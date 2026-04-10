@@ -32,29 +32,36 @@ from train_utils import run_full_pipeline
 # Paper target results for comparison
 # =====================================================================
 PAPER_RESULTS = {
+    # Values verified from Table 3 in Shen et al. 2026 PDF (nature-rolling-bearing-dual-dim-2026.pdf)
+    # Column order in paper: InfoTS | USL | CBHRL | SimCLR | SupCon | DCSSL
+    # Note: paper's stated "Avg." values (0.0583, 0.0480, 0.0375) cannot be reproduced
+    # by simple mean over 11 bearings. DCSSL and SupCon 11-bearing means match;
+    # SimCLR 11-bearing mean = 0.0834 ≠ 0.0583 (paper may use different averaging).
     "DCSSL": {
         "Bearing1_3": 0.0011, "Bearing1_4": 0.0476, "Bearing1_5": 0.0005,
         "Bearing1_6": 0.0892, "Bearing1_7": 0.0009,
         "Bearing2_3": 0.0027, "Bearing2_4": 0.0014, "Bearing2_5": 0.2538,
         "Bearing2_6": 0.0012, "Bearing2_7": 0.0075,
         "Bearing3_3": 0.0068,
-        "avg": 0.0375,
+        "avg": 0.0375,  # as stated in paper footer (11-bearing mean = 0.0375 ✓)
     },
     "SimCLR": {
-        "Bearing1_3": 0.0029, "Bearing1_4": 0.2565, "Bearing1_5": 0.0030,
-        "Bearing1_6": 0.0560, "Bearing1_7": 0.0006,
-        "Bearing2_3": 0.0904, "Bearing2_4": 0.0021, "Bearing2_5": 0.1849,
-        "Bearing2_6": 0.0024, "Bearing2_7": 0.2577,
-        "Bearing3_3": 0.0013,
-        "avg": 0.0583,
+        # CORRECTED from PDF — earlier values had SimCLR/SupCon columns swapped
+        "Bearing1_3": 0.0030, "Bearing1_4": 0.0560, "Bearing1_5": 0.0006,
+        "Bearing1_6": 0.0904, "Bearing1_7": 0.0021,
+        "Bearing2_3": 0.1849, "Bearing2_4": 0.2577, "Bearing2_5": 0.2782,
+        "Bearing2_6": 0.0013, "Bearing2_7": 0.0089,
+        "Bearing3_3": 0.0341,
+        "avg": 0.0583,  # as stated in paper footer (11-bearing mean = 0.0834 — paper may exclude some)
     },
     "SupCon": {
-        "Bearing1_3": 0.0028, "Bearing1_4": 0.0080, "Bearing1_5": 0.0097,
-        "Bearing1_6": 0.0473, "Bearing1_7": 0.0040,
-        "Bearing2_3": 0.0569, "Bearing2_4": 0.0046, "Bearing2_5": 0.0735,
-        "Bearing2_6": 0.0038, "Bearing2_7": 0.0150,
-        "Bearing3_3": 0.0017,
-        "avg": 0.0480,
+        # CORRECTED from PDF — earlier values had SimCLR/SupCon columns swapped
+        "Bearing1_3": 0.0213, "Bearing1_4": 0.0576, "Bearing1_5": 0.0046,
+        "Bearing1_6": 0.0735, "Bearing1_7": 0.0038,
+        "Bearing2_3": 0.0150, "Bearing2_4": 0.0017, "Bearing2_5": 0.2752,
+        "Bearing2_6": 0.0014, "Bearing2_7": 0.0117,
+        "Bearing3_3": 0.0619,
+        "avg": 0.0480,  # as stated in paper footer (11-bearing mean = 0.0480 ✓)
     },
 }
 

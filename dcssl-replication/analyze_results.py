@@ -37,18 +37,20 @@ PAPER_DCSSL = {
     "Bearing3_3": 0.0068, "avg": 0.0375,
 }
 PAPER_SIMCLR = {
-    "Bearing1_3": 0.0029, "Bearing1_4": 0.2565, "Bearing1_5": 0.0030,
-    "Bearing1_6": 0.0560, "Bearing1_7": 0.0006,
-    "Bearing2_3": 0.0904, "Bearing2_4": 0.0021, "Bearing2_5": 0.1849,
-    "Bearing2_6": 0.0024, "Bearing2_7": 0.2577,
-    "Bearing3_3": 0.0013, "avg": 0.0583,
+    # CORRECTED from PDF (Shen et al. 2026, Table 3, col 4: SimCLR)
+    "Bearing1_3": 0.0030, "Bearing1_4": 0.0560, "Bearing1_5": 0.0006,
+    "Bearing1_6": 0.0904, "Bearing1_7": 0.0021,
+    "Bearing2_3": 0.1849, "Bearing2_4": 0.2577, "Bearing2_5": 0.2782,
+    "Bearing2_6": 0.0013, "Bearing2_7": 0.0089,
+    "Bearing3_3": 0.0341, "avg": 0.0583,
 }
 PAPER_SUPCON = {
-    "Bearing1_3": 0.0028, "Bearing1_4": 0.0080, "Bearing1_5": 0.0097,
-    "Bearing1_6": 0.0473, "Bearing1_7": 0.0040,
-    "Bearing2_3": 0.0569, "Bearing2_4": 0.0046, "Bearing2_5": 0.0735,
-    "Bearing2_6": 0.0038, "Bearing2_7": 0.0150,
-    "Bearing3_3": 0.0017, "avg": 0.0480,
+    # CORRECTED from PDF (Shen et al. 2026, Table 3, col 5: SupCon)
+    "Bearing1_3": 0.0213, "Bearing1_4": 0.0576, "Bearing1_5": 0.0046,
+    "Bearing1_6": 0.0735, "Bearing1_7": 0.0038,
+    "Bearing2_3": 0.0150, "Bearing2_4": 0.0017, "Bearing2_5": 0.2752,
+    "Bearing2_6": 0.0014, "Bearing2_7": 0.0117,
+    "Bearing3_3": 0.0619, "avg": 0.0480,
 }
 
 ALL_TEST_BEARINGS = [

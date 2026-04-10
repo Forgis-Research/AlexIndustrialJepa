@@ -240,19 +240,37 @@ the final RUL head. Paper also uses Input Projection Layer + Timestamp Masking.
 
 ---
 
-## Paper Targets (Table 3)
+## Paper Targets (Table 3) — CORRECTED FROM PDF
+
+**Important correction (2026-04-10):** Original table had SimCLR and SupCon columns swapped.
+Verified from `nature-rolling-bearing-dual-dim-2026.pdf` directly.
+Column order in paper: InfoTS | USL | CBHRL | SimCLR | SupCon | DCSSL
 
 | Test Bearing | InfoTS | USL | CBHRL | SimCLR | SupCon | DCSSL |
 |---|---|---|---|---|---|---|
-| 1_3 | 0.0037 | 0.0047 | 0.0052 | 0.0029 | 0.0028 | **0.0011** |
-| 1_4 | 0.0566 | 0.1003 | 0.0012 | 0.2565 | 0.0080 | **0.0476** |
-| 1_5 | 0.0015 | 0.0014 | 0.0005 | 0.0030 | 0.0097 | **0.0005** |
-| 1_6 | 0.1095 | 0.0449 | 0.0016 | 0.0560 | 0.0473 | **0.0892** |
-| 1_7 | 0.0031 | 0.0044 | 0.2782 | 0.0006 | 0.0040 | **0.0009** |
-| 2_3 | 0.0805 | 0.0406 | 0.0018 | 0.0904 | 0.0569 | **0.0027** |
-| 2_4 | — | — | 0.0229 | 0.0021 | 0.0046 | **0.0014** |
-| 2_5 | — | — | 0.0091 | 0.1849 | 0.0735 | **0.2538** |
-| 2_6 | — | — | 0.0425 | 0.0024 | 0.0038 | **0.0012** |
-| 2_7 | — | — | — | 0.2577 | 0.0150 | **0.0075** |
-| 3_3 | — | — | 0.0619 | 0.0013 | 0.0017 | **0.0068** |
-| **Avg** | — | — | — | **0.0583** | **0.0480** | **0.0375** |
+| 1_3 | 0.0037 | 0.0031 | 0.0040 | 0.0030 | 0.0213 | **0.0011** |
+| 1_4 | 0.0566 | 0.0805 | 0.0569 | 0.0560 | 0.0576 | **0.0476** |
+| 1_5 | 0.0047 | 0.0014 | 0.0049 | 0.0006 | 0.0046 | **0.0005** |
+| 1_6 | 0.1003 | 0.1095 | 0.0820 | 0.0904 | **0.0735** | 0.0892 |
+| 1_7 | 0.0015 | 0.0011 | 0.0052 | 0.0021 | 0.0038 | **0.0009** |
+| 2_3 | 0.0052 | 0.0449 | **0.0005** | 0.1849 | 0.0150 | 0.0027 |
+| 2_4 | **0.0012** | 0.0029 | 0.0016 | 0.2577 | 0.0017 | 0.0014 |
+| 2_5 | 0.2577 | 0.2565 | 0.2782 | 0.2782 | 0.2752 | **0.2538** |
+| 2_6 | **0.0010** | 0.0028 | 0.0018 | 0.0013 | 0.0014 | 0.0012 |
+| 2_7 | 0.0107 | 0.0080 | 0.0229 | 0.0089 | 0.0117 | **0.0075** |
+| 3_3 | **0.0044** | 0.0097 | 0.0091 | 0.0341 | 0.0619 | 0.0068 |
+| **Avg** | 0.0406 | 0.0473 | 0.0425 | **0.0583** | **0.0480** | **0.0375** |
+
+**Note:** Paper's stated avg=0.0583 for SimCLR ≠ 11-bearing mean (0.0834). DCSSL (0.0375) and SupCon (0.0480) avgs match 11-bearing means. The SimCLR avg in the paper may use a different subset or averaging method.
+
+**Revised comparison with corrected values (condition 1 only):**
+- Paper SimCLR cond1: avg(0.0030,0.0560,0.0006,0.0904,0.0021) = 0.0304
+- Paper SupCon cond1: avg(0.0213,0.0576,0.0046,0.0735,0.0038) = 0.0322
+- Our SimCLR cond1: 0.0535 (worse than paper 0.0304)
+- Our SupCon cond1: 0.0468 (worse than paper 0.0322)
+- Both paper SimCLR and SupCon are much better on individual bearings like 1_3 (0.0030/0.0213 vs our 0.1100/0.1052)
+
+**Condition 2 revised:**
+- Paper SupCon cond2: avg(0.0150,0.0017,0.2752,0.0014,0.0117) = 0.0610 — better than we thought!
+  (old incorrect values suggested 0.0308)
+- Our SupCon cond2: 0.2243 (much worse)
