@@ -193,6 +193,39 @@ Our 0.0273 vs paper SupCon 0.0017 — 16x worse. However paper DCSSL gets 0.0068
 
 ---
 
+## Exp 8: DCSSL Condition 2 — COMPLETE (04:28 UTC 2026-04-10)
+
+**Time:** 03:47 UTC → 04:28 UTC (41.6 minutes — smaller dataset: 1708 train vs 3674 for cond1)
+**Config:** 300 pretrain + 150 finetune epochs, lr=1e-3/5e-4, batch=64, crop=1024, MAE finetune loss
+**Code fix:** RUL-based instance contrastive loss (uses actual RUL proximity instead of time proximity)
+
+**Pretrain trajectory:** 7.42 → 3.52 (best=3.52)
+**Finetune MSE:** 0.1575 → 0.0118
+
+**Result: avg MSE = 0.1308 (paper DCSSL cond2 avg: 0.0533 — paper better overall, but wins on 2_5 and 2_7)**
+
+| Bearing | Ours (DCSSL+RUL) | Paper (DCSSL) | Our SimCLR | Our SupCon | FPT% | Win? |
+|---------|-----------------|---------------|-----------|------------|------|------|
+| 2_3 | 0.2756 | 0.0027 | 0.2728 | 0.2756 | 13% | All terrible — early-FPT bearing |
+| 2_4 | 0.1307 | 0.0014 | 0.1322 | 0.4253 | 52% | Paper much better, but RUL fix helped vs SupCon |
+| 2_5 | **0.0635** | 0.2538 | **0.0512** | 0.0770 | 0% | **OUR METHODS MUCH BETTER** (FPT=0%) |
+| 2_6 | 0.1807 | 0.0012 | 0.3305 | 0.3303 | 98% | Paper better, but DCSSL-RUL fix helped vs SimCLR/SupCon |
+| 2_7 | **0.0034** | 0.0075 | 0.0102 | 0.0135 | 97% | **OUR DCSSL BEATS PAPER** |
+| **Avg** | 0.1308 | 0.0533 | 0.1594 | 0.2243 | | |
+
+**Sanity checks:** ✓ Loss decreased, ✓ Finetune MSE decreased, ✓ Best checkpoint loaded
+
+**Key finding:** RUL-based instance loss fix helps condition 2:
+- DCSSL avg (0.1308) beats SimCLR (0.1594) and SupCon (0.2243) — dual-dimensional + RUL fix works
+- Bearing 2_6: DCSSL 0.1807 much better than SimCLR/SupCon (0.33) — RUL fix clearly helped
+- Bearing 2_7: DCSSL 0.0034 beats paper DCSSL 0.0075 — only method that beats paper on cond2!
+- Bearing 2_3 (FPT=13%): all methods fail — structural problem with early-degrading bearings
+- Bearing 2_5 (FPT=0%): all SSL methods handle well since it's degrading immediately
+
+**DCSSL cond3 started automatically at 04:29 UTC.**
+
+---
+
 ## Exp 5: SupCon Condition 2 — COMPLETE (01:57 UTC 2026-04-10)
 
 **Time:** 01:57 UTC 2026-04-10 (31.9 min — CNN-GRU-MHA contention ended at ~01:57)
