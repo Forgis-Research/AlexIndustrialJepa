@@ -288,6 +288,7 @@ def instance_contrastive_loss(
     n_snapshots: torch.Tensor,
     temperature: float = 0.1,
     rul_window: float = 0.1,
+    rul: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """
     Instance-level contrastive loss (DCSSL Eq. 2 / "cross-bearing" loss).
@@ -302,6 +303,8 @@ def instance_contrastive_loss(
         n_snapshots: (batch,)
         temperature: NT-Xent temperature
         rul_window: RUL proximity threshold for positive pairs
+        rul: (batch,) optional — if provided, use actual RUL instead of normalized time
+             for degradation stage proximity (fixes FPT distribution shift problem)
 
     Returns:
         scalar loss
@@ -314,13 +317,20 @@ def instance_contrastive_loss(
 
     eye_mask = torch.eye(batch_size, device=device).bool()
 
-    # Normalized time position (proxy for degradation stage)
-    t_norm = time_indices.float() / n_snapshots.float()
+    if rul is not None:
+        # Use actual RUL values for degradation stage — fixes FPT distribution shift
+        # Samples with similar RUL from different bearings are positive pairs
+        rul_flat = rul.squeeze().float()
+        stage_diff = (rul_flat.unsqueeze(1) - rul_flat.unsqueeze(0)).abs()
+        similar_stage = stage_diff < rul_window
+    else:
+        # Fall back to normalized time position (original, FPT-dependent)
+        t_norm = time_indices.float() / n_snapshots.float()
+        time_diff = (t_norm.unsqueeze(1) - t_norm.unsqueeze(0)).abs()
+        similar_stage = time_diff < rul_window
 
     # Positive mask: different bearings + similar degradation stage
     diff_bearing = bearing_indices.unsqueeze(1) != bearing_indices.unsqueeze(0)
-    time_diff = (t_norm.unsqueeze(1) - t_norm.unsqueeze(0)).abs()
-    similar_stage = time_diff < rul_window
 
     pos_mask = diff_bearing & similar_stage & ~eye_mask
 
@@ -500,7 +510,10 @@ class DCSSSLModel(nn.Module):
             bearing_indices: (batch,) — which bearing
             time_indices: (batch,) — snapshot position in bearing
             n_snapshots: (batch,) — total snapshots in that bearing
+            rul: (batch,) optional — actual RUL labels for degradation-stage proximity
         """
+        rul = kwargs.get("rul", None)
+
         # Encode both views
         h1 = self.encoder(view1)  # (batch, encoder_out)
         h2 = self.encoder(view2)
@@ -519,9 +532,10 @@ class DCSSSLModel(nn.Module):
         )
 
         # Instance-level cross-bearing loss
+        # Use actual RUL for degradation-stage proximity (fixes FPT distribution shift)
         loss_instance = instance_contrastive_loss(
             z_mean, bearing_indices, time_indices, n_snapshots,
-            self.temperature, self.rul_window
+            self.temperature, self.rul_window, rul=rul
         )
 
         total_loss = (loss_ntxent +
