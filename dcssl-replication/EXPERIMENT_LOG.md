@@ -226,6 +226,31 @@ Our 0.0273 vs paper SupCon 0.0017 — 16x worse. However paper DCSSL gets 0.0068
 
 ---
 
+## Exp 9: DCSSL Condition 3 — COMPLETE (05:21 UTC 2026-04-10)
+
+**Time:** 04:29 UTC → 05:21 UTC (52.3 minutes)
+**Config:** 300 pretrain + 150 finetune epochs, lr=1e-3/5e-4, batch=64, crop=1024, MAE finetune loss
+**Train data:** 3_1 (515 snapshots, FPT=493=96%) + 3_2 (1637 snapshots, FPT=1444=88%)
+
+**Pretrain trajectory:** 8.20 → 4.30 (best=4.26)
+**Notable:** instance loss barely decreased (4.50 → 4.12) — both train bearings mostly at RUL=1.0, little degradation cross-bearing signal
+**Finetune MSE:** 0.3112 → 0.0022
+
+**Result: Bearing3_3 MSE = 0.0135 (paper DCSSL: 0.0068, Our SimCLR: 0.0084)**
+
+| Bearing | Ours (DCSSL) | Paper DCSSL | Our SimCLR | Our SupCon | FPT% |
+|---------|-------------|-------------|-----------|------------|------|
+| 3_3 | 0.0135 | **0.0068** | 0.0084 | 0.0273 | 73% |
+
+**Sanity checks:** ✓ Loss decreased, ✓ Finetune MSE → 0.0022 (train fits well), ✓ Test MSE=0.0135 reasonable
+**Verdict:** KEEP — condition 3 is challenging (very late FPT train bearings, single test bearing)
+
+**Comparison:** Our SimCLR (0.0084) performs better than our DCSSL (0.0135) on condition 3. This suggests the dual-dimensional loss doesn't help on cond3 where both bearings are mostly healthy — contrastive signal is too sparse.
+
+**JEPA+HC (all conditions) started automatically at 05:22 UTC.**
+
+---
+
 ## Exp 5: SupCon Condition 2 — COMPLETE (01:57 UTC 2026-04-10)
 
 **Time:** 01:57 UTC 2026-04-10 (31.9 min — CNN-GRU-MHA contention ended at ~01:57)
