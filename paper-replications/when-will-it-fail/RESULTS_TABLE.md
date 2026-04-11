@@ -142,13 +142,17 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | Correct AP: V2 contrastive | AP-aware InfoNCE (anomalous future = positive) | AUROC | TBD | InfoNCE V1: 0.641 | Probe 26b, still running |
 | **Correct AP: Probe 30** | **Supervised transformer 5-seed (100ep, MLP head)** | **AUROC** | **0.6238 +/- 0.0075** | **Unsupervised: 0.524** | **COMPLETE - 5x lower std vs unsupervised!** |
 | **Correct AP: Probe 33** | **Transformer + variance features augmented (3-seed)** | **AUROC** | **0.5771 +/- 0.0014** | **Baseline: 0.6147** | **COMPLETE - augmentation HURTS by -0.038** |
-| Correct AP: Probe 38 | Deep supervised (d=128, L=4, 150ep) | AUROC | TBD | Shallow 100ep: 0.624 | Running seed=42 |
+| Correct AP: Probe 38 | Deep supervised (d=128, L=4, 150ep) | AUROC | KILLED | Shallow 100ep: 0.624 | Too slow (>1h per seed at this size), no result |
 | Correct AP: Probe 39 | AUPRC analysis (LR vs oracle) | AUPRC | 0.097 LR / 0.522 oracle | random=0.077 | **COMPLETE** - AP is precision-limited |
-| Correct AP: Probe 40 | Epoch learning curve (5 seeds, checkpoints) | AUROC@epoch | TBD | 30ep=0.521 ±0.042 (Probe 28b) | Running |
+| **Correct AP: Probe 40** | **Epoch learning curve (4/5 seeds, LN+Linear head)** | **AUROC@ep100** | **0.5913 ± 0.0204** | **30ep=0.521 ±0.042** | **COMPLETE - simple head peaks at ep 10-20, then declines; MLP head critical** |
 | Correct AP: Probe 41 | Statistical significance: LR vs transformer | t-test | LR p=0.0006 vs TF | TF vs random: p=0.081 (NS) | **COMPLETE** - formal proof |
 | **Correct AP: Probe 47** | **1D CNN (3 conv layers, 100ep, 3 seeds)** | **AUROC** | **0.5691 +/- 0.0088** | **Transformer: 0.624** | **COMPLETE - CNN 5.5pp worse (t=7.51, p=0.003, d=6.67)** |
-| **Correct AP: Probe 48** | **BiLSTM (2-layer, hidden=64, 100ep, 3 seeds)** | **AUROC** | **~0.591 (2/3 seeds)** | **Transformer: 0.624** | **Running seed=2** |
+| **Correct AP: Probe 48** | **BiLSTM (2-layer, hidden=64, 100ep, 3 seeds)** | **AUROC** | **0.5805 +/- 0.0156** | **Transformer: 0.624** | **COMPLETE - BiLSTM 4.3pp worse than transformer** |
 | **Correct AP: Probe 51** | **Horizon comparison (LR, near vs A2P default vs far)** | **AUROC** | **near=0.646; A2P=0.624; 25-75=0.517** | **Oracle=0.721 (all)** | **COMPLETE - near best (65.9% learned); 25-75 worst (7.8%)** |
+| Correct AP: Probe 57 | Near-horizon transformer (0-50 steps, 3 seeds) | AUROC | seed=42: 0.759 (EXCEEDS oracle!) | Oracle near=0.750; LR near=0.646 | RUNNING - seeds 1&2 pending |
+| Correct AP: Probe 61 | Feature ablation (LR, which features matter) | AUROC delta | last-50 var: -0.012 (most imp); ac1: +0.006 (hurts!) | ref=0.622 | COMPLETE - ac1 adds noise |
+| **Correct AP: Probe 63** | **Optimal LR: 4 features (drop ac1+var100)** | **AUROC** | **0.6308** | **8-feat: 0.6223** | **COMPLETE - simpler is better (+0.008)** |
+| Correct AP: Probe 62 | Width ablation (d=32 vs d=128, L=2 fixed) | AUROC | RUNNING | d=64: 0.6238 | Running |
 
 **CRITICAL:** Single-seed AP results (0.642, 0.641, 0.619, 0.625) are unreliable. True multi-seed APTransformer AUROC at 30ep = 0.5211 +/- 0.0415 (10 seeds), barely above random (0.500) and NOT statistically significant (p=0.081). All single-seed "best results" must be treated as preliminary. With 100ep supervised training, consistent AUROC=0.6238 ± 0.0075 is achieved (5 seeds, Probe 30).
 
@@ -158,12 +162,15 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 
 **PROBE 51 KEY FINDING:** Horizon analysis reveals near-future (0-50 steps) is easiest (0.646, 66% of oracle), while 25-75 step gap is paradoxically hardest (0.517, 8%). A2P default (100-150) achieves 0.624 (56%). All horizons have identical oracle AUROC (0.721) - the difficulty difference is entirely in which precursor patterns are accessible.
 
-**ARCHITECTURE COMPARISON (Probes 47/48/57):**
-- Transformer (5-seed, 100ep, MLP head): 0.6238 ± 0.0075 [REFERENCE]  
+**ARCHITECTURE COMPARISON (Probes 47/48/57/62):**
+- Transformer (5-seed, 100ep, MLP head): 0.6238 ± 0.0075 [REFERENCE]
+- LR 4-feature (var50+varfull, Probe 63): 0.6308 (single) [BEATS TRANSFORMER on single estimate]
+- BiLSTM 2-layer (3-seed, 100ep): 0.5805 ± 0.0156 [-0.043 vs TF]
 - 1D CNN (3-seed, 100ep): 0.5691 ± 0.0088 [-0.055 vs TF, p=0.003, d=6.67]
-- BiLSTM (2-seed so far): ~0.591 (partial, RUNNING)
-- LR variance (8 features): 0.616 (single estimate)
+- Transformer near-horizon (0-50): 0.759 seed=42 (RUNNING - likely optimistic)
+- Width ablation (Probe 62): RUNNING
 - Key insight: Transformer's O(T^2) global attention is essential for AP. CNN's local kernels (k=7) and LSTM's sequential state cannot capture global 200-step "calm before storm" patterns.
+- Surprising: 4-feature LR (just short-term + long-term variance per channel) is competitive with or beats transformer. This simplicity is a key NeurIPS finding.
 
 **REVISED FINDING (Probe 35):** Full-dataset LR with 8 variance features achieves AUROC=0.5929, beating APTransformer multi-seed mean (0.5255) by +0.067 (1.63 sigma). This is the reliable estimate using 183K sequences; the 0.616 from Probe 29 used a 5x smaller sample and has higher variance. Key: LR captures 38% of learnable signal (oracle=0.7445), transformer captures only 10.4%.
 

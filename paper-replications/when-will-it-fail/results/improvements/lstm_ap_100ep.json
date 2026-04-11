@@ -1,0 +1,28 @@
+{
+  "model": "BiLSTM (2-layer, hidden=64)",
+  "seeds": [
+    42,
+    1,
+    2
+  ],
+  "epochs": 100,
+  "per_seed": [
+    {
+      "seed": 42,
+      "val_auroc": 0.6662474882440985,
+      "test_auroc": 0.583830598504725
+    },
+    {
+      "seed": 1,
+      "val_auroc": 0.6378055355859095,
+      "test_auroc": 0.5977657083860459
+    },
+    {
+      "seed": 2,
+      "val_auroc": 0.6570414609138373,
+      "test_auroc": 0.5599904338125775
+    }
+  ],
+  "mean_test_auroc": 0.5805289135677828,
+  "std_test_auroc": 0.01559740758037171
+}
