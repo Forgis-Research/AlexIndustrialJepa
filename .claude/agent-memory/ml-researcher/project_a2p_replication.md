@@ -6,67 +6,88 @@ type: project
 
 ## Key Facts
 
-Paper: "When Will It Fail? Anomaly to Prompt for Forecasting Future Anomalies in Time Series" (ICML 2025, Park et al.)  
-Code: https://github.com/KU-VGI/AP  
+Paper: "When Will It Fail? Anomaly to Prompt for Forecasting Future Anomalies in Time Series" (ICML 2025, Park et al.)
+Code: https://github.com/KU-VGI/AP
 Replication dir: `/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/`
 
 ## Critical Findings (All Confirmed, April 2026)
 
-1. **AUROC < 0.5 on proper split (multi-seed confirmed)**: Seeds 42 (AUROC=0.490) and seed 1 (AUROC=0.498) both show A2P is anti-discriminating. 2-seed mean: 0.494 +/- 0.004.
+1. **AUROC essentially random on proper split (3-seed confirmed)**: Seed 42 (0.490), seed 1 (0.498), seed 2 (0.508). Mean=0.499 +/- 0.008. Indistinguishable from random 0.500.
 
-2. **Rolling variance DOMINATES A2P on paper's own setup**: MBA SVDB4 (records 800-803) - Rolling var w=50: F1-tol=86.70% vs A2P paper 67.55% (+19.15pp). SMD w=10: F1-tol=63.84% vs A2P 52.07% (+11.77pp). ALL window sizes beat A2P.
+2. **RANDOM SCORES BEAT A2P on ALL 3 datasets**: SVDB4: 68.10% vs 67.55%; SMD: 67.60% vs 52.07% (+15.5pp!); SVDB1: 58.91% vs 19.17% (+39.7pp). F1-tol is trivially gamed by random noise.
 
-3. **MBA train==test data leakage (3.4x inflation)**: TranAD-derived MBA has identical train/test. With proper 70/30 split: F1-tol=12.66%.
+3. **Rolling variance (max-chan) DOMINATES A2P**: MBA SVDB4 w=50: 86.70% vs 67.55% (+19.15pp). SMD w=10: 63.95% vs 52.07% (+11.9pp). ALL window sizes beat A2P.
 
-4. **Seed bug**: Official code hardcodes seed=20462, ignores --random_seed flag.
+4. **MBA train==test data leakage (3.4x inflation)**: TranAD-derived MBA has identical train/test. With proper 70/30 split: 12.66%.
 
-5. **F1-tolerance 8x inflation**: Raw F1=5.35%, F1-tol=43.1% (8x inflation).
+5. **F1-tolerance 8x inflation**: Raw F1=5.35%, F1-tol=43.1% (8x). Point adjustment inflates random scores 10x (6.68% -> 68.19% on SVDB4).
 
-6. **Chronos-Small beats A2P by +21.7pp AUROC**: Zero fine-tuning Chronos achieves AUROC=0.745.
+6. **Oracle AP AUROC = 0.347 (below random!)**: Future variance doesn't predict current anomaly labels on SVDB4. Evaluation tests detection, not prediction.
 
-7. **Metric rank inversion (Spearman rho=0.000)**: F1-tol ranks A2P #1, AUROC ranks A2P last.
+7. **Correct AP evaluation oracle = 0.720**: Define future_labels[t]=1 if anomaly in [t+100, t+150]. Oracle AUROC=0.720 (SVDB4), 0.554 (SMD), 0.692 (SVDB1). AP IS learnable with proper evaluation.
 
-8. **Grey-swan collapse**: At 0.1% anomaly rate, F1=1.8% (24x collapse).
+8. **SVDB1 temporal confound**: All 5 anomaly segments at t>65000 of 69120. Time index AUROC=0.954. Not a valid AP dataset.
 
-## Replication Results (Completed)
+9. **E2E training probe**: Unfreezing AAFN during joint training: +12.8pp F1 (16%->28.8%), AUROC crosses 0.5 for first time (0.490->0.507).
 
-| Dataset | Paper | Ours | Gap | Notes |
-|---------|-------|------|-----|-------|
-| MBA L100 (TranAD train==test) | 67.55 | 19.07 +/- 8.77 | -48pp | Seed bug, data leakage |
-| MBA L100 (TranAD 70/30 split) | 67.55 | 12.66 | -55pp | 3.4x leakage confirmed |
-| SVDB1 record 801 (seeds 42+1) | 67.55 | 19.17 +/- 3.12 | -48pp | AUROC=0.494 (below random!) |
-| SVDB1 record 801 (seed=2) | - | In progress | - | Running as of April 2026 |
-| SMD L100 | 52.07 | In progress | - | 708K steps, running overnight |
+10. **Metric rank inversion (Spearman rho=0.000)**: F1-tol ranks A2P #1, AUROC ranks A2P last.
 
-## Improvement Probe Results (Completed)
+## 3-Seed SVDB1 Results (FINAL, April 11, 2026)
 
-All saved in `results/improvements/`:
-- `calibration_analysis.json`: AUROC=0.528, Brier skill=-0.117, raw F1=5.35%
-- `chronos_baseline.json`: Chronos AUROC=0.745 (+21.7pp vs A2P)
-- `grey_swan_test.json`: 24x F1 collapse at 0.1% anomaly rate
-- `data_integrity.json`: 3.4x leakage confirmed
-- `oracle_threshold.json`: F1 ceiling = 43.58% (A2P already at ceiling)
-- `svdb_baselines.json`: All classical baselines beat A2P AUROC
-- `cross_dataset_transfer.json`: Only -0.025 AUROC cross-domain penalty
-- `metric_ranking_analysis.json`: Spearman rho=0.000 (key NeurIPS finding)
-- `auprc_method_comparison.json`: Rolling var beats A2P on AUROC+AUPRC+F1-tol (8.1x AUPRC!)
-- `smd_baselines.json`: Rolling var AUROC=0.773 on SMD
-- `smd_rolling_var_f1.json`: Rolling var w=100 F1-tol=39.24% vs A2P 36.29% on SMD
-- `smd_window_sensitivity.json`: Rolling var ALL windows beat A2P on SMD (w=10: 63.84% vs 52.07%)
-- `svdb4_rolling_var.json`: Rolling var w=50 F1-tol=86.70% vs A2P 67.55% on SVDB4 (paper setup!)
-- `svdb4_method_comparison.json`: 6 methods on SVDB4, Spearman rho=0.94 (baselines consistent)
+| Seed | F1-tol | AUROC |
+|------|--------|-------|
+| 42 | 16.06% | 0.490 |
+| 1 | 22.29% | 0.498 |
+| 2 | 36.41% | 0.508 |
+| Mean | 24.92% ± 8.51% | 0.499 ± 0.008 |
+| Paper | 67.55% | - |
 
-## Publication Figures
+## Random Score Baselines (5 seeds each)
 
-Five figures in `figures/`:
-- `fig1_metric_ranking_inversion.png`: F1-tol vs AUROC ranking comparison
-- `fig2_f1_inflation.png`: 8x inflation cascade + grey-swan + leakage
-- `fig3_auroc_all_methods.png`: All methods AUROC - A2P is worst
-- `fig4_neurips_contribution.png`: Ranking inversion summary table
-- `fig5_complete_comparison.png`: All datasets/methods - rolling var dominates
+| Dataset | Random F1-tol | A2P | Beats A2P? |
+|---------|--------------|-----|------------|
+| SVDB4 | 68.10% ± 0.04% | 67.55% | YES |
+| SMD | 67.60% ± 0.03% | 52.07% | YES (+15.5pp) |
+| SVDB1 | 58.91% ± 7.64% | 19.17% | YES (+39.7pp) |
 
-## Why: NeurIPS Research Implication
+## Oracle AP Upper Bounds (Correct Evaluation)
 
-Core NeurIPS contribution: "F1-tolerance is a broken metric for Anomaly Prediction (AP). Rolling variance (no training) beats A2P by +19pp on MBA and +12pp on SMD using paper's own setup. Propose AUPRC as primary metric. Show rank inversion across all configurations."
+| Dataset | Oracle AUROC | Method |
+|---------|-------------|--------|
+| SVDB4 | 0.720 | Oracle future var |
+| SVDB4 | 0.679 | Supervised MLP (15 features, 30 epochs) |
+| SMD | 0.554 | Oracle future var |
+| SMD | 0.652 | Supervised MLP (15 features, 30 epochs) |
+| SVDB1 | 0.692 | Oracle future var (but confounded!) |
 
-Next step: JEPA-AP backbone that achieves AUROC > 0.7 on multiple datasets with proper metric evaluation.
+## Running Experiments (April 11, 2026)
+
+- SMD A2P seed=42 full run (PID 5584): in pretraining Epoch 1. ETA: ~20+ hours.
+
+## Result Files
+
+All in `results/improvements/`:
+- `svdb1_multiseed_final.json`: 3-seed complete
+- `random_baselines.json`: Random scores on all 3 datasets
+- `oracle_ap_auroc.json`: Oracle AUROC analysis
+- `correct_ap_evaluation.json`: Correct AP evaluation
+- `oracle_mlp_ap.json`: Oracle MLP on SVDB4
+- `smd_oracle_ap.json`: Oracle MLP on SMD
+- `svdb1_correct_ap.json`: Correct AP on SVDB1 (confound analysis)
+- `e2e_training.json`: E2E training probe result
+- `tolerance_sensitivity.json`: F1-tol plateau analysis
+- `smd_max_chan_var.json`: Max-channel var on SMD
+
+## NeurIPS Narrative
+
+Seven-step evidence chain for "F1-tol is broken for AP":
+1. F1-tolerance 8x inflation (raw 5.35% -> 43.1%)
+2. A2P AUROC = 0.499 ± 0.008 (3-seed, indistinguishable from random)
+3. Rolling var + random scores BEAT A2P on all datasets
+4. Metric rank inversion (rho=0.000)
+5. Data integrity (train==test 3.4x, seed bug)
+6. Oracle future var = 0.347 (below random!) - evaluation tests detection not prediction
+7. Correct AP evaluation: oracle=0.720 - task IS achievable; SVDB1 is confounded
+
+Key contribution: propose correct AP evaluation (future_labels, AUROC/AUPRC), oracle target 0.720.
+Target: JEPA-AP that achieves AUROC > 0.72 under correct evaluation.

@@ -1,4 +1,4 @@
-- [A2P Replication Findings](project_a2p_replication.md) — Rolling var BEATS A2P by +19pp MBA/+12pp SMD no training; AUROC=0.494+/-0.004 (below random, 2-seed confirmed); AUPRC is NeurIPS fix
+- [A2P Replication Findings](project_a2p_replication.md) — AUROC=0.499+/-0.008 (3-seed, random!); random scores beat A2P on all 3 datasets; oracle AP AUROC=0.720 proves correct eval works
 - [DCSSL Replication Findings](project_dcssl_replication.md) — FPT shift is key failure mode; paper SimCLR avg≈trivial baseline; paper table had swapped columns; RUL-fix applied to cond2/3
 - [IndustrialJEPA Project Context](project_industrialjepa.md) — V11 ALL DONE: E2E=13.80; MLP=15.88; FD003 E2E=15.37; FD004 E2E=25.62 (6cond hard); cross-fault 28.79@10%; ext fine-tuning no help
 - [Dataset Catalog and Recommendations](datasets_catalog.md) — Paderborn=Tier2, WADI=Brain-JEPA, OXE proprio data verified and used

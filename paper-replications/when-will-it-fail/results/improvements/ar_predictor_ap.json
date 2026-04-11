@@ -1,0 +1,12 @@
+{
+  "model": "MLP (256-128-64, input=multi-scale variance features)",
+  "dataset": "SVDB4",
+  "evaluation": "correct_AP (future_labels[t] = anomaly in [t+100, t+150])",
+  "test_auroc": 0.6018577878922711,
+  "test_auprc": 0.10327988754061729,
+  "past_var_auroc": 0.47570272924746504,
+  "delta_vs_var": 0.12615505864480603,
+  "oracle_auroc": 0.72,
+  "gap_to_oracle": 0.1181422121077289,
+  "features": "multi-scale rolling mean+std, windows=[10,25,50,100,200], 20-feature"
+}
