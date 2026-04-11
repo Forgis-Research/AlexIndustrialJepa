@@ -1,0 +1,35 @@
+{
+  "a2p_paper": {
+    "auroc": null,
+    "f1_tol": 0.6755,
+    "notes": "Paper Table 1, single seed=20462"
+  },
+  "a2p_10seed": {
+    "auroc": 0.5210586606714405,
+    "auroc_std": 0.04150424487654198,
+    "n_seeds": 10,
+    "notes": "10-seed, 30ep, correct SVDB4 eval"
+  },
+  "oracle_wrong_direction": {
+    "auroc": 0.347,
+    "notes": "A2P oracle definition (current anomaly labels)"
+  },
+  "oracle_correct": {
+    "auroc": 0.7445,
+    "notes": "Future variance -> future AP labels (correct)"
+  },
+  "lr_4feat": {
+    "auroc": 0.6314709631621388,
+    "notes": "LR 4-feat"
+  },
+  "supervised_tf": {
+    "auroc": 0.6238250000519336,
+    "auroc_std": 0.007541415450368501,
+    "n_seeds": 5,
+    "notes": "Supervised 100ep, MLP head, 5-seed"
+  },
+  "random": {
+    "auroc": 0.5,
+    "notes": "Random scores"
+  }
+}
