@@ -1,0 +1,54 @@
+{
+  "dataset": "MBA",
+  "pred_len": 100,
+  "seeds": [
+    0,
+    1,
+    2
+  ],
+  "f1_mean": 19.074266666666666,
+  "f1_std": 8.774988815314176,
+  "f1_per_seed": {
+    "0": 25.078400000000002,
+    "1": 6.6667000000000005,
+    "2": 25.4777
+  },
+  "per_seed_results": [
+    {
+      "dataset": "MBA",
+      "pred_len": 100,
+      "seed": 0,
+      "elapsed_sec": 241.09385871887207,
+      "returncode": 0,
+      "f1": 25.078400000000002,
+      "precision": 40.404,
+      "recall": 18.1818,
+      "mse": 0.78,
+      "raw_output_tail": "e-training >>>>>>>>>\nStart main training...\nEpoch: 1 cost time: 11.94 loss: F 0.095543, AD 11.145521\nEpoch: 2 cost time: 12.29 loss: F 0.109287, AD 9.015171\nEpoch: 3 cost time: 12.52 loss: F 0.118139, AD 9.185823\nEpoch: 4 cost time: 12.87 loss: F 0.145295, AD 12.391271\nEpoch: 5 cost time: 12.91 loss: F 0.096550, AD 8.910563\n>>> Start test...\npredicted shape: (7500, 2)\nThreshold : 2.407415058612824\nOutput (detected, gt): ((7500,), (7500,))\nOutput (detected, gt): ((7500,), (7500,))\n[Prediction] mse:0.7808268070220947, mae:0.5674933195114136, rse:0.8861503601074219\n--------------------------------------------------------------------------------------------\n  [Pred]      A : 0.968133, P : 0.404040, R : 0.181818, F1 : 0.250784 \n--------------------------------------------------------------------------------------------\n  [Score Metric] \n  AUC_ROC : 0.381703\n  AUC_PR : 0.026777\n  Precision : 0.068966\n  Recall : 0.018182\n  F : 0.028777\n  Precision_at_k : 0.018182\n  Rprecision : 0.070175\n  Rrecall : 0.050909\n  RF : 0.059009\n  R_AUC_ROC : 0.736292\n  R_AUC_PR : 0.254063\n  VUS_ROC : 0.791054\n  VUS_PR : 0.126246\n  Affiliation_Precision : 0.495153\n  Affiliation_Recall : 0.776493\n--------------------------------------------------------------------------------------------\nmse: 0.78 (\u00b1 0.00),\n            P: 40.40 (\u00b1 0.00), \n            R: 18.18 (\u00b1 0.00) , \n            F1: 25.08 (\u00b1 0.00),\n            AD F1: 25.08 (\u00b1 0.00),\n            gt F1: 29.15 (\u00b1 0.00),\n            gt AD F1: 29.15 (\u00b1 0.00),\n            vus_roc: 79.11 (\u00b1 0.00),\n            vus_pr: 12.62 (\u00b1 0.00),\n            r_auc_roc: 73.63 (\u00b1 0.00),\n            r_auc_pr: 25.41 (\u00b1 0.00)\n{'f1': 25.07836990595611, 'mse': 0.7808268, 'vus_roc': 79.10544691837235, 'vus_pr': 12.62462103939838, 'r_auc_roc': 73.62921562834761, 'r_auc_pr': 25.406347653261207}\n\n\n[Result over 1 seeds]\nf1: 25.0784 += 0.0000\nmse: 0.7808 += 0.0000\nvus_roc: 79.1054 += 0.0000\nvus_pr: 12.6246 += 0.0000\nr_auc_roc: 73.6292 += 0.0000\nr_auc_pr: 25.4063 += 0.0000\n\n\n\n"
+    },
+    {
+      "dataset": "MBA",
+      "pred_len": 100,
+      "seed": 1,
+      "elapsed_sec": 237.22937488555908,
+      "returncode": 0,
+      "f1": 6.6667000000000005,
+      "precision": 12.5,
+      "recall": 4.5455000000000005,
+      "mse": 0.79,
+      "raw_output_tail": "nd pre-training >>>>>>>>>\nStart main training...\nEpoch: 1 cost time: 13.20 loss: F 0.163059, AD 12.897585\nEpoch: 2 cost time: 13.53 loss: F 0.104813, AD 9.044964\nEpoch: 3 cost time: 12.47 loss: F 0.079756, AD 7.669092\nEpoch: 4 cost time: 12.72 loss: F 0.134524, AD 7.957988\nEpoch: 5 cost time: 13.04 loss: F 0.082803, AD 7.271582\n>>> Start test...\npredicted shape: (7500, 2)\nThreshold : 1.7235313069820417\nOutput (detected, gt): ((7500,), (7500,))\nOutput (detected, gt): ((7500,), (7500,))\n[Prediction] mse:0.7942038774490356, mae:0.5737912058830261, rse:0.8937088847160339\n--------------------------------------------------------------------------------------------\n  [Pred]      A : 0.962667, P : 0.125000, R : 0.045455, F1 : 0.066667 \n--------------------------------------------------------------------------------------------\n  [Score Metric] \n  AUC_ROC : 0.394712\n  AUC_PR : 0.024809\n  Precision : 0.014085\n  Recall : 0.004545\n  F : 0.006873\n  Precision_at_k : 0.004545\n  Rprecision : 0.014706\n  Rrecall : 0.012727\n  RF : 0.013645\n  R_AUC_ROC : 0.723285\n  R_AUC_PR : 0.248000\n  VUS_ROC : 0.793722\n  VUS_PR : 0.137867\n  Affiliation_Precision : 0.533167\n  Affiliation_Recall : 0.855695\n--------------------------------------------------------------------------------------------\nmse: 0.79 (\u00b1 0.00),\n            P: 12.50 (\u00b1 0.00), \n            R: 4.55 (\u00b1 0.00) , \n            F1: 6.67 (\u00b1 0.00),\n            AD F1: 6.67 (\u00b1 0.00),\n            gt F1: 6.51 (\u00b1 0.00),\n            gt AD F1: 6.51 (\u00b1 0.00),\n            vus_roc: 79.37 (\u00b1 0.00),\n            vus_pr: 13.79 (\u00b1 0.00),\n            r_auc_roc: 72.33 (\u00b1 0.00),\n            r_auc_pr: 24.80 (\u00b1 0.00)\n{'f1': 6.666666666666667, 'mse': 0.7942039, 'vus_roc': 79.37223522799461, 'vus_pr': 13.786657136279093, 'r_auc_roc': 72.32845200003868, 'r_auc_pr': 24.800021023263202}\n\n\n[Result over 1 seeds]\nf1: 6.6667 += 0.0000\nmse: 0.7942 += 0.0000\nvus_roc: 79.3722 += 0.0000\nvus_pr: 13.7867 += 0.0000\nr_auc_roc: 72.3285 += 0.0000\nr_auc_pr: 24.8000 += 0.0000\n\n\n\n"
+    },
+    {
+      "dataset": "MBA",
+      "pred_len": 100,
+      "seed": 2,
+      "elapsed_sec": 244.8910837173462,
+      "returncode": 0,
+      "f1": 25.4777,
+      "precision": 42.553200000000004,
+      "recall": 18.1818,
+      "mse": 0.77,
+      "raw_output_tail": "aining >>>>>>>>>\nStart main training...\nEpoch: 1 cost time: 12.86 loss: F 0.142403, AD 17.099342\nEpoch: 2 cost time: 12.98 loss: F 0.089940, AD 11.129433\nEpoch: 3 cost time: 12.58 loss: F 0.138447, AD 10.833372\nEpoch: 4 cost time: 13.67 loss: F 0.106408, AD 9.022739\nEpoch: 5 cost time: 13.07 loss: F 0.071648, AD 10.125437\n>>> Start test...\npredicted shape: (7500, 2)\nThreshold : 2.258002815246591\nOutput (detected, gt): ((7500,), (7500,))\nOutput (detected, gt): ((7500,), (7500,))\n[Prediction] mse:0.7699675559997559, mae:0.5620740652084351, rse:0.8799667954444885\n--------------------------------------------------------------------------------------------\n  [Pred]      A : 0.968800, P : 0.425532, R : 0.181818, F1 : 0.254777 \n--------------------------------------------------------------------------------------------\n  [Score Metric] \n  AUC_ROC : 0.419432\n  AUC_PR : 0.027313\n  Precision : 0.059701\n  Recall : 0.018182\n  F : 0.027875\n  Precision_at_k : 0.018182\n  Rprecision : 0.060606\n  Rrecall : 0.050909\n  RF : 0.055336\n  R_AUC_ROC : 0.757283\n  R_AUC_PR : 0.276592\n  VUS_ROC : 0.797705\n  VUS_PR : 0.143133\n  Affiliation_Precision : 0.475198\n  Affiliation_Recall : 0.813644\n--------------------------------------------------------------------------------------------\nmse: 0.77 (\u00b1 0.00),\n            P: 42.55 (\u00b1 0.00), \n            R: 18.18 (\u00b1 0.00) , \n            F1: 25.48 (\u00b1 0.00),\n            AD F1: 25.48 (\u00b1 0.00),\n            gt F1: 24.17 (\u00b1 0.00),\n            gt AD F1: 24.17 (\u00b1 0.00),\n            vus_roc: 79.77 (\u00b1 0.00),\n            vus_pr: 14.31 (\u00b1 0.00),\n            r_auc_roc: 75.73 (\u00b1 0.00),\n            r_auc_pr: 27.66 (\u00b1 0.00)\n{'f1': 25.477707006369428, 'mse': 0.76996756, 'vus_roc': 79.77046618400315, 'vus_pr': 14.31327195533098, 'r_auc_roc': 75.72828656030993, 'r_auc_pr': 27.659249208815083}\n\n\n[Result over 1 seeds]\nf1: 25.4777 += 0.0000\nmse: 0.7700 += 0.0000\nvus_roc: 79.7705 += 0.0000\nvus_pr: 14.3133 += 0.0000\nr_auc_roc: 75.7283 += 0.0000\nr_auc_pr: 27.6592 += 0.0000\n\n\n\n"
+    }
+  ]
+}

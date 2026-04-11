@@ -1,0 +1,36 @@
+{
+  "probe": "ltw_f1",
+  "n_timesteps": 7500,
+  "anomaly_rate": 0.029333333333333333,
+  "pred_len": 100,
+  "methods": {
+    "A2P": {
+      "std_f1": 5.351170568561873,
+      "ltw_f1": 23.84519350811486,
+      "ltw_std_ratio": 4.456070536828965,
+      "segments_detected": 20,
+      "total_segments": 22
+    },
+    "Random": {
+      "std_f1": 2.810304449648712,
+      "ltw_f1": 14.24682395644283,
+      "ltw_std_ratio": 5.069494857834241,
+      "segments_detected": 20,
+      "total_segments": 22
+    },
+    "Oracle (50-step lead)": {
+      "std_f1": 28.57142857142857,
+      "ltw_f1": 1.6666666666666667,
+      "ltw_std_ratio": 0.05833333333333334,
+      "segments_detected": 22,
+      "total_segments": 22
+    },
+    "Always-0": {
+      "std_f1": 0.0,
+      "ltw_f1": 0.0,
+      "ltw_std_ratio": 0.0,
+      "segments_detected": 0,
+      "total_segments": 22
+    }
+  }
+}

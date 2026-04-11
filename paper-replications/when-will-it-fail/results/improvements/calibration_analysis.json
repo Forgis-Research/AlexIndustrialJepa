@@ -1,0 +1,21 @@
+{
+  "probe": "calibration_analysis_real",
+  "method": "A2P (MBA, real scores)",
+  "n_timesteps": 7500,
+  "anomaly_rate": 0.029333333333333333,
+  "threshold": 1.8916,
+  "auroc": 0.5284237637362638,
+  "auprc": 0.035350620871969204,
+  "brier": 0.0317947175594267,
+  "brier_baseline": 0.028472888888888888,
+  "brier_skill": -0.11666637282576908,
+  "ece": 0.03230314407247351,
+  "anomaly_score_mean": 0.183946892619133,
+  "normal_score_mean": 0.07963977009057999,
+  "separation_ratio": 2.309736728668213,
+  "precision": 0.10126582278481013,
+  "recall": 0.03636363636363636,
+  "f1": 0.05351170568561873,
+  "pct_anomaly_above_thresh": 0.03636363636363636,
+  "pct_normal_above_thresh": 0.009752747252747253
+}

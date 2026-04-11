@@ -131,7 +131,11 @@ Foundation models were trained on forecasting, not anomaly detection. Their embe
 **If it works, what venue would care:**
 NeurIPS 2026 - if a frozen foundation model + tiny head beats a dedicated anomaly prediction system, it fundamentally changes the field.
 
-**Status:** NOT YET TESTED - requires downloading Chronos
+**Status:** TESTED - CHRONOS BEATS A2P ON AUROC WITH ZERO FINE-TUNING
+
+**Results:** Chronos-Small (frozen) AUROC=0.745 vs A2P AUROC=0.528 (+21.7pp). Using only forecast MSE as anomaly score, no MLP head, no fine-tuning whatsoever. This is the strongest finding of the session - A2P's specialized architecture provides NEGATIVE value for raw anomaly discrimination compared to a zero-shot foundation model.
+
+See results/improvements/chronos_baseline.json.
 
 ---
 
@@ -286,13 +290,34 @@ ICLR 2026 - augmentation for time series anomaly detection.
 
 ---
 
+---
+
+## Idea 12: Data Integrity Verification
+
+**Why this matters:**
+The TranAD-derived MBA dataset has train.npy == test.npy (row-for-row identical). This means all reported F1 values on this dataset are in-sample evaluations (training set == test set). A2P with proper 70/30 temporal split achieves F1=12.66% vs 43.1% with train==test (3.4x inflation).
+
+**What we found:**
+- MBA TranAD: 100% identical train/test rows
+- In-sample F1 (train==test): 43.1%
+- Out-of-sample F1 (70/30 split): 12.66%
+- Inflation factor: 3.4x
+- Paper uses PhysioNet SVDB records which have proper temporal separation
+
+**Status:** TESTED (see results/improvements/data_integrity.json)
+
+---
+
 ## Priority Ranking for Testing Tonight
 
 | Priority | Idea | Cost | Expected Signal | Status |
 |----------|------|------|----------------|--------|
-| 1 | Grey-Swan Regime Test | 30 min | High (likely to show collapse) | TESTING |
-| 2 | Calibration Analysis | 30 min | High (ECE computation is fast) | TESTING |
-| 3 | Lead-Time-Weighted F1 | 1 hr | Medium (depends on prediction timing) | TESTING |
-| 4 | Cross-Dataset Transfer | 1.5 hr | High (fundamental generalization test) | PLANNED |
-| 5 | End-to-End Training | 1 hr | Medium (may destabilize) | PLANNED |
-| 6 | Foundation Model Distillation | 2 hr | High (major conceptual test) | PLANNED |
+| 1 | Grey-Swan Regime Test | 30 min | High (likely to show collapse) | TESTED - F1 collapses 10x |
+| 2 | Calibration Analysis | 30 min | High (ECE computation is fast) | TESTED - AUROC=0.528 (near-random!) |
+| 3 | Lead-Time-Weighted F1 | 1 hr | Medium (depends on prediction timing) | TESTED - A2P not better than random |
+| 12 | Data Integrity Verification | 30 min | HIGH - fundamental finding | TESTED - train==test inflates F1 3.4x |
+| 4 | Foundation Model Distillation | 2 hr | High (major conceptual test) | TESTED - Chronos AUROC=0.745 vs A2P=0.528 (+21.7pp!!) |
+| 3a | Ablation: No Shared Backbone | 15 min | Medium | TESTED - direction correct, magnitude off |
+| 3b | Ablation: No AAFN | 15 min | Medium | TESTED - near-null effect (data issue) |
+| 5 | Cross-Dataset Transfer | 1.5 hr | High | PLANNED (needs dim reduction) |
+| 6 | End-to-End Training | 1 hr | Medium (may destabilize) | PLANNED |

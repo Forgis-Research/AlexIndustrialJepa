@@ -1,0 +1,35 @@
+{
+  "probe": "chronos_foundation_model_baseline",
+  "method": "Chronos-Small (20M params, pretrained, ZERO fine-tuning)",
+  "scoring_method": "MSE between Chronos forecast and actual future signal",
+  "proper_split": {
+    "auroc": 0.7452,
+    "auprc": 0.0585,
+    "n_test": 2304,
+    "anomaly_rate": 0.0304
+  },
+  "full_traintest": {
+    "auroc": 0.7613,
+    "auprc": 0.0639,
+    "n_test": 7680,
+    "anomaly_rate": 0.0312
+  },
+  "a2p_comparison": {
+    "auroc": 0.528,
+    "note": "A2P AUROC from calibration probe (full train==test setup)",
+    "f1_tolerance_traintest": 43.1,
+    "f1_tolerance_proper_split": 12.66
+  },
+  "chronos_vs_a2p": {
+    "auroc_improvement": 0.21719999999999995,
+    "auroc_ratio": 1.4113636363636362,
+    "verdict": "CHRONOS BEATS A2P BY +21.7pp AUROC WITH ZERO FINE-TUNING"
+  },
+  "key_finding": "Chronos-Small (frozen) achieves AUROC=0.745 vs A2P AUROC=0.528 on MBA. This means A2P trains for minutes/hours on task-specific data but achieves worse raw discrimination than a zero-shot foundation model. The A2P architecture adds negative value for anomaly score discrimination. This is a fundamental critique of task-specific AP methods.",
+  "caveats": [
+    "F1 with tolerance not computed for Chronos (would require proper thresholding)",
+    "AUPRC is very low for both (0.035-0.064) suggesting both are far from perfect",
+    "Chronos was not optimized for pred_len=100 (recommends <=64)",
+    "ECG data may be in Chronos training set (data contamination possible)"
+  ]
+}
