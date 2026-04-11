@@ -1728,7 +1728,7 @@ seed=2:  val=0.6356, test=0.5661
 ```
 **Sanity checks:** ✓ All val > test ✓ All > 0.5 ✓ Std reasonable
 **Verdict:** KEEP - CNN significantly WORSE than transformer (0.569 vs 0.624, delta=-0.055)
-**Key finding:** CNN's local receptive field (kernel=7) misses the global "calm before storm" pattern. Transformer's full attention over 200 steps captures the global variance structure better.
+**Key finding:** CNN's local receptive field (kernel=7, 3 layers): RF = 7+(7-1)+(7-1) = 19 steps. This sees only 19/200 = 9.5% of the window per position, missing 90.5% of the global calm-before-storm signal. Transformer's O(T^2) attention sees the full 200-step context.
 **Saved:** results/improvements/cnn_ap_100ep.json
 
 ---
