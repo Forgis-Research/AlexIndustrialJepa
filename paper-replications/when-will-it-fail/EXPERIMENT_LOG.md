@@ -3495,3 +3495,111 @@ On the genuinely predictable component (strict AP):
 **File:** results/improvements/corrected_comparison.json
 
 ---
+
+
+### Probe 122: Temporal Pattern of Strict AP+ Events (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** Strict AP+ events are not randomly distributed in time - they should cluster near anomaly block beginnings.
+**Design:** CPU-only. Distance to next anomaly block start. Variance profile across context window.
+**Sanity checks:** ✓ Block lengths = 100.0 ± 0.0 (consistent with probe 107). ✓ Strict AP+ n=1170 consistent.
+
+**CRITICAL FINDING: 97.9% of strict AP+ events are within 200 steps of next anomaly block start.**
+
+Timing:
+- Strict AP+ distance to NEXT block: mean=160, median=126 steps
+- 97.9% of strict AP+ are within 200 steps of next block
+- 98.0% within 500 steps of next block
+- **Interpretation: Strict AP+ events ARE the pre-onset of the next anomaly block**
+
+Distance to PREVIOUS block end:
+- Strict AP+: mean=1337, median=1147 steps (well after last block ends)
+- AP-: mean=1187, median=780 steps
+- AUROC using proximity to previous block: 0.420 (below random!)
+- Strict AP+ are NOT closer to the previous block - they're in the middle of the gap
+
+**Variance Profile of Strict AP+ Context (vs AP-):**
+
+| Context time | AP+ var | AP- var | Ratio | Pattern |
+|-------------|---------|---------|-------|---------|
+| t=0-40 | 0.009 | 0.024 | 0.35-0.47x | CALM (0.5x AP-) |
+| t=60-90 | 0.038-0.040 | 0.022 | 1.62-1.84x | RISE (previous block onset?) |
+| t=100-150 | 0.003-0.018 | 0.024 | 0.14-0.75x | CALM (gap) |
+| t=170-200 | 0.042-0.045 | 0.022 | 1.73-2.06x | **RISE (NEXT block onset!)** |
+
+**The context window is showing the BEGINNING of the next anomaly block at t=170-200!**
+
+**New interpretation of the AP task for SVDB4:**
+1. Anomaly blocks are exactly 100 steps
+2. Strict AP+ events have the prediction window [t+100, t+150] containing block start
+3. The context window [t-200, t] shows the LAST 200 steps before this block starts
+4. The variance rise at t=170-200 IS the block beginning (slowly rising before the full anomaly)
+5. The calm at t=100-150 is the inter-block quiet period
+6. The earlier rise at t=60-90 is visible from the PREVIOUS anomaly block pattern
+
+**This explains everything:**
+- LR succeeds because it detects the rise at t=170-200 in the CONTEXT (onset signal)
+- Oracle fails because it uses future variance of [t+100, t+150] = block start = can be LOW at onset
+- 97.9% clustering near block start explains why the AP task is "solvable" from context
+
+**Implication for dataset design:**
+- The AP task on SVDB4 is essentially "detect the beginning of an anomaly block"
+- This is a DETECTION task, not a PREDICTION task
+- The 33.6% that appear to be "strict" prediction are actually very near the block onset
+- A truly hard AP dataset would have unpredictable anomaly starts (no rise-before-onset)
+
+**File:** results/improvements/strict_ap_temporal.json
+
+---
+
+
+### Probe 123: Block Onset Detection Analysis (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** Strict AP+ events are exactly the pre-onset windows of anomaly blocks.
+**Design:** CPU-only. Distance analysis from strict AP+ positions to anomaly block starts.
+**Sanity checks:** ✓ Strict AP+: n=1170, blocks: n=117, 10 per block = matches 1170/117.
+
+**DEFINITIVE FINDING: ALL strict AP+ events are block onset prediction windows.**
+
+| Statistic | Value |
+|-----------|-------|
+| Blocks with strict AP+ predictors | 117/117 (100.0%) |
+| Strict AP+ accounted for | 1170/1170 (100.0%) |
+| Mean strict AP+ per block | 10.0 (= 50 steps / stride 5) |
+| Strict AP+ in window [100, 150] steps from block | 1146/1170 (97.9%) |
+| Distance P25 | 113 steps |
+| Distance P50 | 126 steps |
+| Distance P75 | 138 steps |
+
+**Block structure**: Each of 117 blocks has EXACTLY 10 strict AP+ predictors (prediction windows with block start in [t+100, t+150]).
+
+**Context variance at onset:**
+- Early (100-125 steps to block): last-20 var = 0.0551 = 1.73x AP-
+- Late (125-150 steps to block): last-20 var = 0.0515 = 1.61x AP-
+- The block onset is ALREADY VISIBLE in the context window (rising variance)
+
+**Revised interpretation of the AP task:**
+- **ALL** 3486 AP+ events are block-related (not "random future anomalies")
+  - 2316 (66.4%): block is ongoing in prediction window (clear detection)
+  - 1170 (33.6%): block starts at [t+100, t+150] (onset visible in context)
+- The "prediction" is really: "Is there a block starting in [t+100, t+150]?"
+- This is achievable because blocks are large (100 steps), regular (always 100), and have visible onset patterns
+
+**Why LR beats oracle for strict AP:**
+The oracle measures variance of [t+100, t+150] = variance of the FIRST 50 steps of the block.
+At block START, variance is lower than at block PEAK. So the oracle signal is weak for onset.
+The context shows the LAST 20-50 steps before the block starts - with rising variance.
+This onset rise is MORE predictive than the beginning of the block itself.
+
+**Ultimate takeaway for the paper:**
+The SVDB4 AP task is well-structured but highly specific:
+- Anomaly blocks are perfectly regular (100 steps each)
+- All AP+ are block-boundary events (onset or ongoing)
+- The "hardest" AP+ events are just the 100-125 step pre-onset windows
+- Context features work because they detect the early rise of the anomaly onset
+- This is fundamentally anomaly DETECTION with a temporal offset, not genuine PREDICTION
+
+**File:** results/improvements/block_onset_analysis.json
+
+---
