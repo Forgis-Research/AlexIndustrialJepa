@@ -4125,3 +4125,52 @@ The practical implication: no training needed, inference is O(1), features have 
 **Files:** results/improvements/refined_calm_features.json, refined_lr_ci.json
 
 ---
+
+
+### Probe 134: 5-fold CV for Refined Calm LR (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** The 0.734 from probe 133 (60/40 split) will hold up in 5-fold CV.
+**Design:** 5-fold temporal CV, same folds as probe 120b. Refined 13-feat LR (C=1.0) vs RF (100 trees) vs Oracle.
+
+**Results:**
+```
+                  Mean    ±Std   vs Probe 120b ref
+Refined LR (13): 0.751  ±0.026   -0.008 (WORSE!)
+RF (100 trees):  0.771  ±0.036   -0.020 (WORSE!)
+Oracle:          0.629  ±0.015   -0.019 (slightly lower)
+
+Probe 120b (4-feat LR):  0.759 ± 0.015
+Probe 120b (RF):         0.791 ± 0.013
+Probe 120b (Oracle):     0.648 ± 0.010
+```
+
+**Per-fold breakdown:**
+| Fold | LR-13 | RF | Oracle |
+|------|-------|-----|--------|
+| 0 | 0.789 | 0.803 | 0.630 |
+| 1 | 0.766 | 0.802 | 0.646 |
+| 2 | 0.744 | 0.775 | 0.643 |
+| 3 | 0.744 | 0.772 | 0.625 |
+| 4 | 0.711 | 0.703 | 0.603 |
+
+**Key finding:** Refined features (0.751 ± 0.026) do NOT improve over 4-feat LR (0.759 ± 0.015) in 5-fold CV. The 0.734 in probe 133 was favorable to the 60/40 temporal split where the refined features happened to fit the test distribution well. In proper CV, simpler 4-feat LR is more stable.
+
+**Explanation:** The per-channel features (calm_ch0, calm_ch1) and AC1 feature add model complexity. With smaller fold-specific training sets, these features overfit the training distribution and fail to generalize as consistently as the simpler 4-feat LR.
+
+**Revised canonical performance table (strict AP):**
+```
+Method                    | AUROC    | CI / Std   | Notes
+--------------------------|----------|------------|-------
+Oracle (future var)       | 0.648    | ±0.010     | 5-fold CV (probe 120b)
+LR 4-feat (CV best)       | 0.759    | ±0.015     | 5-fold CV (probe 120b)
+Refined LR 13-feat (CV)   | 0.751    | ±0.026     | 5-fold CV (probe 134); more variance
+RF (CV)                   | 0.791    | ±0.013     | 5-fold CV (probe 120b, 134)
+TF supervised 3-seed      | 0.723    | ±0.005     | 60/40 split (probe 102)
+```
+
+**Verdict:** REVERT to 4-feat LR as canonical recommendation; refined features don't generalize better
+
+**File:** results/improvements/cv_refined.json
+
+---
