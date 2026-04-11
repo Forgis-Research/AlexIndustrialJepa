@@ -2145,3 +2145,91 @@ STEP 6: Multi-seed baseline comparison
 
 ---
 
+### Probe 67: SMD Cross-Dataset Validation (RUNNING)
+
+**Time:** 2026-04-12 01:00 (GPU, PID 182346)
+**Hypothesis:** Epoch convergence (30ep=10% converge) and architecture hierarchy (TF>LSTM>CNN) generalize to SMD.
+**Design:** APTransformer + BiLSTM + CNN on SMD top-5 channels, 3 seeds x 100ep, stride=10.
+**Setup:** SMD top-5 channels [24, 11, 12, 34, 35] (from Probe 32, selected by AP AUROC); 70K sequences; 42K/14K/14K train/val/test split.
+**Status:** RUNNING (Part 1: 30ep convergence; Part 2: architecture comparison)
+
+---
+
+### Probe 69: Calm-Before-Storm Lead Time Analysis (COMPLETE)
+
+**Time:** 2026-04-12 01:15 (CPU-only)
+**Hypothesis:** The calm-before-storm signal peaks at specific lead times reflecting dataset structure.
+**Design:** Compute var(signal[t-50:t]) vs AP+ labels at different lead times (L=25 to 475, step=25).
+**Results:**
+```
+Lead  25: AUROC=0.253  (calm-before-storm STRONG at L=25, AUROC < 0.5)
+Lead  50: AUROC=0.486  (near random)
+Lead  75: AUROC=0.679  (high variance predicts event 75-125 ahead)
+Lead 100: AUROC=0.572  (moderate)
+Lead 125: AUROC=0.316  (calm again)
+Lead 150: AUROC=0.328  (calm)
+Lead 175: AUROC=0.554
+Lead 200: AUROC=0.662  (high again - similar to L=75+100)
+Lead 225: AUROC=0.470
+Lead 250: AUROC=0.341  (calm)
+Lead 300: AUROC=0.644  (high again)
+...repeating pattern
+```
+**Key findings:**
+1. Pattern has ~100-step periodicity = exact anomaly block length in SVDB4
+2. AUROC < 0.5 at L=25, 125, 250, 350, 475 (calm-before-storm) 
+3. AUROC > 0.65 at L=75, 200, 300, 425 (post-event high variance predicts upcoming event)
+4. This is a DATASET ARTIFACT from synthetic 100-step block structure (not a general ECG property)
+5. A2P's 100-150 step horizon: AUROC=0.572 (moderate) with just var(last-50)
+**Important nuance:** Probe 44/45's calm-before-storm finding uses FULL 200-step window variance,
+not just last-50 steps. The two analyses are measuring different scales of the signal.
+**Verdict:** KEEP - valuable for understanding the dataset structure in the paper
+**Saved:** results/improvements/calm_leadtime.json
+
+---
+
+### Probe 70: Precision-Recall Analysis at Practical Operating Points (COMPLETE)
+
+**Time:** 2026-04-12 01:25 (CPU-only)
+**Hypothesis:** AP at 50% recall should achieve substantially higher precision than random.
+**Design:** Compute PR curves for LR 4-feat and Oracle (SVDB4 test split, 7359 samples, 7.7% AP+ rate).
+**Results:**
+```
+Metric          Random  LR 4-feat   Oracle
+AUROC           0.500   0.630       0.722
+AUPRC           0.077   0.122       0.478
+
+At 50% recall:
+  Oracle:   precision=0.193  (2.5x over random, 4.2 false alarms per true positive)
+  LR 4feat: precision=0.106  (1.4x over random, 8.4 false alarms per true positive)
+
+At 25% recall:
+  Oracle:   precision=1.000  (perfect at top 25%!)
+  LR 4feat: precision=0.097  (1.3x over random)
+```
+**Key insight:** Oracle achieves perfect precision at 25% recall - there are ~140 "easy" AP+ windows
+where future variance is a near-perfect predictor. These are anomaly events with very strong precursors.
+But for the remaining 75% of events, even the oracle has substantial false alarm rates.
+**Sanity checks:** ✓ Oracle > LR > random at all recall levels ✓ Numbers in plausible range
+**Verdict:** KEEP - quantifies practical utility gap
+**Key for NeurIPS Claim 14:** LR 4-feat achieves only 1.4x precision over random at 50% recall.
+8.4 false alarms per true positive. AP is learnable but not yet practically useful.
+Even oracle has 4.2 false alarms per true positive at 50% recall.
+This suggests either: (1) AP requires much better models, OR (2) the task definition needs revision
+to focus on a more predictable subset of anomalies.
+**Saved:** results/improvements/pr_analysis.json
+
+---
+
+### Probe 68: AUPRC Full Comparison (RUNNING)
+
+**Time:** 2026-04-12 01:00 (GPU, PID 182483)
+**Hypothesis:** Supervised transformer achieves higher AUPRC than LR 4-feat, but both well below oracle.
+**Design:** LR 4-feat + APTransformer (5 seeds, 100ep) on SVDB4. Compare AUROC AND AUPRC.
+**Oracle (already computed):** AUROC=0.722, AUPRC=0.478
+**LR 4-feat (already computed):** AUROC=0.630, AUPRC=0.122
+**Status:** RUNNING - training transformer (5 seeds)
+**Why:** Claim #5 (AP is learnable) needs AUPRC validation; AUPRC more informative for imbalanced tasks.
+
+---
+

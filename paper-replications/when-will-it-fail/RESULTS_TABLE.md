@@ -149,10 +149,12 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | **Correct AP: Probe 47** | **1D CNN (3 conv layers, 100ep, 3 seeds)** | **AUROC** | **0.5691 +/- 0.0088** | **Transformer: 0.624** | **COMPLETE - CNN 5.5pp worse (t=7.51, p=0.003, d=6.67)** |
 | **Correct AP: Probe 48** | **BiLSTM (2-layer, hidden=64, 100ep, 3 seeds)** | **AUROC** | **0.5805 +/- 0.0156** | **Transformer: 0.624** | **COMPLETE - BiLSTM 4.3pp worse than transformer** |
 | **Correct AP: Probe 51** | **Horizon comparison (LR, near vs A2P default vs far)** | **AUROC** | **near=0.646; A2P=0.624; 25-75=0.517** | **Oracle=0.721 (all)** | **COMPLETE - near best (65.9% learned); 25-75 worst (7.8%)** |
-| Correct AP: Probe 57 | Near-horizon transformer (0-50 steps, 3 seeds) | AUROC | seed=42: 0.759 (EXCEEDS oracle!) | Oracle near=0.750; LR near=0.646 | RUNNING - seeds 1&2 pending |
+| **Correct AP: Probe 57** | **Near-horizon transformer (0-50 steps, 3 seeds)** | **AUROC** | **0.8039 +/- 0.0318 (ALL exceed oracle 0.750!)** | **Oracle near=0.750; LR near=0.646** | **COMPLETE - CONFIRMS CONTAMINATION: 66.4% AP+ have anomaly in context** |
 | Correct AP: Probe 61 | Feature ablation (LR, which features matter) | AUROC delta | last-50 var: -0.012 (most imp); ac1: +0.006 (hurts!) | ref=0.622 | COMPLETE - ac1 adds noise |
 | **Correct AP: Probe 63** | **Optimal LR: 4 features (drop ac1+var100)** | **AUROC** | **0.6308** | **8-feat: 0.6223** | **COMPLETE - simpler is better (+0.008)** |
-| Correct AP: Probe 62 | Width ablation (d=32 vs d=128, L=2 fixed) | AUROC | RUNNING | d=64: 0.6238 | Running |
+| Correct AP: Probe 62 | Width ablation (d=32 vs d=128, L=2 fixed) | AUROC | RUNNING | d=64: 0.6238 | Running (PID 175044, ~35 min elapsed) |
+| Correct AP: Probe 67 | SMD cross-dataset validation (TF epoch convergence + arch hierarchy) | AUROC | RUNNING | SMD oracle: 0.554 | Running (PID 182346, top-5 channels) |
+| Correct AP: Probe 68 | AUPRC full comparison (LR vs TF vs oracle, 5 seeds) | AUPRC | RUNNING | LR AUPRC: 0.097 | Running (PID 182483, SVDB4) |
 
 **CRITICAL:** Single-seed AP results (0.642, 0.641, 0.619, 0.625) are unreliable. True multi-seed APTransformer AUROC at 30ep = 0.5211 +/- 0.0415 (10 seeds), barely above random (0.500) and NOT statistically significant (p=0.081). All single-seed "best results" must be treated as preliminary. With 100ep supervised training, consistent AUROC=0.6238 ± 0.0075 is achieved (5 seeds, Probe 30).
 
