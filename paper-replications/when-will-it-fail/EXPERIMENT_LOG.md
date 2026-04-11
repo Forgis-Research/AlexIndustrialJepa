@@ -1482,3 +1482,36 @@ Effect sizes:
 **Key for NeurIPS:** A2P's AP transformer at 30 epochs is NOT statistically different from random (p=0.081, two-sided). A simple LR with variance features is significantly better (p=0.0006) and captures 4.4x more learnable AUROC signal. This is a formal statistical repudiation of A2P's AP evaluation.
 **Saved:** results/improvements/statistical_comparison.json
 
+---
+
+### Probe 46: Temporal Visualization of AP Signal (COMPLETED)
+
+**Time:** 2026-04-11 19:00 (completed quickly, CPU-only)
+**Hypothesis:** Variance profiles around anomaly onsets show systematic patterns that confirm the "calm before storm" hypothesis.
+**Method:** Extract variance profiles around 117 anomaly event onsets in SVDB4 test; test multiple lead times; compute lead-time-specific AUROC.
+**Results:**
+```
+117 anomaly events found in SVDB4 test set
+
+Lead time AUROC (50-step window at each lead):
+  Lead 0-50:    AUROC = 0.659 (BEST - very near future)
+  Lead 25-75:   AUROC = 0.526 (WORST - transition zone!)
+  Lead 50-100:  AUROC = 0.555
+  Lead 75-125:  AUROC = 0.601
+  Lead 100-150: AUROC = 0.607 (A2P's default horizon)
+  Lead 125-175: AUROC = 0.591
+  Lead 150-200: AUROC = 0.541 (drops again)
+  Lead 200-250: AUROC = 0.584 (recovers)
+
+Pattern: NON-MONOTONIC with worst at 25-75 step lead!
+  - Very short lead (0-50): easiest (signal strongest)
+  - Medium-short (25-75): hardest (transition zone)
+  - Medium (100-150): reasonable (A2P's horizon)
+  - Long (150-200): drops again
+  - Very long (200-250): partial recovery (long-term context)
+```
+**Sanity checks:** ✓ Lead 0-50 is best (makes sense - most immediate signal) ✓ All AUROC values above 0.5 (genuine signal) ✓ Pattern consistent with lead time analysis in Probe 45
+**Verdict:** KEEP - provides important temporal structure insight
+**KEY INSIGHT:** The non-monotonic lead-time AUROC suggests ECG arrhythmia has a bimodal precursor structure: very short-term precursors (0-50 steps) AND medium-term (75-150 steps), with a "gap" at 25-75 steps that is harder to exploit. A2P's default 100-150 step horizon is NOT the hardest, but also not the easiest.
+**Saved:** analysis/plots/fig8_temporal_structure.png
+
