@@ -60,9 +60,26 @@ Replication dir: `/home/sagemaker-user/IndustrialJEPA/paper-replications/when-wi
 | SMD | 0.652 | Supervised MLP (15 features, 30 epochs) |
 | SVDB1 | 0.692 | Oracle future var (but confounded!) |
 
+## Trainable AP Models on Correct Evaluation (SVDB4, April 11, 2026)
+
+Progressive improvement toward oracle (AUROC=0.720):
+
+| Model | AUROC | Gap to Oracle |
+|-------|-------|---------------|
+| Rolling var (no training) | 0.476 | 0.244 |
+| Multi-scale MLP (supervised) | 0.602 | 0.118 |
+| JEPA temporal pretrain + finetune | 0.619 | 0.101 |
+| Supervised from scratch (fixed LR) | 0.625 | 0.095 |
+| APTransformer (cosine LR) | **0.642** | **0.078** |
+| Oracle future var | 0.720 | 0.000 |
+
+**Key finding Probe 25**: Naive JEPA pretraining (temporal reconstruction) HURTS vs scratch. Objective mismatch: pretraining rewards predicting normal signal dynamics; AP rewards detecting anomaly precursors. Future: anomaly-aware contrastive pretraining needed.
+
 ## Running Experiments (April 11, 2026)
 
-- SMD A2P seed=42 full run (PID 5584): in pretraining Epoch 1. ETA: ~20+ hours.
+- SMD A2P seed=42 full run (PID 5584): stuck at Epoch 2 after 3+ hours. ETA: ~10+ more hours. Will not complete.
+- Contrastive AP (PID 112359): InfoNCE contrastive pretrain on (context, future) pairs. Running.
+- STAR replication FD001 (PID 69842): 3/5 seeds done, mean RMSE=12.17 (paper: 10.61, +14.7%). Seed 789 running.
 
 ## Result Files
 
@@ -77,17 +94,21 @@ All in `results/improvements/`:
 - `e2e_training.json`: E2E training probe result
 - `tolerance_sensitivity.json`: F1-tol plateau analysis
 - `smd_max_chan_var.json`: Max-channel var on SMD
+- `ar_predictor_ap.json`: Multi-scale MLP correct AP
+- `transformer_ap.json`: APTransformer correct AP
+- `jepa_ap.json`: JEPA temporal pretrain + finetune
+- `contrastive_ap.json`: Contrastive pretrain (PENDING)
 
-## NeurIPS Narrative
+## NeurIPS Narrative (8-step evidence chain)
 
-Seven-step evidence chain for "F1-tol is broken for AP":
 1. F1-tolerance 8x inflation (raw 5.35% -> 43.1%)
 2. A2P AUROC = 0.499 ± 0.008 (3-seed, indistinguishable from random)
-3. Rolling var + random scores BEAT A2P on all datasets
+3. Rolling var + random scores BEAT A2P on ALL 3 datasets
 4. Metric rank inversion (rho=0.000)
 5. Data integrity (train==test 3.4x, seed bug)
 6. Oracle future var = 0.347 (below random!) - evaluation tests detection not prediction
-7. Correct AP evaluation: oracle=0.720 - task IS achievable; SVDB1 is confounded
+7. Correct AP evaluation: oracle=0.720 - task IS achievable; SVDB1 confounded
+8. Trainable models close gap: MLP(0.602) < JEPA(0.619) < Scratch(0.625) < Transformer(0.642); naive JEPA fails
 
 Key contribution: propose correct AP evaluation (future_labels, AUROC/AUPRC), oracle target 0.720.
-Target: JEPA-AP that achieves AUROC > 0.72 under correct evaluation.
+Target: anomaly-aware contrastive pretraining achieving AUROC > 0.72 under correct evaluation.

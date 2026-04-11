@@ -1,0 +1,17 @@
+{
+  "model": "ContrastiveAP (dual-encoder, InfoNCE pretrain + fine-tune)",
+  "dataset": "SVDB4",
+  "evaluation": "correct_AP (future_labels[t] = anomaly in [t+100, t+150])",
+  "test_auroc": 0.6412456401659385,
+  "test_auprc": 0.1188623962412014,
+  "best_val_auroc": 0.6442924582503448,
+  "oracle_auroc": 0.72,
+  "aptransformer_auroc": 0.642,
+  "jepa_auroc": 0.619,
+  "gap_to_oracle": 0.07875435983406143,
+  "delta_vs_aptransformer": -0.0007543598340614688,
+  "pretrain_type": "InfoNCE contrastive: context[i] <-> future[i] pairs",
+  "pretraining_epochs": 40,
+  "finetune_epochs": 50,
+  "cosine_lr": true
+}

@@ -2014,14 +2014,15 @@ invalid for AP research. Only SVDB4 (4 records, distributed anomalies) and SMD a
 
 **Step 8 - Trainable models progressively close gap to oracle on correct AP task:**
 - Multi-scale MLP (20 features, 256-128-64): AUROC=0.602 (gap to oracle: 0.118)
-- JEPA pretrain + finetune: AUROC=0.619 (gap to oracle: 0.101) - but BELOW scratch!
+- JEPA temporal pretrain + finetune: AUROC=0.619 (gap to oracle: 0.101) - hurts vs scratch!
 - Supervised from scratch (fixed LR): AUROC=0.625 (gap to oracle: 0.095)
+- InfoNCE generic contrastive + finetune: AUROC=0.641 (essentially identical to APTransformer)
 - APTransformer (cosine LR decay, Probe 24): AUROC=0.642 (gap to oracle: 0.078)
 - Oracle future var: AUROC=0.720 (target)
-- Key finding: Naive JEPA pretraining (temporal reconstruction) does NOT help AP prediction.
-  The pretraining objective (predict future signal values) is misaligned with the downstream task
-  (predict whether future signal will be anomalous). A properly designed contrastive or
-  anomaly-aware pretraining would be needed.
+- Key finding: Both JEPA temporal reconstruction AND generic InfoNCE contrastive pretraining
+  fail to improve over supervised-from-scratch APTransformer. The SSL pretraining signal must
+  be directly aligned with the AP task (anomaly-aware) to provide benefit.
+- AP-aware contrastive pretraining (context vs anomalous futures) is the next logical step.
 
 **Proposed fix:** Evaluate AP against future anomaly labels with AUROC/AUPRC.
 Oracle AUROC = 0.720 (SVDB4), 0.554 (SMD) are the achievable targets for a proper AP model.
@@ -2214,4 +2215,78 @@ print(f"  4. Future work: contrastive anomaly pretraining targeting future AP la
 print(f"")
 print(f"Current best: APTransformer supervised (AUROC=0.642) is the baseline to beat.")
 print(f"Target: anomaly-aware pretraining achieving AUROC > 0.720 (oracle)")
+```
+
+## 26. Probe 26: Contrastive Pretraining for AP
+
+### 26.1 Probe 26a: Generic InfoNCE Contrastive (context[i] <-> future[i] pairs)
+
+**Hypothesis**: Generic temporal contrastive pretraining (InfoNCE: each context aligns with its corresponding future) builds better temporal representations than supervised training from scratch.
+
+**Architecture**: Dual-encoder (context 200-step + future 50-step), d_model=64, proj_dim=32, 228K params.
+
+**Result**: AUROC=0.641, essentially identical to APTransformer (0.642). Delta = -0.001.
+
+```{python}
+import json
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Load all AP model results
+with open('../results/improvements/contrastive_ap.json') as f:
+    cap_v1 = json.load(f)
+with open('../results/improvements/jepa_ap.json') as f:
+    jepa = json.load(f)
+
+print("=== SSL Pretraining for AP - Complete Summary ===\n")
+print("All methods on SVDB4, correct AP evaluation (future_labels[t]), oracle=0.720\n")
+
+methods = [
+    ("Rolling var (baseline)", 0.476),
+    ("Multi-scale MLP", 0.602),
+    ("JEPA temporal pretrain", jepa['jepa_pretrain_finetune']['test_auroc']),
+    ("Supervised scratch (fixed LR)", jepa['supervised_scratch']['test_auroc']),
+    ("InfoNCE contrastive", cap_v1['test_auroc']),
+    ("APTransformer (cosine LR)", 0.642),
+    ("Oracle future var", 0.720),
+]
+
+print(f"{'Method':<35} {'AUROC':>7} {'Gap':>7} {'vs APT':>8}")
+print("-" * 62)
+for name, auroc in methods:
+    gap = 0.720 - auroc
+    vs_apt = auroc - 0.642
+    print(f"  {name:<33} {auroc:.4f} {gap:+.4f} {vs_apt:+.5f}")
+print()
+print("KEY FINDING: Generic contrastive (InfoNCE) is essentially identical to APTransformer.")
+print("JEPA temporal reconstruction hurts (-0.023). Neither SSL method improves over supervised.")
+print("Root cause: SSL objectives are not aligned with the AP task (predict future anomalies).")
+```
+
+### 26.2 What Would Help: Anomaly-Aware Pretraining
+
+For SSL to help AP, the pretraining objective must be directly aligned with the task:
+
+1. **AP-aware contrastive**: For each anomalous context, push it TOWARD the corresponding anomalous future embedding and AWAY from normal future embeddings. This is the "hard negative mining" approach.
+
+2. **Masked anomaly future pretraining**: Mask anomalous future segments during pretraining and train the model to detect when the future will be anomalous (not just reconstruct the signal).
+
+3. **Time-shifted contrastive**: Create positive pairs from (window at t, anomalous window at t+pred_len) and negative pairs from (window at t, normal window at t+pred_len). This is the AP objective in SSL form.
+
+The core design requirement: **the pretraining task must explicitly encode the AP signal into the representation**.
+
+```{python}
+print("=== Pretraining Objective Alignment Analysis ===\n")
+print("Generic temporal SSL methods: encode WHAT the signal looks like")
+print("  -> Good for anomaly DETECTION (classify current state)")
+print("  -> Poor for anomaly PREDICTION (classify future state)")
+print()
+print("AP-aware SSL objectives (future work):")
+print("  1. InfoNCE with anomaly-aware positives/negatives")
+print("  2. Masked anomaly detection pretraining")
+print("  3. Time-shifted contrastive (context -> future AP pairs)")
+print()
+print("The 0.078 gap between APTransformer (0.642) and oracle (0.720) requires")
+print("task-aligned SSL that makes the encoder sensitive to anomaly precursors,")
+print("not just temporal dynamics.")
 ```

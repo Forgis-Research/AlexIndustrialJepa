@@ -795,3 +795,42 @@ What would work: (1) Contrastive pretraining on future anomaly windows vs normal
 The JEPA concept is right but the pretraining task must match the downstream task.
 
 **Saved:** results/improvements/jepa_ap.json
+
+---
+
+### Probe 26a: Contrastive AP Pretraining V1 (Generic InfoNCE)
+
+**Time:** 2026-04-11 15:15 (completed ~15:25, 10 minutes)
+**Hypothesis:** InfoNCE contrastive pretraining on (context, future) pairs improves over scratch by building temporal representations before fine-tuning for AP.
+**Dataset:** SVDB4 (184K, correct AP evaluation)
+**Architecture:** Dual-encoder (context encoder 200-step + future encoder 50-step), d_model=64, proj_dim=32, 228K params
+**Method:**
+- Phase 1: 40 epochs InfoNCE contrastive. Positive pairs: (context_i, future_i). Temperature=0.1.
+- Phase 2: 50 epochs fine-tuning with cosine LR on AP labels
+**Results:**
+```
+Contrastive pretrain + finetune AUROC: 0.641 (oracle: 0.720, APTransformer: 0.642)
+Best val AUROC (epoch 5):             0.644 - then gradual decline
+Delta vs APTransformer:               -0.001 (essentially identical!)
+Embedding AUROC (pretrain only):      0.551 (peak at epoch 10) - low signal
+```
+**Sanity checks:** ✓ Loss decreased (5.55->3.77) ✓ Embedding AUROC > 0.5 ✓ Fine-tuning AUROC > 0.5 ✓ No NaN
+**Verdict:** NEUTRAL - Generic InfoNCE does NOT improve over APTransformer.
+
+**Analysis:**
+1. Embedding AUROC = 0.551 (barely above random). The generic InfoNCE learns SOME temporal signal but very little AP-specific signal.
+2. Fine-tuning peaks at epoch 5 and degrades = the pretrained representations are no better initialization than random for fine-tuning.
+3. Delta = -0.001 (within noise). The contrastive pretraining is essentially irrelevant.
+4. Root cause: Generic InfoNCE treats all (context, future) pairs equally. It doesn't know which contexts precede anomalies. The representation it learns is temporally consistent, not anomaly-predictive.
+
+**Key insight:** Temporal contrastive pretraining only helps when the self-supervised signal aligns with the downstream task. For AP, the self-supervised signal must be anomaly-aware.
+
+**Comparison of pretraining strategies (all on SVDB4 correct AP, oracle=0.720):**
+| Method | AUROC | vs APTransformer |
+|--------|-------|-----------------|
+| JEPA temporal reconstruction | 0.619 | -0.023 (HURTS!) |
+| InfoNCE generic contrastive | 0.641 | -0.001 (neutral) |
+| Supervised scratch (fixed LR) | 0.625 | -0.017 |
+| APTransformer supervised (cosine LR) | 0.642 | baseline |
+
+**Saved:** results/improvements/contrastive_ap.json
