@@ -326,6 +326,56 @@ The task is achievable but A2P's evaluation masked this.
 - 4 root causes: channel noise, anti-correlated signal, dimensionality, implicit cherry-picking
 - SVDB4 oracle: 0.747 (valid task)
 
+## NEW CRITICAL FINDINGS (April 12, 2026 - Overnight Session 3: Probes 128-139)
+
+### Strict AP Mechanistic Explanation (Probes 128-132)
+- **Probe 130**: 91.7% strict AP+ have NO anomaly in context; context shows [prior block remnant -> calm trough at t=-100 to -40 (0.14x baseline) -> rising at t=-40 to 0]
+- **Probe 132**: Mechanistic features: var_calm [-100 to -40] is dominant predictor (coef=-1.064)
+- Block structure: previous block remnant (t=[-160,-100]) -> deep calm (t=[-100,-40]) -> onset visible (t=[-40,0])
+
+### 20-Bin LR - New SOTA (Probes 135-135b)
+- **LR with 20 temporal variance bins (C=1.0): 0.791 ± 0.020 CV on strict AP**
+- **RF 4-feat CV: 0.791 ± 0.013** - matched by LR 20-bin!
+- Most important bin: t=[150-160] (deepest calm zone, just before onset)
+- RF 20-bin: 0.769 (more features hurt RF due to feature dilution)
+- LR with fine-grained bins = competitive with random forest
+
+### Lead Time Oracle Ceiling (Probe 137)
+- **Task ceiling = 0.968** (binary oracle, k=50)
+- Standard oracle [t+100,t+150] = 0.623 (WEAK - measuring EARLY block onset)
+- Late oracle [t+150,t+200] = 0.982 (block fully active)
+- Gap: LR 20-bin (0.791) vs ceiling (0.968) = 0.177 AUROC
+- The oracle window choice was the biggest weakness of A2P's evaluation
+
+### Contamination Penalty (Probe 139)
+- Standard AP 5-fold CV: LR 20-bin = 0.644 ± 0.022
+- Strict AP 5-fold CV: LR 20-bin = 0.791 ± 0.020
+- **Contamination penalty = 0.147 AUROC** (strict AP is 0.147 more learnable)
+
+### Regression vs Classification (Probe 72b)
+- Regression target (future var [t+100,t+150]): 0.554 ± 0.001 (HURTS by -0.058!)
+- Binary classification: 0.612 ± 0.005
+- Regression fails because oracle window [t+100,t+150] = NOISY (early block = low var)
+
+### SMD Cross-Dataset (Probe 136b)
+- SMD 20-bin LR: 0.601; SMD oracle: 0.442 (BELOW RANDOM!)
+- Template does NOT transfer to SMD; SMD has irregular, non-block anomaly patterns
+
+### Block Statistics (Probes 131, 67b)
+- 117 blocks, ALL exactly 100 steps (std=0.0) - uniform ECG-like blocks
+- Inter-block gaps: mean=1565, std=1187 (NOT periodic)
+- SMD 100-epoch HURTS: 0.551 vs 30-epoch 0.583
+
+### Strict AP Performance Hierarchy (FINAL, April 12, 2026)
+| Method | 5-fold CV AUROC | Notes |
+|--------|-----------------|-------|
+| Oracle [t+100,t+150] | 0.648 ± 0.010 | Suboptimal window |
+| LR 4-feat | 0.759 ± 0.015 | No training |
+| LR 20-bin | 0.791 ± 0.020 | No training, NEW BEST |
+| RF 4-feat | 0.791 ± 0.013 | More stable |
+| TF supervised | 0.723 ± 0.005 | 60/40 split only |
+| Theoretical ceiling | 0.968 | Binary k=50 oracle |
+
 ## Result Files (April 2026)
 
 All in `results/improvements/`:
