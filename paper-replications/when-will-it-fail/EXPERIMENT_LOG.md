@@ -1282,18 +1282,28 @@ seed=99:  test=0.6114, val=0.6329
 
 ---
 
-### Probe 33 (Interim): Transformer + Variance Features (3/6 runs done, variance phase starting)
+### Probe 33: Transformer + Variance Features (5/6 runs done)
 
-**Time:** 2026-04-11 16:27 (running, all 3 transformer baseline seeds done)
-**Results so far (transformer baseline, 50 epochs, 3 seeds):**
+**Time:** 2026-04-11 16:27 (running, 2/3 variance seeds done as of 19:20)
+**Baseline (transformer, 50ep, 3 seeds):**
 ```
 seed=42: val=0.6274, test=0.6201
 seed=1:  val=0.6278, test=0.6207
 seed=2:  val=0.6018, test=0.6033
 3-seed mean: 0.6147 +/- 0.0081
 ```
-**Important insight:** 50-epoch transformer = 0.6147. The slightly higher 100-epoch = 0.624 (Probe 30) confirms more epochs help. Seed 2 is lower (0.6033) showing small residual variance even at 50ep.
-**Status:** RUNNING - now running 3 seeds with variance features augmented
+**Variance-augmented (2/3 seeds done):**
+```
+seed=42: val=0.6330, test=0.5751  (delta vs baseline: -0.045!)
+seed=1:  val=0.6277, test=0.5776  (delta vs baseline: -0.043!)
+2-seed mean: 0.5764 +/- 0.001
+```
+**CRITICAL FINDING:** Variance augmentation HURTS by -0.044 AUROC!
+- Baseline 50ep: 0.6204 avg (seeds 42,1)
+- Augmented 50ep: 0.5764 avg (seeds 42,1)
+- Delta: -0.044 (p << 0.05 if confirmed with all seeds)
+**Interpretation:** Adding explicit variance features to the transformer input CONFUSES the model. The transformer may already learn internal variance representations from the raw signal. Adding duplicated/redundant features through a separate projection head disrupts the representation. LR uses variance features efficiently because it's a linear model; transformers don't benefit from this "hint".
+**Status:** RUNNING - seed=2 of variance phase remaining
 
 ---
 
@@ -1344,8 +1354,22 @@ Epoch 30:  ~0.52 mean, ~0.042 std (matches Probe 28b 10-seed distribution)
 Epoch 50:  ~0.62 mean, very low std
 Epoch 100: ~0.624 mean, low std
 ```
-**Status:** RUNNING - will complete in ~15-20 minutes
-**Key for paper:** Provides the systematic epoch-count evidence needed to explain WHY A2P's insufficient training is the root cause of the paper's evaluation failure.
+**Status:** RUNNING (2/5 seeds done as of 19:20)
+**Key for paper:** Provides the systematic epoch-count evidence for supervised training behavior.
+**Partial results (2 seeds done):**
+```
+NOTE: Probe 40 uses simpler head (LayerNorm + Linear) vs Probe 30 (MLP head)!
+      Not directly comparable - different architecture.
+
+seed=42: [0.6231, 0.6298, 0.6207, 0.6179, 0.6015, 0.6149] (ep 10,20,30,50,75,100)
+seed=1:  [0.5902, 0.5783, 0.5637, 0.5683, 0.5785, 0.5673] (ep 10,20,30,50,75,100)
+```
+**Key observations so far:**
+- Seed 42: peaks at ep 20 (0.630), then slight decline
+- Seed 1: much lower (0.56-0.59 range) - architecture sensitivity!
+- IMPORTANT: Large gap between seeds shows architecture + seed interaction
+- This is NOT the same as Probe 30 (different MLP head in Probe 30)
+**Revised insight:** Supervised training does NOT eliminate seed variance for this simpler architecture. The 2-layer MLP head in Probe 30 is key for consistent results. Architecture choice matters!
 
 ---
 
