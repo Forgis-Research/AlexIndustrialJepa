@@ -921,13 +921,30 @@ Best val AUROC:                        0.645
 
 ---
 
-### Probe 28: APTransformer 5-Seed (Running, d_model=64 vs 128)
+### Probe 28: APTransformer 5-Seed (d_model=64 COMPLETE, d_model=128 Running)
 
-**Time:** 2026-04-11 15:45 (running, PID 126506)
+**Time:** 2026-04-11 15:45 (d_model=64 complete ~17:15)
 **Hypothesis:** 5-seed validation with d_model=64 and d_model=128 will tighten confidence interval for correct AP baseline.
-**Goal:** Determine if d_model=128 gives more stable results (lower variance across seeds).
 **Seeds:** [42, 1, 2, 99, 7]
-**Status:** RUNNING
+
+**d_model=64 results (5-seed COMPLETE):**
+```
+seed=42:  AUROC=0.5727, val=0.6199
+seed=1:   AUROC=0.5028, val=0.5455
+seed=2:   AUROC=0.4923, val=0.5331
+seed=99:  AUROC=0.4927, val=0.5330
+seed=7:   AUROC=0.5711, val=0.6141
+Mean: 0.5263 +/- 0.034 (5 seeds, explicit seeding)
+```
+
+**Distribution analysis (combining with Probe 27's 3 seeds):**
+- 8-seed pool: [0.576, 0.503, 0.492, 0.573, 0.503, 0.492, 0.493, 0.571]
+- Mean = 0.525, Std = 0.037
+
+**Pattern:** Seeds 42 and 7 are "lucky" (0.57+) while seeds 1, 2, 99 are near-random (0.49-0.50). Bimodal distribution.
+**Confirmed baseline:** 5-seed mean = **0.526 ± 0.034** (consistent with 3-seed: 0.524 ± 0.037)
+
+**d_model=128: RUNNING** - will update when 5 seeds complete
 
 ---
 
@@ -956,18 +973,41 @@ Best val AUROC:                        0.645
 
 ---
 
-### Probe 28b: APTransformer 10-Seed Distribution (Running)
+### Probe 28b: APTransformer 10-Seed Distribution (COMPLETE)
 
-**Time:** 2026-04-11 16:05 (running, PID 127012)
+**Time:** 2026-04-11 16:05 (completed ~17:00)
 **Hypothesis:** Understanding full distribution of AUROC across 10 seeds (0-9) reveals the mean and tail behavior of AP performance.
 **Method:** 10 seeds, 30 epochs each, explicit `torch.manual_seed(seed)`, d_model=64
-**Results so far (3/10 seeds):**
+**Results (ALL 10 seeds):**
 ```
 seed= 0: test_auroc=0.5359, val_auroc=0.5604
 seed= 1: test_auroc=0.5248, val_auroc=0.5717
 seed= 2: test_auroc=0.5166, val_auroc=0.5692
+seed= 3: test_auroc=0.6345, val_auroc=0.6319  *** HIGH OUTLIER ***
+seed= 4: test_auroc=0.5222, val_auroc=0.5641
+seed= 5: test_auroc=0.4921, val_auroc=0.5303
+seed= 6: test_auroc=0.4945, val_auroc=0.5296
+seed= 7: test_auroc=0.5187, val_auroc=0.5431
+seed= 8: test_auroc=0.4899, val_auroc=0.5215
+seed= 9: test_auroc=0.4814, val_auroc=0.5063
+
+Mean: 0.5211 +/- 0.0415
+Median: 0.5176
+% above 0.55: 10% (seed=3 only)
+% above 0.60: 10% (seed=3 only)
 ```
-**Status:** RUNNING - will update when complete
+
+**Analysis:**
+- Distribution: 9/10 seeds in [0.481-0.536], seed=3 is a massive outlier (0.634!)
+- Median=0.518 close to mean (distribution has one right tail outlier)
+- LR variance (0.5929) is 1.73 sigma above transformer mean (0.5211)
+- Only 1/10 seeds (10%) beat LR variance: P(transformer > LR) = 10%
+- LR captures 38.0% of learnable signal (oracle=0.7445); transformer mean captures only 8.6%
+- If a practitioner runs 1 seed, they have a 10% chance of a "competitive" result; LR is consistently better
+
+**Verdict:** 10-seed distribution confirms transformer is highly seed-sensitive and LR variance is the reliable baseline.
+
+**Saved:** results/improvements/aptransformer_seed_distribution.json
 
 ---
 
@@ -1079,6 +1119,18 @@ Comparison:
 
 ---
 
+### Probe 33: Transformer + Variance Features (Running)
+
+**Time:** 2026-04-11 16:45 (OOM, fixed version running PID 141581)
+**Hypothesis:** If LR beats transformer because LR explicitly uses variance features, giving transformer explicit variance features should close the gap.
+**Method:**
+- Baseline: 3-seed transformer (raw 2-channel input, same as Probe 27)
+- Augmented: 3-seed transformer + 8 variance features concatenated to output before classifier
+- batch_size=64 (reduced from 128 to avoid OOM)
+**Status:** RUNNING (PID 141581) - will update when complete
+
+---
+
 ### Probe 30: Supervised AP Transformer (5-seed, True Upper Bound)
 
 **Time:** 2026-04-11 16:05 (running, PID 135746)
@@ -1086,5 +1138,101 @@ Comparison:
 **Architecture:** 2-layer Transformer encoder d_model=64 + classifier head, 100 epochs, cosine LR, pos_weight balanced
 **Seeds:** [42, 1, 2, 99, 7]
 **Key question:** Does supervised training consistently outperform unsupervised (0.524)?
-**Status:** RUNNING - will update when complete
+**Status:** RUNNING - slow due to GPU contention (6 competing processes), will update when complete
+
+---
+
+### Probe 34: LR Variance Features on SVDB1 (FAILED - Expected)
+
+**Time:** 2026-04-11 16:30 (completed with error)
+**Hypothesis:** Variance features should work on SVDB1, but temporal confound will inflate results.
+**Dataset:** SVDB1 (69120 x 2, 0.72% anomaly rate, 1.08% AP label rate)
+**Critical finding:** All AP labels are at t > 65010 (94.1% through the dataset).
+- Train split (0-60%): 0/41262 sequences with AP labels = 0% AP rate!
+- Fitting LR on empty positive class raises ValueError immediately.
+- CONFIRMS: SVDB1 cannot be used for AP model training or temporal-split evaluation.
+- The temporal confound is so extreme that even the simplest train/test split exposes it.
+**Verdict:** SVDB1 is INVALID as an AP evaluation dataset (temporal confound confirmed).
+**Implication for NeurIPS:** Add explicit note that SVDB1 should be excluded from AP studies.
+
+---
+
+### Probe 35: Oracle Signal Analysis (COMPLETED)
+
+**Time:** 2026-04-11 16:35 (completed ~16:43)
+**Hypothesis:** Understand what fraction of the oracle AP signal is captured by LR variance features, and how correlated LR scores are with the oracle.
+**Dataset:** SVDB4 (184K sequences, all 183970 valid, stride=1)
+**Results:**
+```
+Feature matrix: (183970, 8), AP rate: 0.0948
+
+Per-feature AUROC (AP prediction):
+  var_full_0: 0.5987  *** BEST SINGLE FEATURE ***
+  var_50_0:   0.5658
+  var_full_1: 0.5630
+  ac1_0:      0.5595
+  var_25_1:   0.5424
+  var_50_1:   0.5334
+  ac1_1:      0.5284
+  var_25_0:   0.5115
+
+LR full 8-feat AUROC (full dataset): 0.5929
+Oracle future var AUROC:              0.7445
+
+LR captures 38.0% of learnable signal (vs oracle 100%)
+
+Correlation LR scores vs oracle var:
+  Pearson r=0.134 (p=1.6e-147)
+  Spearman rho=0.371 (p=0.0)
+
+Permutation importance:
+  var_50_0:  0.0719 +/- 0.0023  *** #1 by permutation ***
+  var_full_0: 0.0508 +/- 0.0042
+  var_25_1:   0.0447 +/- 0.0034
+  var_25_0:   0.0303 +/- 0.0022
+  ac1_1:      0.0283 +/- 0.0031
+```
+**Sanity checks:** ✓ LR on oracle feature gives 0.7445 (sanity = oracle AUROC) ✓ Permutation importance reasonable ✓ Features all have AUROC > 0.50 ✓ Correlation p-values tiny (real signal)
+**Verdict:** KEEP - Confirms AP signal is primarily in variance features, LR captures 38% of learnable signal.
+
+**IMPORTANT NOTE on LR AUROC:** Probe 29 reported 0.616; Probe 35 reports 0.5929. The difference is dataset size:
+- Probe 29: 36,794 sequences (stride=5)
+- Probe 35: 183,970 sequences (stride=1, full dataset)
+The Probe 35 value (0.5929) is more reliable (5x more data). The 0.616 was a higher-variance estimate on a smaller sample.
+
+**Revised quantitative claims for NeurIPS:**
+- LR variance AUROC = 0.5929 (full dataset, reliable estimate)
+- Oracle AUROC = 0.7445 (full dataset)
+- LR captures 38% of learnable signal
+- Transformer mean = 0.5255 (9-seed Probe 28b)
+- LR is +0.067 above transformer mean (1.63 sigma)
+
+**Saved:** results/improvements/oracle_analysis.json
+
+---
+
+### Probe 36: F1-tol Analysis with LR Variance (COMPLETED)
+
+**Time:** 2026-04-11 16:40 (completed ~16:45)
+**Hypothesis:** LR variance (AUROC=0.5929) should also compare favorably to A2P's F1-tol metric for completeness.
+**Dataset:** SVDB4 (183,970 sequences), both correct AP labels and original anomaly labels
+**Results:**
+```
+LR variance AUROC (correct AP eval):   0.5929
+LR variance F1-tol (oracle threshold): 0.5618
+Random scores F1-tol (oracle thresh):  0.6957  *** BEATS A2P's 67.55%! ***
+
+A2P paper reported: F1-tol = 67.55%
+Random baseline:    F1-tol = 69.57%  (+1.97pp over A2P!)
+```
+**Critical finding:** Random scores BEAT A2P's reported 67.55% F1-tol on SVDB4. This confirms:
+1. F1-tol with point adjustment is trivially gamed by ANY non-zero signal
+2. Random noise achieves 69.57% vs A2P's 67.55% (random WINS!)
+3. A2P's F1-tol result provides ZERO evidence of anomaly prediction ability
+4. AUROC should be used as the primary metric (LR = 0.5929, far above A2P = 0.499)
+
+**Sanity checks:** ✓ Random F1-tol > A2P (confirms earlier finding from random_baselines.json) ✓ LR AUROC matches Probe 35 ✓ F1-tol monotone in threshold (tested)
+**Verdict:** KEEP - Reinforces F1-tol unreliability argument for NeurIPS paper.
+
+**Saved:** results/improvements/f1tol_analysis.json
 

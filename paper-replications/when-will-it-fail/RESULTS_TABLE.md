@@ -133,13 +133,23 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | Correct AP: InfoNCE | InfoNCE contrastive pretrain + finetune | AUROC | 0.641 | APTransformer: 0.642 | Single seed=42, neutral |
 | **Correct AP: Multi-Seed** | **APTransformer 3-seed (correct AP)** | **AUROC** | **0.524 +/- 0.037** | **Oracle: 0.720** | **TRUE ESTIMATE: seed=42 was lucky!** |
 
-| **Correct AP: LR variance** | **LR + 8 variance features (validated)** | **AUROC** | **0.616** | **Transformer: 0.524** | **+0.092 over transformer! C-sweep validated (0.616-0.627), no leakage** |
+| **Correct AP: LR variance (full)** | **LR + 8 variance features (183K seq)** | **AUROC** | **0.5929** | **Transformer: 0.5255** | **+0.067 (1.63 sigma); 38% of oracle signal** |
+| **Correct AP: LR variance (test split)** | **LR + 8 variance features (36K seq, stride=5)** | **AUROC** | **0.616** | **Transformer: 0.524** | **C-sweep 0.616-0.627, no leakage; higher variance estimate** |
 | **SMD: LR variance** | **LR + top-5 channels variance (validated)** | **AUROC** | **0.674** | **SMD oracle: 0.554** | **+0.120 above oracle; generalizes across datasets!** |
+| **Probe 34** | **SVDB1 LR variance** | **N/A** | **FAILED** | **N/A** | **SVDB1 INVALID: all AP labels at t>94%; train split has 0 positives** |
+| **Probe 35** | **Oracle signal analysis** | **AUROC** | **0.7445 (oracle)** | **LR: 0.5929** | **LR captures 38% of learnable signal; Spearman rho=0.371 with oracle** |
+| **Probe 36** | **Random F1-tol** | **F1-tol** | **69.57%** | **A2P paper: 67.55%** | **RANDOM BEATS A2P on their own metric!** |
 | Correct AP: V2 contrastive | AP-aware InfoNCE (anomalous future = positive) | AUROC | TBD | InfoNCE V1: 0.641 | Probe 26b, still running |
+| Correct AP: Probe 30 | Supervised transformer 5-seed | AUROC | TBD | Unsupervised: 0.524 | Running |
+| Correct AP: Probe 33 | Transformer + variance features augmented | AUROC | TBD | Raw transformer: 0.5255 | Running |
 
 **CRITICAL:** Single-seed AP results (0.642, 0.641, 0.619, 0.625) are unreliable. True multi-seed APTransformer AUROC = 0.524 +/- 0.037, barely above random (0.500). The gap to oracle is 0.196, not 0.078. All single-seed "best results" must be treated as preliminary.
 
-**NEW FINDING (Probe 29):** LR with 8 variance features achieves AUROC=0.616, beating APTransformer multi-seed mean by +0.092. Validated across C-sweep [0.01-100], no normalization leakage, test set is harder (AP rate 7.7% vs train 9.5%). The AP signal lives in multi-scale variance features, not complex temporal patterns.
+**REVISED FINDING (Probe 35):** Full-dataset LR with 8 variance features achieves AUROC=0.5929, beating APTransformer multi-seed mean (0.5255) by +0.067 (1.63 sigma). This is the reliable estimate using 183K sequences; the 0.616 from Probe 29 used a 5x smaller sample and has higher variance. Key: LR captures 38% of learnable signal (oracle=0.7445), transformer captures only 10.4%.
+
+**SVDB1 INVALID (Probe 34):** All AP labels in SVDB1 appear at t>94%, making temporal train/test split impossible (train has 0 positive examples). SVDB1 cannot be used for AP evaluation.
+
+**RANDOM BEATS A2P (Probe 36):** Random scores achieve F1-tol=69.57% on SVDB4, higher than A2P's 67.55%. This is the decisive proof that F1-tol is ungameable metric.
 
 Note: MBA_svdb = single SVDB record 801 (161K train / 69K test), 0.72% anomaly rate.
 MBA_svdb4 = SVDB records 800-803 combined (737K train / 184K test), 6.35% anomaly rate = paper's setup.

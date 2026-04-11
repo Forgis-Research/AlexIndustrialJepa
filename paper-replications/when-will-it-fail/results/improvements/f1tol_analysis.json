@@ -1,0 +1,7 @@
+{
+  "probe": "36_f1tol_variance",
+  "lr_correct_ap_auroc": 0.592948684286715,
+  "lr_f1tol_oracle_thresh": 0.5617977527621161,
+  "random_f1tol": 0.6956521738676505,
+  "a2p_reported_f1tol": 0.6755
+}
