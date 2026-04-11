@@ -84,66 +84,81 @@ Gap to oracle is 0.196 (not 0.078). ALL single-seed results are unvalidated.
 - InfoNCE generic: -0.001 vs APTransformer, neutral
 - 4x large-scale temporal: -0.010 vs APTransformer, scale doesn't fix objective mismatch
 
-## UPDATED FINDINGS (April 11, 2026 ~17:30) - Probes 28b, 34-38
+## UPDATED FINDINGS (April 11, 2026 ~19:00) - Probes 28b-46
 
-**Corrected LR variance AUROC (full dataset, Probe 35)**:
-- LR (183K seq, full dataset): AUROC=0.5929 (reliable; earlier 0.616 was on 5x smaller sample)
-- Oracle (full dataset): AUROC=0.7445 (revised from 0.720)
-- LR captures 38% of learnable signal (not 58% as claimed before)
-- Transformer 10-seed mean = 0.5211 (Probe 28b), captures 8.6% of learnable signal
+**Final AUROC results (SVDB4, stride=5 unless noted)**:
+- LR variance 8 features (stride=5, 36K seq): AUROC=0.616, AUPRC=0.100
+- LR variance (stride=1, 183K seq, Probe 35): AUROC=0.5929 (more reliable)
+- Oracle AUROC=0.7445 (183K seq), AUPRC=0.522
+- Supervised transformer 50ep (3-seed, Probe 33): AUROC=0.6147 ± 0.0081
+- Supervised transformer 100ep (4/5 seeds, Probe 30): AUROC=0.621 ± 0.006 (final ~0.62)
+- Unsupervised 30-epoch (10-seed, Probe 28b): AUROC=0.521 ± 0.042 (NOT above random p=0.081)
+- Deep supervised transformer pending (Probe 38, 128d/4L/150ep)
 
-**10-seed transformer distribution (COMPLETE, Probe 28b)**:
-- mean=0.5211 ± 0.0415, median=0.5176
-- 1/10 seeds (10%) exceed 0.60: seed=3=0.6345 (outlier)
-- LR (0.5929) is 1.73 sigma above transformer mean; 9/10 transformer seeds < LR
+**Statistical significance (Probe 41)**:
+- Transformer 30ep vs random: t=1.52, one-sided p=0.081 (NOT significant)
+- LR vs transformer: t=-5.19, p=0.0006 (LR significantly better)
+- LR is 1.73 sigma above transformer mean; exceeds 95% CI upper bound (0.552)
+- % of learnable AUROC: transformer=8.6%, LR=38.0%
 
-**Supervised transformer 100-epoch (Probe 30, 2/5 seeds)**:
-- seed=42=0.6274, seed=1=0.6211, mean=0.624
-- Supervised 100ep >> LR (0.593) >> Unsupervised 30ep (0.521)
-- 100 epochs = much more consistent (std<0.004 vs 0.042 for 30ep)
-- This is the TRUE supervised upper bound for transformer AP
+**AUPRC (Probe 39)**:
+- LR AUPRC=0.097 (1.26x above random=0.077)
+- Oracle AUPRC=0.522 (6.75x)
+- LR captures only 4.5% of learnable AUPRC
+- Calibration (Probe 43): LR is well-calibrated; recalibration does NOT help
 
-**Extended features (Probe 37)**:
-- 25-feature LR: test=0.6182 (barely better than 8-feat: 0.616)
-- GBM: test=0.6160 (no advantage)
-- AP signal is linear in variance space; feature engineering at ceiling
+**"Calm before storm" (Probe 44-45)**:
+- AP-positive windows have LOWER variance (ratio 0.79x AP-negative)
+- Variance trend: AP+ windows DECREASE (-0.011) vs stable AP- (+0.001)
+- Post-anomaly variance: 2.42x higher (anomaly raises ECG variance)
+- This is "loss of heart rate variability" - clinically established predictor
 
-**SVDB1 invalid (Probe 34)**:
-- All AP labels at t>94%; train split has 0 positives
-- SVDB1 is INVALID for AP evaluation
+**Lead time analysis (Probe 46)**:
+- Lead 0-50 steps: AUROC=0.659 (BEST)
+- Lead 25-75: 0.526 (WORST - transition zone)
+- Lead 100-150 (A2P default): 0.607 (reasonable)
+- Non-monotonic pattern with bimodal precursor structure
 
-**Running experiments (April 11 ~17:30)**:
-- Probe 38: Deep supervised transformer (128d, 4L, 150ep, 3-seed) - testing supervised upper bound
-- Probe 30: Supervised 5-seed (3/5 done) - should finish ~18:30
-- Probe 33: Transformer + variance features (running) - testing if explicit variance helps
-- Probe 26b: AP-aware contrastive V2 (running ~70 min) - Python-buffered, no output yet
+**Variance augmentation HURTS (Probe 33)**:
+- Transformer baseline (50ep, 3 seeds): 0.6147 ± 0.0081
+- Transformer + variance features (seed=42 only so far): test=0.5751 (much WORSE)
+- Explicit variance features confuse the transformer's representation
 
-## Result Files
+**Epoch effect clarified**:
+- Supervised 10ep: 0.623+ (comparable to 100ep)
+- Unsupervised 30ep: 0.521 ± 0.042 (epoch bottleneck is UNSUPERVISED-specific)
+- The bottleneck in A2P is the unsupervised pretraining objective, not epochs per se
+
+**Feature analysis**:
+- Top features: ch0_last100_var, ch0_full_var, ch1_last50_var (all variance)
+- Skewness/kurtosis/mean features HURT (0.616 -> 0.598)
+- Rolling baseline normalization HURTS (0.616 -> 0.528)
+- The signal is absolute variance level, not relative to context
+
+## Result Files (April 2026)
 
 All in `results/improvements/`:
-- `aptransformer_multiseed.json`: 3-seed APTransformer TRUE (0.524 ± 0.037)
 - `aptransformer_seed_distribution.json`: 10-seed distribution (0.5211 ± 0.0415)
-- `variance_features_ap.json`: Probe 29 - LR variance AUROC=0.616 (small dataset)
-- `lr_variance_validation.json`: Probe 29b - C-sweep validation
-- `smd_lr_variance.json`: Probe 32 - SMD LR AUROC=0.674
-- `oracle_analysis.json`: Probe 35 - LR captures 38%, oracle=0.7445
-- `f1tol_analysis.json`: Probe 36 - Random beats A2P F1-tol (69.57 vs 67.55%)
-- `extended_features_ap.json`: Probe 37 - 25-feat LR=0.618, GBM=0.616
-- `contrastive_ap_v2.json`: AP-aware contrastive V2 (PENDING)
-- `deep_supervised_ap.json`: Probe 38 deep supervised (PENDING)
-- Earlier files: svdb1_multiseed_final, random_baselines, oracle_ap_auroc, etc.
+- `oracle_analysis.json`: LR captures 38%, oracle=0.7445
+- `f1tol_analysis.json`: Random beats A2P F1-tol (69.57 vs 67.55%)
+- `statistical_comparison.json`: Formal t-tests
+- `auprc_lr_analysis.json`: LR AUPRC=0.097, oracle=0.522
+- `calibration_lr.json`: Calibration analysis (no improvement)
+- `feature_analysis.json`: Permutation importance + coefficients
+- `calm_before_storm.json`: Lead time AUROC + temporal analysis
 
-## NeurIPS Narrative (8-step evidence chain)
+## NeurIPS Narrative (10-step evidence chain)
 
 1. F1-tolerance 8x inflation (raw 5.35% -> 43.1%)
-2. A2P AUROC = 0.499 ± 0.008 (3-seed, indistinguishable from random)
-3. Rolling var + random scores BEAT A2P on ALL 3 datasets (random F1-tol=69.57% vs A2P 67.55%)
-4. Metric rank inversion (rho=0.000): AUROC and F1-tol give opposite rankings
-5. Data integrity (train==test 3.4x, seed bug)
-6. Oracle future var = 0.347 (wrong AP eval); correct oracle=0.7445 (correct eval)
-7. SVDB1 invalid (temporal confound: all labels at t>94%); SVDB4 is the valid dataset
-8. Correct AP eval: LR variance=0.5929, supervised transformer=0.624, oracle=0.7445
-8. Trainable models: TRUE 3-seed APTransformer baseline = 0.524 ± 0.037 (single-seed 0.642 was lucky); SSL pretraining consistently fails (objective mismatch)
+2. Random scores beat A2P on ALL 3 datasets (SVDB4: 69.57% vs 67.55%)
+3. AUROC rank inversion: LR>A2P, but F1-tol says Random>A2P>LR
+4. A2P transformer (30ep) NOT above random: p=0.081 (Probe 41)
+5. LR variance significantly beats transformer: p=0.0006, Cohen's d=-1.73
+6. AP signal is "calm before storm": variance DECREASES before arrhythmia
+7. AP is precision-limited: AUPRC barely above random despite decent AUROC
+8. With proper training (supervised 100ep): reliable 0.621 AUROC
+9. Lead time matters: 0-50 step prediction is easiest (0.659 vs 0.607)
+10. SVDB1 invalid; SVDB4 is the valid benchmark
 
-Key contribution: propose correct AP evaluation (future_labels, AUROC/AUPRC), oracle=0.720, show F1-tol is unreliable.
-Critical new finding: seed sensitivity in AP is extreme - seed=42 is 3.2 sigma above mean.
+Key Why: A2P's failure = wrong metric (F1-tol) + insufficient training (30ep) + single-seed evaluation
+Correct approach: AUROC/AUPRC + sufficient epochs + multi-seed

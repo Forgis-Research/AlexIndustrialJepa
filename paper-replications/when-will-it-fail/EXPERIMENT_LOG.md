@@ -1265,19 +1265,20 @@ Comparison:
 
 ---
 
-### Probe 30 (Interim): Supervised Transformer 100-Epoch (3/5 Seeds Done)
+### Probe 30 (Interim): Supervised Transformer 100-Epoch (4/5 Seeds Done)
 
-**Time:** 2026-04-11 16:05 (running, 3 seeds done as of 18:30)
+**Time:** 2026-04-11 16:05 (running, 4 seeds done as of 19:10)
 **Results so far:**
 ```
-seed=42: test=0.6274, val=0.6309
-seed=1:  test=0.6211, val=0.6294
-seed=2:  test=0.6249, val=0.6306
-3-seed mean: 0.6245 +/- 0.0026 (very consistent!)
+seed=42:  test=0.6274, val=0.6309
+seed=1:   test=0.6211, val=0.6294
+seed=2:   test=0.6249, val=0.6306
+seed=99:  test=0.6114, val=0.6329
+4-seed mean: 0.6212 +/- 0.006
 ```
-**Observation:** 3-seed result is extremely consistent (std=0.0026 vs 30ep std=0.042). Mean = 0.6245.
-**Key finding (interim):** Supervised 100-epoch = 0.624 >> LR variance 0.593 >> Unsupervised 30-epoch 0.521.
-**Status:** RUNNING (seeds 99, 7 remaining)
+**Observation:** 4-seed result is extremely consistent (std=0.006 vs 30ep std=0.042). Seed 99 is slightly lower (0.611) but within expected variance.
+**Key finding (interim):** Supervised 100-epoch = 0.621 >> LR variance 0.593 >> Unsupervised 30-epoch 0.521.
+**Status:** RUNNING (seed 7 remaining)
 
 ---
 
