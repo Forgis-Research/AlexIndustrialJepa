@@ -4714,7 +4714,61 @@ else:
     print("ap_direction_analysis.json not found.")
 ```
 
-## 73. Probe 80: SMD AP Validity Quantification
+## 73. Probe 82: Evaluation Protocol Correction Waterfall
+
+How much does each correction step improve AUROC from A2P's setup to the correct setup?
+
+```{python}
+import json, os, numpy as np
+
+epc_file = '/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/results/improvements/evaluation_protocol_comparison.json'
+if os.path.exists(epc_file):
+    with open(epc_file) as f:
+        epc = json.load(f)
+
+    print("Evaluation Protocol Comparison (Probe 82)")
+    print("="*80)
+    print(f"{'Method':<40} {'AUROC':>8} {'SD':>6} {'N_seeds':>8}")
+    print("-"*65)
+
+    ordered = [
+        ('random', 'Random baseline'),
+        ('oracle_wrong_direction', "Oracle (A2P's definition - WRONG)"),
+        ('a2p_10seed', 'A2P (30ep, 10-seed, correct SVDB4)'),
+        ('lr_4feat', 'LR 4-feat (no training needed)'),
+        ('supervised_tf', 'Supervised TF (100ep, 5-seed)'),
+        ('oracle_correct', 'Oracle (correct: future variance)'),
+    ]
+    for key, name in ordered:
+        r = epc.get(key, {})
+        if not r or r.get('auroc') is None:
+            continue
+        std = f"{r.get('auroc_std', 0):.4f}" if r.get('auroc_std') else '--'
+        seeds = str(r.get('n_seeds', '--'))
+        print(f"{name:<40} {r['auroc']:>8.4f} {std:>6} {seeds:>8}")
+
+    print()
+    print("Correction Waterfall (each step's contribution):")
+    a2p = epc.get('a2p_10seed', {}).get('auroc', 0.521)
+    oracle_wrong = epc.get('oracle_wrong_direction', {}).get('auroc', 0.347)
+    oracle_right = epc.get('oracle_correct', {}).get('auroc', 0.744)
+    lr = epc.get('lr_4feat', {}).get('auroc', 0.631)
+    tf = epc.get('supervised_tf', {}).get('auroc', 0.624)
+
+    gap = oracle_right - 0.5
+    print(f"  Task difficulty (oracle-random gap): {gap:.3f} AUROC units")
+    print(f"  A2P captures: {(a2p-0.5)/gap*100:.1f}% of gap")
+    print(f"  LR (no training): {(lr-0.5)/gap*100:.1f}% of gap (+{lr-a2p:.3f} vs A2P)")
+    print(f"  Supervised TF: {(tf-0.5)/gap*100:.1f}% of gap (+{tf-a2p:.3f} vs A2P)")
+    print(f"  Remaining gap (oracle - supervised): {oracle_right - tf:.3f}")
+    print()
+    print("  The wrong oracle (0.347) being BELOW RANDOM is A2P's fundamental error.")
+    print("  Correct evaluation reveals a learnable task with oracle=0.744.")
+else:
+    print("evaluation_protocol_comparison.json not found.")
+```
+
+## 74. Probe 80: SMD AP Validity Quantification
 
 What fraction of A2P's SMD AP+ windows are confounded by cluster continuation?
 
