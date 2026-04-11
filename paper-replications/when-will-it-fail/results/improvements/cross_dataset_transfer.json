@@ -1,0 +1,19 @@
+{
+  "probe": "cross_dataset_transfer",
+  "datasets": {
+    "source": "MBA (SVDB record 801, 2D ECG)",
+    "target": "SMD (server metrics, 38D)"
+  },
+  "method": "Rolling variance anomaly detector - fits scaler on train, tests on held-out test",
+  "results": {
+    "mba_indomain_auroc": 0.5101623759486281,
+    "mba_indomain_auprc": 0.2714370843179426,
+    "smd_indomain_auroc": 0.7708896484245482,
+    "smd_indomain_auprc": 0.15168103250069034,
+    "cross_domain_auroc_pca": 0.7459174092659961,
+    "transfer_penalty_pp": 0.024972239158552068
+  },
+  "finding": "Simple rolling variance achieves AUROC=0.771 on SMD in-domain. PCA projection to 2D for cross-domain test: AUROC=0.746 (-0.025 penalty). MBA itself has AUROC=0.510 in-domain.",
+  "implication_for_a2p": "A2P trains entirely within one dataset (MBA on MBA, SMD on SMD). Since anomaly patterns are fundamentally different across domains (ECG arrhythmias vs. server metric spikes), any cross-domain transfer would require learning domain-invariant anomaly representations. This is the core opportunity for JEPA-based anomaly pretraining.",
+  "verdict": "Cross-domain transfer is NOT trivial. PCA projection loses 0.025 AUROC compared to in-domain detection. A2P's dataset-specific training is a fundamental limitation."
+}

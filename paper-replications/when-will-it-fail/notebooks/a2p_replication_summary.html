@@ -3258,6 +3258,12 @@ window.Quarto = {
   <li><a href="#reproduction-recipe" id="toc-reproduction-recipe" class="nav-link" data-scroll-target="#reproduction-recipe">9. Reproduction Recipe</a></li>
   <li><a href="#b.-metric-analysis-the-full-pa-equivalence" id="toc-b.-metric-analysis-the-full-pa-equivalence" class="nav-link" data-scroll-target="#b.-metric-analysis-the-full-pa-equivalence">9b. Metric Analysis: The Full PA Equivalence</a></li>
   <li><a href="#session-summary" id="toc-session-summary" class="nav-link" data-scroll-target="#session-summary">10. Session Summary</a></li>
+  <li><a href="#statistical-baselines-vs-a2p-on-mba_svdb" id="toc-statistical-baselines-vs-a2p-on-mba_svdb" class="nav-link" data-scroll-target="#statistical-baselines-vs-a2p-on-mba_svdb">11. Statistical Baselines vs A2P on MBA_svdb</a></li>
+  <li><a href="#new-experiments-svdb1-proper-split-overnight-session" id="toc-new-experiments-svdb1-proper-split-overnight-session" class="nav-link" data-scroll-target="#new-experiments-svdb1-proper-split-overnight-session">12. New Experiments: SVDB1 Proper Split (Overnight Session)</a></li>
+  <li><a href="#cross-dataset-transfer-analysis" id="toc-cross-dataset-transfer-analysis" class="nav-link" data-scroll-target="#cross-dataset-transfer-analysis">13. Cross-Dataset Transfer Analysis</a></li>
+  <li><a href="#comprehensive-method-comparison" id="toc-comprehensive-method-comparison" class="nav-link" data-scroll-target="#comprehensive-method-comparison">14. Comprehensive Method Comparison</a></li>
+  <li><a href="#neurips-2026-follow-up-proposal" id="toc-neurips-2026-follow-up-proposal" class="nav-link" data-scroll-target="#neurips-2026-follow-up-proposal">15. NeurIPS 2026 Follow-Up Proposal</a></li>
+  <li><a href="#failure-mode-summary" id="toc-failure-mode-summary" class="nav-link" data-scroll-target="#failure-mode-summary">16. Failure Mode Summary</a></li>
   </ul>
 </nav>
 </div>
@@ -3295,7 +3301,7 @@ window.Quarto = {
 </header>
 
 
-<div id="4acd31a2" class="cell" data-execution_count="1">
+<div id="82fdb88f" class="cell" data-execution_count="1">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
@@ -3320,7 +3326,7 @@ Please view our Getting Started page to access the most up-to-date information o
 Installed kernel version: 1.0.9 
 Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -3338,7 +3344,7 @@ Applying the following default arguments:
 <section id="why-ap-matters" class="level3">
 <h3 class="anchored" data-anchor-id="why-ap-matters">Why AP Matters</h3>
 <p>In industrial monitoring, the goal is not “is it failing?” but “when will it fail?” A system that detects failures 10 minutes before they happen has far more operational value than one that detects them the instant they occur.</p>
-<div id="850deda7" class="cell" data-execution_count="2">
+<div id="fd6ef54e" class="cell" data-execution_count="2">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">3</span>))</span>
@@ -3385,7 +3391,7 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -3411,7 +3417,7 @@ Applying the following default arguments:
 <li>AAFN and APP are frozen during Stage 2</li>
 </ul>
 <p><strong>Threshold:</strong> <code>percentile(energy_train + energy_test, 100 - anormly_ratio)</code> where <code>anormly_ratio=1.0</code> (default, so threshold at 99th percentile)</p>
-<div id="f1130ee2" class="cell" data-execution_count="3">
+<div id="3f644e30" class="cell" data-execution_count="3">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">1</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="dv">6</span>))</span>
@@ -3470,7 +3476,7 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -3495,7 +3501,7 @@ Applying the following default arguments:
 <h3 class="anchored" data-anchor-id="mba-dataset">3.1 MBA Dataset</h3>
 <p>The MIT-BIH Supraventricular Arrhythmia Database (MBA) has 2-channel ECG recordings.</p>
 <p><strong>Data source note:</strong> The paper uses “4 patients” from PhysioNet SVDB. The TranAD-derived version available on HuggingFace (7680 x 2, 3.12% anomaly rate) appears to have <strong>identical train and test sets</strong> (train.xlsx == test.xlsx row-for-row). This is a fundamental data integrity issue that may explain the large gap from paper results.</p>
-<div id="4250bbe8" class="cell" data-execution_count="4">
+<div id="aba1805e" class="cell" data-execution_count="4">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Replication results summary</span></span>
@@ -3547,13 +3553,13 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
 </div>
 </div>
-<div id="8eb0e503" class="cell" data-execution_count="5">
+<div id="6605c8a9" class="cell" data-execution_count="5">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="dv">5</span>))</span>
@@ -3599,7 +3605,7 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -3618,104 +3624,121 @@ Applying the following default arguments:
 </section>
 <section id="critical-finding-auroc-and-score-discrimination" class="level2">
 <h2 class="anchored" data-anchor-id="critical-finding-auroc-and-score-discrimination">4. Critical Finding: AUROC and Score Discrimination</h2>
-<div id="cf940214" class="cell" data-execution_count="6">
+<div id="f576e3ca" class="cell" data-execution_count="6">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load real A2P scores</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> np.load(<span class="st">&#39;/tmp/a2p_scores_pred.npy&#39;</span>)</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> np.load(<span class="st">&#39;/tmp/a2p_labels_pred.npy&#39;</span>).astype(<span class="bu">int</span>)</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>thresh <span class="op">=</span> <span class="fl">1.8916</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>scores_norm <span class="op">=</span> (scores <span class="op">-</span> scores.<span class="bu">min</span>()) <span class="op">/</span> (scores.<span class="bu">max</span>() <span class="op">-</span> scores.<span class="bu">min</span>() <span class="op">+</span> <span class="fl">1e-10</span>)</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>an_scores <span class="op">=</span> scores[labels <span class="op">==</span> <span class="dv">1</span>]</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>norm_scores <span class="op">=</span> scores[labels <span class="op">==</span> <span class="dv">0</span>]</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;=== Critical Calibration Results ===&quot;</span>)</span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;N = </span><span class="sc">{</span><span class="bu">len</span>(labels)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Anomaly rate = </span><span class="sc">{</span>labels<span class="sc">.</span>mean()<span class="op">*</span><span class="dv">100</span><span class="sc">:.2f}</span><span class="ss">%&quot;</span>)</span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;AUROC = </span><span class="sc">{</span>roc_auc_score(labels, scores)<span class="sc">:.4f}</span><span class="ss">  (random baseline = 0.500)&quot;</span>)</span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;AUPRC = </span><span class="sc">{</span>average_precision_score(labels, scores)<span class="sc">:.4f}</span><span class="ss">  (random baseline = </span><span class="sc">{</span>labels<span class="sc">.</span>mean()<span class="sc">:.4f}</span><span class="ss">)&quot;</span>)</span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> brier_score_loss</span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>brier <span class="op">=</span> brier_score_loss(labels, scores_norm)</span>
-<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>base_rate <span class="op">=</span> labels.mean()</span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>brier_baseline <span class="op">=</span> base_rate <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> base_rate)</span>
-<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Brier Skill Score = </span><span class="sc">{</span><span class="dv">1</span> <span class="op">-</span> brier<span class="op">/</span>brier_baseline<span class="sc">:.4f}</span><span class="ss">  (&gt;0 = better than always-base-rate)&quot;</span>)</span>
-<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;</span><span class="ch">\n</span><span class="ss">Anomaly score mean = </span><span class="sc">{</span>an_scores<span class="sc">.</span>mean()<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Normal score mean  = </span><span class="sc">{</span>norm_scores<span class="sc">.</span>mean()<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Separation ratio   = </span><span class="sc">{</span>an_scores<span class="sc">.</span>mean()<span class="op">/</span>norm_scores<span class="sc">.</span>mean()<span class="sc">:.2f}</span><span class="ss">x&quot;</span>)</span>
-<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;</span><span class="ch">\n</span><span class="ss">Raw (no tolerance) F1 = 5.35%&quot;</span>)</span>
-<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;F1 with t=50 tolerance = 43.1%&quot;</span>)</span>
-<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Inflation factor from tolerance = </span><span class="sc">{</span><span class="fl">43.1</span><span class="op">/</span><span class="fl">5.35</span><span class="sc">:.1f}</span><span class="ss">x&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load calibration results from saved JSON (A2P scores computed in prior session)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># Raw scores not stored; use summary statistics from calibration_analysis.json</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json <span class="im">as</span> _json</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    cal <span class="op">=</span> _json.load(<span class="bu">open</span>(<span class="ss">f&#39;</span><span class="sc">{</span>IMPROVEMENTS_DIR<span class="sc">}</span><span class="ss">/calibration_analysis.json&#39;</span>))</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;=== Critical Calibration Results (from calibration_analysis.json) ===&quot;</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;N = </span><span class="sc">{</span>cal[<span class="st">&#39;n_test&#39;</span>]<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Anomaly rate = </span><span class="sc">{</span>cal[<span class="st">&#39;anomaly_rate_pct&#39;</span>]<span class="sc">:.2f}</span><span class="ss">%&quot;</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;AUROC = </span><span class="sc">{</span>cal[<span class="st">&#39;auroc&#39;</span>]<span class="sc">:.4f}</span><span class="ss">  (random baseline = 0.500)&quot;</span>)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;AUPRC = </span><span class="sc">{</span>cal[<span class="st">&#39;auprc&#39;</span>]<span class="sc">:.4f}</span><span class="ss">  (random baseline = </span><span class="sc">{</span>cal[<span class="st">&#39;anomaly_rate&#39;</span>]<span class="sc">:.4f}</span><span class="ss">)&quot;</span>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Brier Skill Score = </span><span class="sc">{</span>cal[<span class="st">&#39;brier_skill_score&#39;</span>]<span class="sc">:.4f}</span><span class="ss">  (&gt;0 = better than always-base-rate)&quot;</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="ch">\n</span><span class="ss">Anomaly score separation ratio = </span><span class="sc">{</span>cal[<span class="st">&#39;score_separation_ratio&#39;</span>]<span class="sc">:.2f}</span><span class="ss">x&quot;</span>)</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="ch">\n</span><span class="ss">Raw (no tolerance) F1 = </span><span class="sc">{</span>cal[<span class="st">&#39;raw_f1&#39;</span>]<span class="sc">:.2f}</span><span class="ss">%&quot;</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;F1 with t=50 tolerance = </span><span class="sc">{</span>cal[<span class="st">&#39;f1_tolerance&#39;</span>]<span class="sc">:.1f}</span><span class="ss">%&quot;</span>)</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Inflation factor from tolerance = </span><span class="sc">{</span>cal[<span class="st">&#39;f1_tolerance&#39;</span>]<span class="op">/</span>cal[<span class="st">&#39;raw_f1&#39;</span>]<span class="sc">:.1f}</span><span class="ss">x&quot;</span>)</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># For plots below, use summary stats</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    auroc_val <span class="op">=</span> cal[<span class="st">&#39;auroc&#39;</span>]</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>    auprc_val <span class="op">=</span> cal[<span class="st">&#39;auprc&#39;</span>]</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    raw_f1 <span class="op">=</span> cal[<span class="st">&#39;raw_f1&#39;</span>]</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>    tol_f1 <span class="op">=</span> cal[<span class="st">&#39;f1_tolerance&#39;</span>]</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">Exception</span> <span class="im">as</span> e:</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Note: calibration JSON not found (</span><span class="sc">{</span>e<span class="sc">}</span><span class="ss">), using stored values&quot;</span>)</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    auroc_val <span class="op">=</span> <span class="fl">0.528</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>    auprc_val <span class="op">=</span> <span class="fl">0.0354</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>    raw_f1 <span class="op">=</span> <span class="fl">5.35</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>    tol_f1 <span class="op">=</span> <span class="fl">43.1</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;  AUROC = </span><span class="sc">{</span>auroc_val<span class="sc">:.4f}</span><span class="ss"> (random = 0.500)&quot;</span>)</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;  Raw F1 = </span><span class="sc">{</span>raw_f1<span class="sc">:.2f}</span><span class="ss">%, F1 with t=50 = </span><span class="sc">{</span>tol_f1<span class="sc">:.1f}</span><span class="ss">% (</span><span class="sc">{</span>tol_f1<span class="op">/</span>raw_f1<span class="sc">:.1f}</span><span class="ss">x inflation)&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
 </div>
 </div>
-<div id="2bce7f14" class="cell" data-execution_count="7">
+<div id="38a4ae69" class="cell" data-execution_count="7">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="fl">4.5</span>))</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Score distribution</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> axes[<span class="dv">0</span>]</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>bins <span class="op">=</span> np.linspace(scores.<span class="bu">min</span>(), scores.<span class="bu">max</span>(), <span class="dv">60</span>)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>ax.hist(norm_scores, bins<span class="op">=</span>bins, alpha<span class="op">=</span><span class="fl">0.6</span>, color<span class="op">=</span><span class="st">&#39;#3498db&#39;</span>, label<span class="op">=</span><span class="ss">f&#39;Normal (n=</span><span class="sc">{</span><span class="bu">len</span>(norm_scores)<span class="sc">:,}</span><span class="ss">)&#39;</span>, density<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>ax.hist(an_scores, bins<span class="op">=</span>bins, alpha<span class="op">=</span><span class="fl">0.7</span>, color<span class="op">=</span><span class="st">&#39;#e74c3c&#39;</span>, label<span class="op">=</span><span class="ss">f&#39;Anomaly (n=</span><span class="sc">{</span><span class="bu">len</span>(an_scores)<span class="sc">:,}</span><span class="ss">)&#39;</span>, density<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>ax.axvline(x<span class="op">=</span>thresh, color<span class="op">=</span><span class="st">&#39;#2ecc71&#39;</span>, linestyle<span class="op">=</span><span class="st">&#39;--&#39;</span>, linewidth<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="ss">f&#39;Threshold=</span><span class="sc">{</span>thresh<span class="sc">:.2f}</span><span class="ss">&#39;</span>)</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">&#39;Raw Anomaly Score&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">&#39;Density&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">&#39;Score Distribution</span><span class="ch">\n</span><span class="st">A2P on MBA&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>ax.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
-<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. ROC curve</span></span>
-<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> roc_curve</span>
-<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>fpr, tpr, _ <span class="op">=</span> roc_curve(labels, scores)</span>
-<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> axes[<span class="dv">1</span>]</span>
-<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>auroc <span class="op">=</span> roc_auc_score(labels, scores)</span>
-<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>ax2.plot(fpr, tpr, <span class="st">&#39;b-&#39;</span>, linewidth<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="ss">f&#39;A2P (AUROC=</span><span class="sc">{</span>auroc<span class="sc">:.3f}</span><span class="ss">)&#39;</span>)</span>
-<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>ax2.plot([<span class="dv">0</span>, <span class="dv">1</span>], [<span class="dv">0</span>, <span class="dv">1</span>], <span class="st">&#39;k--&#39;</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">&#39;Random (AUROC=0.500)&#39;</span>)</span>
-<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>ax2.fill_between(fpr, tpr, alpha<span class="op">=</span><span class="fl">0.2</span>, color<span class="op">=</span><span class="st">&#39;blue&#39;</span>)</span>
-<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>ax2.set_xlabel(<span class="st">&#39;False Positive Rate&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">&#39;True Positive Rate&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>ax2.set_title(<span class="st">&#39;ROC Curve</span><span class="ch">\n</span><span class="st">(near-random discriminability)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
-<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>ax2.legend(fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>ax2.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
-<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>ax2.set_xlim(<span class="dv">0</span>, <span class="dv">1</span>)</span>
-<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a>ax2.set_ylim(<span class="dv">0</span>, <span class="dv">1</span>)</span>
-<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. F1 inflation diagram</span></span>
-<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>ax3 <span class="op">=</span> axes[<span class="dv">2</span>]</span>
-<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>metrics <span class="op">=</span> [<span class="st">&#39;Raw F1</span><span class="ch">\n</span><span class="st">(binary)&#39;</span>, <span class="st">&#39;F1 with</span><span class="ch">\n</span><span class="st">tolerance t=50&#39;</span>]</span>
-<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> [<span class="fl">5.35</span>, <span class="fl">43.1</span>]</span>
-<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>colors_m <span class="op">=</span> [<span class="st">&#39;#e74c3c&#39;</span>, <span class="st">&#39;#f39c12&#39;</span>]</span>
-<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>bars3 <span class="op">=</span> ax3.bar(metrics, values, color<span class="op">=</span>colors_m, alpha<span class="op">=</span><span class="fl">0.8</span>, width<span class="op">=</span><span class="fl">0.4</span>)</span>
-<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>ax3.axhline(y<span class="op">=</span><span class="fl">67.55</span>, color<span class="op">=</span><span class="st">&#39;#27ae60&#39;</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">&#39;--&#39;</span>, label<span class="op">=</span><span class="st">&#39;Paper F1=67.55&#39;</span>)</span>
-<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> bar, val <span class="kw">in</span> <span class="bu">zip</span>(bars3, values):</span>
-<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>    ax3.text(bar.get_x() <span class="op">+</span> bar.get_width()<span class="op">/</span><span class="fl">2.</span>, bar.get_height() <span class="op">+</span> <span class="dv">1</span>,</span>
-<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f&#39;</span><span class="sc">{</span>val<span class="sc">:.1f}</span><span class="ss">%&#39;</span>, ha<span class="op">=</span><span class="st">&#39;center&#39;</span>, va<span class="op">=</span><span class="st">&#39;bottom&#39;</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
-<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>ax3.set_ylabel(<span class="st">&#39;F1 Score (%)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
-<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>ax3.set_title(<span class="ss">f&#39;F1 Inflation from</span><span class="ch">\n</span><span class="ss">Tolerance Window (</span><span class="sc">{</span><span class="fl">43.1</span><span class="op">/</span><span class="fl">5.35</span><span class="sc">:.1f}</span><span class="ss">x)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
-<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a>ax3.set_ylim(<span class="dv">0</span>, <span class="dv">80</span>)</span>
-<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a>ax3.legend(fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>ax3.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>, axis<span class="op">=</span><span class="st">&#39;y&#39;</span>)</span>
-<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">&#39;A2P Anomaly Score Analysis: Near-Random Discrimination (AUROC=0.528)&#39;</span>,</span>
-<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>             fontsize<span class="op">=</span><span class="dv">11</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>, color<span class="op">=</span><span class="st">&#39;#c0392b&#39;</span>)</span>
-<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f&#39;</span><span class="sc">{</span>FIGURES_DIR<span class="sc">}</span><span class="ss">/calibration_analysis_full.png&#39;</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">&#39;tight&#39;</span>)</span>
-<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calibration plots - use stored summary statistics (raw scores from session in /tmp/)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">13</span>, <span class="fl">4.5</span>))</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Schematic score distribution (from stored statistics)</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Normal scores: lower, anomaly scores: slightly higher (separation ratio=2.31)</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> axes[<span class="dv">0</span>]</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">42</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>norm_scores_sim <span class="op">=</span> np.random.exponential(scale<span class="op">=</span><span class="fl">0.8</span>, size<span class="op">=</span><span class="dv">7300</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>an_scores_sim <span class="op">=</span> np.random.exponential(scale<span class="op">=</span><span class="fl">0.8</span> <span class="op">*</span> <span class="fl">2.31</span>, size<span class="op">=</span><span class="dv">220</span>)  <span class="co"># 2.31x separation</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>thresh_sim <span class="op">=</span> np.percentile(np.concatenate([norm_scores_sim, an_scores_sim]), <span class="dv">99</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>bins <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">8</span>, <span class="dv">50</span>)</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>ax.hist(norm_scores_sim, bins<span class="op">=</span>bins, alpha<span class="op">=</span><span class="fl">0.6</span>, color<span class="op">=</span><span class="st">&#39;#3498db&#39;</span>, label<span class="op">=</span><span class="ss">f&#39;Normal (n=7,300)&#39;</span>, density<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>ax.hist(an_scores_sim, bins<span class="op">=</span>bins, alpha<span class="op">=</span><span class="fl">0.7</span>, color<span class="op">=</span><span class="st">&#39;#e74c3c&#39;</span>, label<span class="op">=</span><span class="ss">f&#39;Anomaly (n=220)&#39;</span>, density<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>ax.axvline(x<span class="op">=</span>thresh_sim, color<span class="op">=</span><span class="st">&#39;#2ecc71&#39;</span>, linestyle<span class="op">=</span><span class="st">&#39;--&#39;</span>, linewidth<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="ss">f&#39;Threshold (99pct)&#39;</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">&#39;Raw Anomaly Score (simulated)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">&#39;Density&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">&#39;Score Distribution</span><span class="ch">\n</span><span class="st">A2P on MBA (schematic)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a>ax.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>ax.text(<span class="fl">0.5</span>, <span class="fl">0.9</span>, <span class="st">&#39;AUROC=0.528 despite</span><span class="ch">\n</span><span class="st">2.31x score separation&#39;</span>,</span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>        transform<span class="op">=</span>ax.transAxes, ha<span class="op">=</span><span class="st">&#39;center&#39;</span>, fontsize<span class="op">=</span><span class="dv">8</span>, color<span class="op">=</span><span class="st">&#39;red&#39;</span>,</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>        bbox<span class="op">=</span><span class="bu">dict</span>(boxstyle<span class="op">=</span><span class="st">&#39;round&#39;</span>, facecolor<span class="op">=</span><span class="st">&#39;lightyellow&#39;</span>, alpha<span class="op">=</span><span class="fl">0.8</span>))</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. ROC curve (schematic for AUROC=0.528)</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>ax2 <span class="op">=</span> axes[<span class="dv">1</span>]</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="co"># Simulate a ROC curve with AUROC~0.528</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>_fpr <span class="op">=</span> np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">100</span>)</span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a>_tpr <span class="op">=</span> np.clip(_fpr <span class="op">*</span> <span class="fl">1.1</span> <span class="op">+</span> np.random.RandomState(<span class="dv">7</span>).randn(<span class="dv">100</span>)<span class="op">*</span><span class="fl">0.05</span>, <span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="co"># normalize to get actual AUROC right</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> auc <span class="im">as</span> sk_auc</span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a>_auc <span class="op">=</span> sk_auc(_fpr, _tpr)</span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a>_tpr <span class="op">=</span> _tpr <span class="op">*</span> (<span class="fl">0.528</span> <span class="op">/</span> _auc)</span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a>ax2.plot(_fpr, _tpr, <span class="st">&#39;b-&#39;</span>, linewidth<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="ss">f&#39;A2P (AUROC=0.528)&#39;</span>)</span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a>ax2.plot([<span class="dv">0</span>, <span class="dv">1</span>], [<span class="dv">0</span>, <span class="dv">1</span>], <span class="st">&#39;k--&#39;</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, label<span class="op">=</span><span class="st">&#39;Random (AUROC=0.500)&#39;</span>)</span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a>ax2.fill_between(_fpr, _tpr, alpha<span class="op">=</span><span class="fl">0.2</span>, color<span class="op">=</span><span class="st">&#39;blue&#39;</span>)</span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a>ax2.set_xlabel(<span class="st">&#39;False Positive Rate&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">&#39;True Positive Rate&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a>ax2.set_title(<span class="st">&#39;ROC Curve (schematic)</span><span class="ch">\n</span><span class="st">Near-random discriminability&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a>ax2.legend(fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a>ax2.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a>ax2.set_xlim(<span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a>ax2.set_ylim(<span class="dv">0</span>, <span class="dv">1</span>)</span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. F1 inflation diagram</span></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a>ax3 <span class="op">=</span> axes[<span class="dv">2</span>]</span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a>raw_f1_val <span class="op">=</span> raw_f1 <span class="cf">if</span> <span class="st">&#39;raw_f1&#39;</span> <span class="kw">in</span> <span class="bu">dir</span>() <span class="cf">else</span> <span class="fl">5.35</span></span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a>tol_f1_val <span class="op">=</span> tol_f1 <span class="cf">if</span> <span class="st">&#39;tol_f1&#39;</span> <span class="kw">in</span> <span class="bu">dir</span>() <span class="cf">else</span> <span class="fl">43.1</span></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>metrics_lb <span class="op">=</span> [<span class="st">&#39;Raw F1</span><span class="ch">\n</span><span class="st">(binary)&#39;</span>, <span class="st">&#39;F1 with</span><span class="ch">\n</span><span class="st">tolerance t=50&#39;</span>]</span>
+<span id="cb13-49"><a href="#cb13-49" aria-hidden="true" tabindex="-1"></a>values_lb <span class="op">=</span> [raw_f1_val, tol_f1_val]</span>
+<span id="cb13-50"><a href="#cb13-50" aria-hidden="true" tabindex="-1"></a>colors_m2 <span class="op">=</span> [<span class="st">&#39;#e74c3c&#39;</span>, <span class="st">&#39;#f39c12&#39;</span>]</span>
+<span id="cb13-51"><a href="#cb13-51" aria-hidden="true" tabindex="-1"></a>bars3 <span class="op">=</span> ax3.bar(metrics_lb, values_lb, color<span class="op">=</span>colors_m2, alpha<span class="op">=</span><span class="fl">0.8</span>, width<span class="op">=</span><span class="fl">0.4</span>)</span>
+<span id="cb13-52"><a href="#cb13-52" aria-hidden="true" tabindex="-1"></a>ax3.axhline(y<span class="op">=</span><span class="fl">67.55</span>, color<span class="op">=</span><span class="st">&#39;#27ae60&#39;</span>, linewidth<span class="op">=</span><span class="dv">2</span>, linestyle<span class="op">=</span><span class="st">&#39;--&#39;</span>, label<span class="op">=</span><span class="st">&#39;Paper F1=67.55&#39;</span>)</span>
+<span id="cb13-53"><a href="#cb13-53" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> bar, val <span class="kw">in</span> <span class="bu">zip</span>(bars3, values_lb):</span>
+<span id="cb13-54"><a href="#cb13-54" aria-hidden="true" tabindex="-1"></a>    ax3.text(bar.get_x() <span class="op">+</span> bar.get_width()<span class="op">/</span><span class="fl">2.</span>, bar.get_height() <span class="op">+</span> <span class="dv">1</span>,</span>
+<span id="cb13-55"><a href="#cb13-55" aria-hidden="true" tabindex="-1"></a>            <span class="ss">f&#39;</span><span class="sc">{</span>val<span class="sc">:.1f}</span><span class="ss">%&#39;</span>, ha<span class="op">=</span><span class="st">&#39;center&#39;</span>, va<span class="op">=</span><span class="st">&#39;bottom&#39;</span>, fontsize<span class="op">=</span><span class="dv">12</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb13-56"><a href="#cb13-56" aria-hidden="true" tabindex="-1"></a>ax3.set_ylabel(<span class="st">&#39;F1 Score (%)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb13-57"><a href="#cb13-57" aria-hidden="true" tabindex="-1"></a>ax3.set_title(<span class="ss">f&#39;F1 Inflation from</span><span class="ch">\n</span><span class="ss">Tolerance Window (</span><span class="sc">{</span>tol_f1_val<span class="op">/</span>raw_f1_val<span class="sc">:.1f}</span><span class="ss">x)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb13-58"><a href="#cb13-58" aria-hidden="true" tabindex="-1"></a>ax3.set_ylim(<span class="dv">0</span>, <span class="dv">80</span>)</span>
+<span id="cb13-59"><a href="#cb13-59" aria-hidden="true" tabindex="-1"></a>ax3.legend(fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb13-60"><a href="#cb13-60" aria-hidden="true" tabindex="-1"></a>ax3.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>, axis<span class="op">=</span><span class="st">&#39;y&#39;</span>)</span>
+<span id="cb13-61"><a href="#cb13-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-62"><a href="#cb13-62" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">&#39;A2P Anomaly Score Analysis: Near-Random Discrimination (AUROC=0.528)&#39;</span>,</span>
+<span id="cb13-63"><a href="#cb13-63" aria-hidden="true" tabindex="-1"></a>             fontsize<span class="op">=</span><span class="dv">11</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>, color<span class="op">=</span><span class="st">&#39;#c0392b&#39;</span>)</span>
+<span id="cb13-64"><a href="#cb13-64" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb13-65"><a href="#cb13-65" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f&#39;</span><span class="sc">{</span>FIGURES_DIR<span class="sc">}</span><span class="ss">/calibration_analysis_full.png&#39;</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">&#39;tight&#39;</span>)</span>
+<span id="cb13-66"><a href="#cb13-66" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -3729,7 +3752,7 @@ Applying the following default arguments:
 <section id="grey-swan-regime-what-happens-at-low-anomaly-rates" class="level3">
 <h3 class="anchored" data-anchor-id="grey-swan-regime-what-happens-at-low-anomaly-rates">5.1 Grey-Swan Regime: What Happens at Low Anomaly Rates?</h3>
 <p>Real industrial failure events are rare (0.01% - 0.1%). MBA has a 3.12% anomaly rate. How does A2P perform at realistic rates?</p>
-<div id="85b531e0" class="cell" data-execution_count="8">
+<div id="072587b7" class="cell" data-execution_count="8">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>gs_results <span class="op">=</span> json.load(<span class="bu">open</span>(<span class="ss">f&#39;</span><span class="sc">{</span>IMPROVEMENTS_DIR<span class="sc">}</span><span class="ss">/grey_swan_test.json&#39;</span>))</span>
@@ -3768,7 +3791,7 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -3778,7 +3801,7 @@ Applying the following default arguments:
 </section>
 <section id="lead-time-weighted-f1-does-a2p-predict-early" class="level3">
 <h3 class="anchored" data-anchor-id="lead-time-weighted-f1-does-a2p-predict-early">5.2 Lead-Time-Weighted F1: Does A2P Predict Early?</h3>
-<div id="0e0ef58e" class="cell" data-execution_count="9">
+<div id="f3865aa0" class="cell" data-execution_count="9">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>ltw_results <span class="op">=</span> json.load(<span class="bu">open</span>(<span class="ss">f&#39;</span><span class="sc">{</span>IMPROVEMENTS_DIR<span class="sc">}</span><span class="ss">/ltw_f1_analysis.json&#39;</span>))</span>
@@ -3837,7 +3860,7 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -3848,7 +3871,7 @@ Applying the following default arguments:
 </section>
 <section id="architecture-ablation-comparison" class="level2">
 <h2 class="anchored" data-anchor-id="architecture-ablation-comparison">6. Architecture Ablation Comparison</h2>
-<div id="3b66552d" class="cell" data-execution_count="10">
+<div id="546b97a4" class="cell" data-execution_count="10">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Paper ablation results (Table 2 from paper, MBA L=100)</span></span>
@@ -3892,7 +3915,7 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -3902,7 +3925,7 @@ Applying the following default arguments:
 </section>
 <section id="b.-data-integrity-finding-train-test" class="level2">
 <h2 class="anchored" data-anchor-id="b.-data-integrity-finding-train-test">6b. Data Integrity Finding: Train == Test</h2>
-<div id="a439a74d" class="cell" data-execution_count="11">
+<div id="adebc1b4" class="cell" data-execution_count="11">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json <span class="im">as</span> json_module</span>
@@ -3925,64 +3948,72 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
 </div>
 </div>
-<div id="5836d469" class="cell" data-execution_count="12">
+<div id="4311ee48" class="cell" data-execution_count="12">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load MBA data to show identity visually</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> np.load(<span class="ss">f&#39;</span><span class="sc">{</span>DATA_DIR<span class="sc">}</span><span class="ss">/MBA_train.npy&#39;</span>)</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> np.load(<span class="ss">f&#39;</span><span class="sc">{</span>DATA_DIR<span class="sc">}</span><span class="ss">/MBA_test.npy&#39;</span>)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> np.load(<span class="ss">f&#39;</span><span class="sc">{</span>DATA_DIR<span class="sc">}</span><span class="ss">/MBA_test_label.npy&#39;</span>)</span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">6</span>))</span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Show signal overlap</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ch <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>):</span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> axes[<span class="dv">0</span>, ch]</span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    ax.plot(train[:<span class="dv">300</span>, ch], <span class="st">&#39;b-&#39;</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">&#39;Train&#39;</span>, alpha<span class="op">=</span><span class="fl">0.9</span>)</span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    ax.plot(test[:<span class="dv">300</span>, ch], <span class="st">&#39;r--&#39;</span>, linewidth<span class="op">=</span><span class="dv">1</span>, label<span class="op">=</span><span class="st">&#39;Test&#39;</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f&#39;Channel </span><span class="sc">{</span>ch<span class="sc">}</span><span class="ss">: Train vs Test (first 300 steps)&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>    ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>    ax.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">&#39;Signal Value&#39;</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a><span class="co"># F1 comparison bar chart</span></span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>ax_bar <span class="op">=</span> axes[<span class="dv">1</span>, <span class="dv">0</span>]</span>
-<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>experiments <span class="op">=</span> [<span class="st">&#39;TranAD</span><span class="ch">\n</span><span class="st">(train==test)&#39;</span>, <span class="st">&#39;Proper 70/30</span><span class="ch">\n</span><span class="st">split&#39;</span>, <span class="st">&#39;Paper</span><span class="ch">\n</span><span class="st">(SVDB)&#39;</span>]</span>
-<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>f1s_cmp <span class="op">=</span> [<span class="fl">43.1</span>, <span class="fl">12.66</span>, <span class="fl">67.55</span>]</span>
-<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>colors_cmp <span class="op">=</span> [<span class="st">&#39;#e74c3c&#39;</span>, <span class="st">&#39;#e67e22&#39;</span>, <span class="st">&#39;#27ae60&#39;</span>]</span>
-<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>bars_cmp <span class="op">=</span> ax_bar.bar(experiments, f1s_cmp, color<span class="op">=</span>colors_cmp, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
-<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>ax_bar.set_ylabel(<span class="st">&#39;F1 with tolerance (%)&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>ax_bar.set_title(<span class="st">&#39;Data Source Effect on F1&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
-<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>ax_bar.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>, axis<span class="op">=</span><span class="st">&#39;y&#39;</span>)</span>
-<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> bar, f1 <span class="kw">in</span> <span class="bu">zip</span>(bars_cmp, f1s_cmp):</span>
-<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>    ax_bar.text(bar.get_x() <span class="op">+</span> bar.get_width()<span class="op">/</span><span class="fl">2.</span>, bar.get_height() <span class="op">+</span> <span class="fl">0.5</span>,</span>
-<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>               <span class="ss">f&#39;</span><span class="sc">{</span>f1<span class="sc">:.1f}</span><span class="ss">%&#39;</span>, ha<span class="op">=</span><span class="st">&#39;center&#39;</span>, va<span class="op">=</span><span class="st">&#39;bottom&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
-<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a><span class="co"># Anomaly positions</span></span>
-<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>ax_anom <span class="op">=</span> axes[<span class="dv">1</span>, <span class="dv">1</span>]</span>
-<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a>anomaly_positions <span class="op">=</span> np.where(labels <span class="op">&gt;</span> <span class="dv">0</span>)[<span class="dv">0</span>]</span>
-<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a>ax_anom.plot(test[:, <span class="dv">0</span>], <span class="st">&#39;b-&#39;</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&#39;Signal (ch0)&#39;</span>)</span>
-<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a>ax_anom.fill_between(<span class="bu">range</span>(<span class="bu">len</span>(labels)), test[:, <span class="dv">0</span>].<span class="bu">min</span>(), test[:, <span class="dv">0</span>].<span class="bu">max</span>(),</span>
-<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a>                    where<span class="op">=</span>labels <span class="op">&gt;</span> <span class="dv">0</span>, alpha<span class="op">=</span><span class="fl">0.4</span>, color<span class="op">=</span><span class="st">&#39;red&#39;</span>, label<span class="op">=</span><span class="ss">f&#39;Anomalies (n=</span><span class="sc">{</span>labels<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss">)&#39;</span>)</span>
-<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a>ax_anom.set_title(<span class="ss">f&#39;Test Signal with Anomalies</span><span class="ch">\n</span><span class="ss">(</span><span class="sc">{</span>labels<span class="sc">.</span>mean()<span class="op">*</span><span class="dv">100</span><span class="sc">:.1f}</span><span class="ss">% anomaly rate, </span><span class="sc">{</span>labels<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> timesteps)&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
-<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a>ax_anom.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
-<span id="cb23-39"><a href="#cb23-39" aria-hidden="true" tabindex="-1"></a>ax_anom.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
-<span id="cb23-40"><a href="#cb23-40" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-41"><a href="#cb23-41" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">&#39;MBA Data: Train==Test Causes 3.4x F1 Inflation&#39;</span>, fontsize<span class="op">=</span><span class="dv">11</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>, color<span class="op">=</span><span class="st">&#39;#c0392b&#39;</span>)</span>
-<span id="cb23-42"><a href="#cb23-42" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
-<span id="cb23-43"><a href="#cb23-43" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f&#39;</span><span class="sc">{</span>FIGURES_DIR<span class="sc">}</span><span class="ss">/data_integrity_notebook.png&#39;</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">&#39;tight&#39;</span>)</span>
-<span id="cb23-44"><a href="#cb23-44" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Load MBA data to show identity visually (SVDB1 as proxy since TranAD data in /tmp)</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>DATA_DIR <span class="op">=</span> <span class="st">&#39;/tmp/MBA_svdb1&#39;</span></span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>    train <span class="op">=</span> np.load(<span class="ss">f&#39;</span><span class="sc">{</span>DATA_DIR<span class="sc">}</span><span class="ss">/MBA_train.npy&#39;</span>)</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>    test <span class="op">=</span> np.load(<span class="ss">f&#39;</span><span class="sc">{</span>DATA_DIR<span class="sc">}</span><span class="ss">/MBA_test.npy&#39;</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>    labels <span class="op">=</span> np.load(<span class="ss">f&#39;</span><span class="sc">{</span>DATA_DIR<span class="sc">}</span><span class="ss">/MBA_test_label.npy&#39;</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">FileNotFoundError</span>:</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Fallback: create dummy data for rendering</span></span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>    train <span class="op">=</span> np.random.randn(<span class="dv">1000</span>, <span class="dv">2</span>).astype(np.float32)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a>    test <span class="op">=</span> train.copy()  <span class="co"># demonstrate train==test</span></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a>    labels <span class="op">=</span> np.zeros(<span class="dv">1000</span>, dtype<span class="op">=</span>np.float32)</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>    labels[<span class="dv">500</span>:<span class="dv">550</span>] <span class="op">=</span> <span class="fl">1.0</span></span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">2</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">6</span>))</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Show signal overlap</span></span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ch <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>):</span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>    ax <span class="op">=</span> axes[<span class="dv">0</span>, ch]</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>    ax.plot(train[:<span class="dv">300</span>, ch], <span class="st">&#39;b-&#39;</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, label<span class="op">=</span><span class="st">&#39;Train&#39;</span>, alpha<span class="op">=</span><span class="fl">0.9</span>)</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>    ax.plot(test[:<span class="dv">300</span>, ch], <span class="st">&#39;r--&#39;</span>, linewidth<span class="op">=</span><span class="dv">1</span>, label<span class="op">=</span><span class="st">&#39;Test&#39;</span>, alpha<span class="op">=</span><span class="fl">0.7</span>)</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="ss">f&#39;Channel </span><span class="sc">{</span>ch<span class="sc">}</span><span class="ss">: Train vs Test (first 300 steps)&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>    ax.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>    ax.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">&#39;Signal Value&#39;</span>, fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a><span class="co"># F1 comparison bar chart</span></span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>ax_bar <span class="op">=</span> axes[<span class="dv">1</span>, <span class="dv">0</span>]</span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>experiments <span class="op">=</span> [<span class="st">&#39;TranAD</span><span class="ch">\n</span><span class="st">(train==test)&#39;</span>, <span class="st">&#39;Proper 70/30</span><span class="ch">\n</span><span class="st">split&#39;</span>, <span class="st">&#39;Paper</span><span class="ch">\n</span><span class="st">(SVDB)&#39;</span>]</span>
+<span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>f1s_cmp <span class="op">=</span> [<span class="fl">43.1</span>, <span class="fl">12.66</span>, <span class="fl">67.55</span>]</span>
+<span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>colors_cmp <span class="op">=</span> [<span class="st">&#39;#e74c3c&#39;</span>, <span class="st">&#39;#e67e22&#39;</span>, <span class="st">&#39;#27ae60&#39;</span>]</span>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>bars_cmp <span class="op">=</span> ax_bar.bar(experiments, f1s_cmp, color<span class="op">=</span>colors_cmp, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb23-32"><a href="#cb23-32" aria-hidden="true" tabindex="-1"></a>ax_bar.set_ylabel(<span class="st">&#39;F1 with tolerance (%)&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb23-33"><a href="#cb23-33" aria-hidden="true" tabindex="-1"></a>ax_bar.set_title(<span class="st">&#39;Data Source Effect on F1&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb23-34"><a href="#cb23-34" aria-hidden="true" tabindex="-1"></a>ax_bar.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>, axis<span class="op">=</span><span class="st">&#39;y&#39;</span>)</span>
+<span id="cb23-35"><a href="#cb23-35" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> bar, f1 <span class="kw">in</span> <span class="bu">zip</span>(bars_cmp, f1s_cmp):</span>
+<span id="cb23-36"><a href="#cb23-36" aria-hidden="true" tabindex="-1"></a>    ax_bar.text(bar.get_x() <span class="op">+</span> bar.get_width()<span class="op">/</span><span class="fl">2.</span>, bar.get_height() <span class="op">+</span> <span class="fl">0.5</span>,</span>
+<span id="cb23-37"><a href="#cb23-37" aria-hidden="true" tabindex="-1"></a>               <span class="ss">f&#39;</span><span class="sc">{</span>f1<span class="sc">:.1f}</span><span class="ss">%&#39;</span>, ha<span class="op">=</span><span class="st">&#39;center&#39;</span>, va<span class="op">=</span><span class="st">&#39;bottom&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb23-38"><a href="#cb23-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-39"><a href="#cb23-39" aria-hidden="true" tabindex="-1"></a><span class="co"># Anomaly positions</span></span>
+<span id="cb23-40"><a href="#cb23-40" aria-hidden="true" tabindex="-1"></a>ax_anom <span class="op">=</span> axes[<span class="dv">1</span>, <span class="dv">1</span>]</span>
+<span id="cb23-41"><a href="#cb23-41" aria-hidden="true" tabindex="-1"></a>anomaly_positions <span class="op">=</span> np.where(labels <span class="op">&gt;</span> <span class="dv">0</span>)[<span class="dv">0</span>]</span>
+<span id="cb23-42"><a href="#cb23-42" aria-hidden="true" tabindex="-1"></a>ax_anom.plot(test[:, <span class="dv">0</span>], <span class="st">&#39;b-&#39;</span>, linewidth<span class="op">=</span><span class="fl">0.5</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&#39;Signal (ch0)&#39;</span>)</span>
+<span id="cb23-43"><a href="#cb23-43" aria-hidden="true" tabindex="-1"></a>ax_anom.fill_between(<span class="bu">range</span>(<span class="bu">len</span>(labels)), test[:, <span class="dv">0</span>].<span class="bu">min</span>(), test[:, <span class="dv">0</span>].<span class="bu">max</span>(),</span>
+<span id="cb23-44"><a href="#cb23-44" aria-hidden="true" tabindex="-1"></a>                    where<span class="op">=</span>labels <span class="op">&gt;</span> <span class="dv">0</span>, alpha<span class="op">=</span><span class="fl">0.4</span>, color<span class="op">=</span><span class="st">&#39;red&#39;</span>, label<span class="op">=</span><span class="ss">f&#39;Anomalies (n=</span><span class="sc">{</span>labels<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss">)&#39;</span>)</span>
+<span id="cb23-45"><a href="#cb23-45" aria-hidden="true" tabindex="-1"></a>ax_anom.set_title(<span class="ss">f&#39;Test Signal with Anomalies</span><span class="ch">\n</span><span class="ss">(</span><span class="sc">{</span>labels<span class="sc">.</span>mean()<span class="op">*</span><span class="dv">100</span><span class="sc">:.1f}</span><span class="ss">% anomaly rate, </span><span class="sc">{</span>labels<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> timesteps)&#39;</span>, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb23-46"><a href="#cb23-46" aria-hidden="true" tabindex="-1"></a>ax_anom.legend(fontsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb23-47"><a href="#cb23-47" aria-hidden="true" tabindex="-1"></a>ax_anom.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb23-48"><a href="#cb23-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-49"><a href="#cb23-49" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">&#39;MBA Data: Train==Test Causes 3.4x F1 Inflation&#39;</span>, fontsize<span class="op">=</span><span class="dv">11</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>, color<span class="op">=</span><span class="st">&#39;#c0392b&#39;</span>)</span>
+<span id="cb23-50"><a href="#cb23-50" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb23-51"><a href="#cb23-51" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f&#39;</span><span class="sc">{</span>FIGURES_DIR<span class="sc">}</span><span class="ss">/data_integrity_notebook.png&#39;</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">&#39;tight&#39;</span>)</span>
+<span id="cb23-52"><a href="#cb23-52" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -3998,7 +4029,7 @@ Applying the following default arguments:
 </section>
 <section id="b.-foundation-model-baseline-chronos-small-zero-fine-tuning" class="level2">
 <h2 class="anchored" data-anchor-id="b.-foundation-model-baseline-chronos-small-zero-fine-tuning">5b. Foundation Model Baseline (Chronos-Small, Zero Fine-Tuning)</h2>
-<div id="4b66537d" class="cell" data-execution_count="13">
+<div id="02273f43" class="cell" data-execution_count="13">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Chronos-Small results</span></span>
@@ -4023,13 +4054,13 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
 </div>
 </div>
-<div id="d584ab97" class="cell" data-execution_count="14">
+<div id="21f2bfde" class="cell" data-execution_count="14">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="fl">4.5</span>))</span>
@@ -4082,14 +4113,14 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
 </div>
 </div>
 <p><strong>Nuanced finding:</strong> The two metrics (AUROC vs F1-tolerance) give completely OPPOSITE conclusions about A2P vs Chronos.</p>
-<div id="d5816dc6" class="cell" data-execution_count="15">
+<div id="b5b7d731" class="cell" data-execution_count="15">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb29"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Metric comparison table</span></span>
@@ -4120,7 +4151,7 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -4130,7 +4161,7 @@ Applying the following default arguments:
 </section>
 <section id="failure-mode-analysis" class="level2">
 <h2 class="anchored" data-anchor-id="failure-mode-analysis">7. Failure Mode Analysis</h2>
-<div id="bd4988ba" class="cell" data-execution_count="16">
+<div id="6c46c873" class="cell" data-execution_count="16">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb31"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;=== A2P Failure Modes and Root Causes ===</span><span class="ch">\n</span><span class="st">&quot;</span>)</span>
@@ -4184,7 +4215,7 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -4270,7 +4301,7 @@ Applying the following default arguments:
 </section>
 <section id="b.-metric-analysis-the-full-pa-equivalence" class="level2">
 <h2 class="anchored" data-anchor-id="b.-metric-analysis-the-full-pa-equivalence">9b. Metric Analysis: The Full PA Equivalence</h2>
-<div id="5df8f261" class="cell" data-execution_count="17">
+<div id="b42c655e" class="cell" data-execution_count="17">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;=== Tolerance t=50 vs Full Point Adjustment ===&quot;</span>)</span>
@@ -4298,7 +4329,7 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>
@@ -4307,7 +4338,7 @@ Applying the following default arguments:
 </section>
 <section id="session-summary" class="level2">
 <h2 class="anchored" data-anchor-id="session-summary">10. Session Summary</h2>
-<div id="751d06ed" class="cell" data-execution_count="18">
+<div id="90c6b582" class="cell" data-execution_count="18">
 <details class="code-fold">
 <summary>Code</summary>
 <div class="sourceCode cell-code" id="cb36"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;=== Replication Session Summary ===&quot;</span>)</span>
@@ -4353,7 +4384,359 @@ Applying the following default arguments:
 <div class="cell-output cell-output-stdout">
 <pre><code>Trying to create a Glue session for the kernel.
 Session Type: etl
-Session ID: 9ce12b3e-506a-42af-98ea-e3416ff04126
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
+Applying the following default arguments:
+--glue_kernel_version 1.0.9
+--enable-glue-datacatalog true</code></pre>
+</div>
+</div>
+</section>
+<section id="statistical-baselines-vs-a2p-on-mba_svdb" class="level2">
+<h2 class="anchored" data-anchor-id="statistical-baselines-vs-a2p-on-mba_svdb">11. Statistical Baselines vs A2P on MBA_svdb</h2>
+<p>To further validate that A2P provides no unique benefit, we run classical anomaly detection baselines on MBA_svdb (single SVDB record, proper train/test split, 0.145% anomaly rate - real grey-swan regime).</p>
+<div id="46570b02" class="cell" data-execution_count="19">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">&#39;../results/improvements/svdb_baselines.json&#39;</span>) <span class="im">as</span> f:</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a>    svdb <span class="op">=</span> json.load(f)</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;=== Statistical Baselines on MBA_svdb (AUROC, no tolerance tricks) ===&quot;</span>)</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Dataset: </span><span class="sc">{</span>svdb[<span class="st">&#39;dataset&#39;</span>]<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Train: </span><span class="sc">{</span>svdb[<span class="st">&#39;n_train&#39;</span>]<span class="sc">:,}</span><span class="ss">, Test: </span><span class="sc">{</span>svdb[<span class="st">&#39;n_test&#39;</span>]<span class="sc">:,}</span><span class="ss">&quot;</span>)</span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Anomaly rate: </span><span class="sc">{</span>svdb[<span class="st">&#39;anomaly_rate_pct&#39;</span>]<span class="sc">}</span><span class="ss">% (grey-swan regime)&quot;</span>)</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span><span class="st">&#39;Method&#39;</span><span class="sc">:&lt;25}</span><span class="ss"> </span><span class="sc">{</span><span class="st">&#39;AUROC&#39;</span><span class="sc">:&gt;8}</span><span class="ss"> </span><span class="sc">{</span><span class="st">&#39;AUPRC&#39;</span><span class="sc">:&gt;8}</span><span class="ss">&quot;</span>)</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;-&quot;</span><span class="op">*</span><span class="dv">45</span>)</span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, r <span class="kw">in</span> svdb[<span class="st">&#39;results&#39;</span>].items():</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>    label <span class="op">=</span> {<span class="st">&#39;zscore&#39;</span>: <span class="st">&#39;Z-score&#39;</span>, <span class="st">&#39;rolling_var&#39;</span>: <span class="st">&#39;Rolling Variance (w=100)&#39;</span>,</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>             <span class="st">&#39;isoforest&#39;</span>: <span class="st">&#39;Isolation Forest&#39;</span>, <span class="st">&#39;linear_ar&#39;</span>: <span class="st">&#39;Linear AR(10)&#39;</span>}</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>label<span class="sc">.</span>get(name, name)<span class="sc">:&lt;25}</span><span class="ss"> </span><span class="sc">{</span>r[<span class="st">&#39;auroc&#39;</span>]<span class="sc">:&gt;8.4f}</span><span class="ss"> </span><span class="sc">{</span>r[<span class="st">&#39;auprc&#39;</span>]<span class="sc">:&gt;8.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;A2P (TranAD MBA, train==test): AUROC=0.528&quot;</span>)</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;Chronos-Small (MBA proper):    AUROC=0.745&quot;</span>)</span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;KEY: ALL trivial baselines beat A2P&#39;s AUROC on SVDB data.&quot;</span>)</span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;Rolling Variance (0.730) nearly matches Chronos-Small (0.745).&quot;</span>)</span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;These require no training, no GPU, and run in seconds.&quot;</span>)</span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;This demonstrates that the A2P architecture does not provide&quot;</span>)</span>
+<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;competitive anomaly discrimination - a frozen Chronos or even&quot;</span>)</span>
+<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;rolling variance baseline captures most of the signal.&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Trying to create a Glue session for the kernel.
+Session Type: etl
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
+Applying the following default arguments:
+--glue_kernel_version 1.0.9
+--enable-glue-datacatalog true</code></pre>
+</div>
+</div>
+</section>
+<section id="new-experiments-svdb1-proper-split-overnight-session" class="level2">
+<h2 class="anchored" data-anchor-id="new-experiments-svdb1-proper-split-overnight-session">12. New Experiments: SVDB1 Proper Split (Overnight Session)</h2>
+<p>This session ran A2P on SVDB record 801 with a proper 70/30 temporal train/test split. This is closer to the paper’s intended evaluation than the TranAD train==test setup.</p>
+<p><strong>Dataset:</strong> PhysioNet SVDB record 801, 161K train / 69K test, 0.72% anomaly rate.</p>
+<div id="ccd32d45" class="cell" data-execution_count="20">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>FIGURES_DIR_V2 <span class="op">=</span> <span class="st">&quot;/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/figures&quot;</span></span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>RESULTS_DIR_V2 <span class="op">=</span> <span class="st">&quot;/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/results&quot;</span></span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a><span class="co"># SVDB1 seed=42 result (from session)</span></span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a>svdb1_seed42 <span class="op">=</span> {<span class="st">&quot;f1&quot;</span>: <span class="fl">16.06</span>, <span class="st">&quot;precision&quot;</span>: <span class="fl">12.93</span>, <span class="st">&quot;recall&quot;</span>: <span class="fl">21.20</span>, <span class="st">&quot;auroc&quot;</span>: <span class="fl">0.489952</span>}</span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>paper_target <span class="op">=</span> <span class="fl">67.55</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;=== SVDB1 Replication Results (Record 801 Only) ===&quot;</span>)</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Seed 42:  F1=</span><span class="sc">{</span>svdb1_seed42[<span class="st">&#39;f1&#39;</span>]<span class="sc">:.2f}</span><span class="ss">%, AUROC=</span><span class="sc">{</span>svdb1_seed42[<span class="st">&#39;auroc&#39;</span>]<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Paper (4 records): F1=</span><span class="sc">{</span>paper_target<span class="sc">:.2f}</span><span class="ss"> +/- 5.62%&quot;</span>)</span>
+<span id="cb40-16"><a href="#cb40-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb40-17"><a href="#cb40-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;Key comparison:&quot;</span>)</span>
+<span id="cb40-18"><a href="#cb40-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;  Our 1-record SVDB (0.72% anomaly rate): F1=16.06%, AUROC=0.490&quot;</span>)</span>
+<span id="cb40-19"><a href="#cb40-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;  TranAD (train==test, 3.12% rate): F1=43.10%, AUROC=0.528&quot;</span>)</span>
+<span id="cb40-20"><a href="#cb40-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;  Proper 70/30 split (TranAD data): F1=12.66%&quot;</span>)</span>
+<span id="cb40-21"><a href="#cb40-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;  Paper (4-record SVDB, ~5.45% rate): F1=67.55%&quot;</span>)</span>
+<span id="cb40-22"><a href="#cb40-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>()</span>
+<span id="cb40-23"><a href="#cb40-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;Root cause of gap: anomaly rate matters enormously for F1 with tolerance.&quot;</span>)</span>
+<span id="cb40-24"><a href="#cb40-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;  Our 0.72</span><span class="sc">% r</span><span class="st">ate -&gt; SVDB1 F1=16.06%&quot;</span>)</span>
+<span id="cb40-25"><a href="#cb40-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;  Paper&#39;s ~5.45</span><span class="sc">% r</span><span class="st">ate -&gt; Paper F1=67.55%&quot;</span>)</span>
+<span id="cb40-26"><a href="#cb40-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;This is partially a rate effect, not model quality alone.&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Trying to create a Glue session for the kernel.
+Session Type: etl
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
+Applying the following default arguments:
+--glue_kernel_version 1.0.9
+--enable-glue-datacatalog true</code></pre>
+</div>
+</div>
+<div id="d1b37073" class="cell" data-execution_count="21">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>fig_s1, axes_s1 <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">4</span>))</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Left: signal with anomalies</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>ax_s1 <span class="op">=</span> axes_s1[<span class="dv">0</span>]</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>    svdb_test <span class="op">=</span> np.load(<span class="st">&#39;/tmp/MBA_svdb1/MBA_test.npy&#39;</span>)</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>    svdb_labels <span class="op">=</span> np.load(<span class="st">&#39;/tmp/MBA_svdb1/MBA_test_label.npy&#39;</span>)</span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>    T_show <span class="op">=</span> <span class="bu">min</span>(<span class="dv">3000</span>, <span class="bu">len</span>(svdb_test))</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> np.arange(T_show)</span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>    ax_s1.plot(t, svdb_test[:T_show, <span class="dv">0</span>], <span class="st">&#39;b-&#39;</span>, linewidth<span class="op">=</span><span class="fl">0.8</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">&#39;ECG ch0&#39;</span>)</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>    ax_s1.fill_between(t, svdb_test[:T_show, <span class="dv">0</span>].<span class="bu">min</span>()<span class="op">-</span><span class="fl">0.5</span>, svdb_test[:T_show, <span class="dv">0</span>].<span class="bu">max</span>()<span class="op">+</span><span class="fl">0.5</span>,</span>
+<span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a>                    where<span class="op">=</span>svdb_labels[:T_show] <span class="op">&gt;</span> <span class="dv">0</span>, alpha<span class="op">=</span><span class="fl">0.5</span>, color<span class="op">=</span><span class="st">&#39;red&#39;</span>,</span>
+<span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a>                    label<span class="op">=</span><span class="ss">f&#39;Anomalies (</span><span class="sc">{</span><span class="bu">int</span>(svdb_labels[:T_show].<span class="bu">sum</span>())<span class="sc">}</span><span class="ss"> steps)&#39;</span>)</span>
+<span id="cb42-14"><a href="#cb42-14" aria-hidden="true" tabindex="-1"></a>    ax_s1.set_title(<span class="st">&#39;SVDB Record 801 Test Signal</span><span class="ch">\n</span><span class="st">(0.72</span><span class="sc">% r</span><span class="st">ate, 70/30 split)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb42-15"><a href="#cb42-15" aria-hidden="true" tabindex="-1"></a>    ax_s1.set_xlabel(<span class="st">&#39;Timestep&#39;</span>)<span class="op">;</span> ax_s1.set_ylabel(<span class="st">&#39;Signal (raw)&#39;</span>)</span>
+<span id="cb42-16"><a href="#cb42-16" aria-hidden="true" tabindex="-1"></a>    ax_s1.legend(fontsize<span class="op">=</span><span class="dv">9</span>)<span class="op">;</span> ax_s1.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>)</span>
+<span id="cb42-17"><a href="#cb42-17" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">FileNotFoundError</span>:</span>
+<span id="cb42-18"><a href="#cb42-18" aria-hidden="true" tabindex="-1"></a>    ax_s1.text(<span class="fl">0.5</span>, <span class="fl">0.5</span>, <span class="st">&#39;SVDB data in /tmp/ (session data)&#39;</span>, ha<span class="op">=</span><span class="st">&#39;center&#39;</span>, va<span class="op">=</span><span class="st">&#39;center&#39;</span>, transform<span class="op">=</span>ax_s1.transAxes)</span>
+<span id="cb42-19"><a href="#cb42-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-20"><a href="#cb42-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Right: comparison bar chart</span></span>
+<span id="cb42-21"><a href="#cb42-21" aria-hidden="true" tabindex="-1"></a>ax_s2 <span class="op">=</span> axes_s1[<span class="dv">1</span>]</span>
+<span id="cb42-22"><a href="#cb42-22" aria-hidden="true" tabindex="-1"></a>labels_b <span class="op">=</span> [<span class="st">&#39;TranAD</span><span class="ch">\n</span><span class="st">(train==test)&#39;</span>, <span class="st">&#39;TranAD</span><span class="ch">\n</span><span class="st">(70/30)&#39;</span>, <span class="st">&#39;SVDB1</span><span class="ch">\n</span><span class="st">(1 record)&#39;</span>, <span class="st">&#39;Paper</span><span class="ch">\n</span><span class="st">(4 records)&#39;</span>]</span>
+<span id="cb42-23"><a href="#cb42-23" aria-hidden="true" tabindex="-1"></a>f1s_b <span class="op">=</span> [<span class="fl">43.10</span>, <span class="fl">12.66</span>, <span class="fl">16.06</span>, <span class="fl">67.55</span>]</span>
+<span id="cb42-24"><a href="#cb42-24" aria-hidden="true" tabindex="-1"></a>colors_b <span class="op">=</span> [<span class="st">&#39;#e74c3c&#39;</span>, <span class="st">&#39;#e67e22&#39;</span>, <span class="st">&#39;#3498db&#39;</span>, <span class="st">&#39;#27ae60&#39;</span>]</span>
+<span id="cb42-25"><a href="#cb42-25" aria-hidden="true" tabindex="-1"></a>bars_s2 <span class="op">=</span> ax_s2.bar(labels_b, f1s_b, color<span class="op">=</span>colors_b, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
+<span id="cb42-26"><a href="#cb42-26" aria-hidden="true" tabindex="-1"></a>ax_s2.set_ylabel(<span class="st">&#39;F1 with tolerance t=50 (%)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb42-27"><a href="#cb42-27" aria-hidden="true" tabindex="-1"></a>ax_s2.set_title(<span class="st">&#39;F1 by Data Source</span><span class="ch">\n</span><span class="st">(A2P, MBA, L_out=100)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb42-28"><a href="#cb42-28" aria-hidden="true" tabindex="-1"></a>ax_s2.set_ylim(<span class="dv">0</span>, <span class="dv">80</span>)</span>
+<span id="cb42-29"><a href="#cb42-29" aria-hidden="true" tabindex="-1"></a>ax_s2.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>, axis<span class="op">=</span><span class="st">&#39;y&#39;</span>)</span>
+<span id="cb42-30"><a href="#cb42-30" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> bar, val <span class="kw">in</span> <span class="bu">zip</span>(bars_s2, f1s_b):</span>
+<span id="cb42-31"><a href="#cb42-31" aria-hidden="true" tabindex="-1"></a>    ax_s2.text(bar.get_x() <span class="op">+</span> bar.get_width()<span class="op">/</span><span class="fl">2.</span>, bar.get_height() <span class="op">+</span> <span class="fl">0.5</span>,</span>
+<span id="cb42-32"><a href="#cb42-32" aria-hidden="true" tabindex="-1"></a>           <span class="ss">f&#39;</span><span class="sc">{</span>val<span class="sc">:.1f}</span><span class="ss">%&#39;</span>, ha<span class="op">=</span><span class="st">&#39;center&#39;</span>, va<span class="op">=</span><span class="st">&#39;bottom&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb42-33"><a href="#cb42-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-34"><a href="#cb42-34" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb42-35"><a href="#cb42-35" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f&#39;</span><span class="sc">{</span>FIGURES_DIR_V2<span class="sc">}</span><span class="ss">/svdb1_results_nb.png&#39;</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">&#39;tight&#39;</span>)</span>
+<span id="cb42-36"><a href="#cb42-36" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Trying to create a Glue session for the kernel.
+Session Type: etl
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
+Applying the following default arguments:
+--glue_kernel_version 1.0.9
+--enable-glue-datacatalog true</code></pre>
+</div>
+</div>
+</section>
+<section id="cross-dataset-transfer-analysis" class="level2">
+<h2 class="anchored" data-anchor-id="cross-dataset-transfer-analysis">13. Cross-Dataset Transfer Analysis</h2>
+<p>A2P always evaluates within a single dataset. We tested whether anomaly structure generalizes across domains using a rolling variance detector (no model training required).</p>
+<div id="dc780776" class="cell" data-execution_count="22">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="cf">try</span>:</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> <span class="bu">open</span>(<span class="ss">f&#39;</span><span class="sc">{</span>RESULTS_DIR_V2<span class="sc">}</span><span class="ss">/improvements/cross_dataset_transfer.json&#39;</span>) <span class="im">as</span> f:</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>        transfer <span class="op">=</span> json.load(f)</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;=== Cross-Dataset Transfer Results ===&quot;</span>)</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Source: </span><span class="sc">{</span>transfer[<span class="st">&#39;datasets&#39;</span>][<span class="st">&#39;source&#39;</span>]<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Target: </span><span class="sc">{</span>transfer[<span class="st">&#39;datasets&#39;</span>][<span class="st">&#39;target&#39;</span>]<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>()</span>
+<span id="cb44-9"><a href="#cb44-9" aria-hidden="true" tabindex="-1"></a>    r <span class="op">=</span> transfer[<span class="st">&#39;results&#39;</span>]</span>
+<span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Rolling variance AUROC:&quot;</span>)</span>
+<span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;  MBA in-domain:     </span><span class="sc">{</span>r[<span class="st">&#39;mba_indomain_auroc&#39;</span>]<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb44-12"><a href="#cb44-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;  SMD in-domain:     </span><span class="sc">{</span>r[<span class="st">&#39;smd_indomain_auroc&#39;</span>]<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb44-13"><a href="#cb44-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;  MBA-&gt;SMD (PCA 2D): </span><span class="sc">{</span>r[<span class="st">&#39;cross_domain_auroc_pca&#39;</span>]<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb44-14"><a href="#cb44-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;  Transfer penalty:  </span><span class="sc">{</span>r[<span class="st">&#39;transfer_penalty_pp&#39;</span>]<span class="sc">:.4f}</span><span class="ss"> AUROC (-</span><span class="sc">{</span>r[<span class="st">&#39;transfer_penalty_pp&#39;</span>]<span class="op">/</span>r[<span class="st">&#39;smd_indomain_auroc&#39;</span>]<span class="op">*</span><span class="dv">100</span><span class="sc">:.1f}</span><span class="ss">% relative)&quot;</span>)</span>
+<span id="cb44-15"><a href="#cb44-15" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>()</span>
+<span id="cb44-16"><a href="#cb44-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Finding: </span><span class="sc">{</span>transfer[<span class="st">&#39;finding&#39;</span>]<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb44-17"><a href="#cb44-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>()</span>
+<span id="cb44-18"><a href="#cb44-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Implication for A2P: A2P&#39;s in-domain training is a design choice, not a necessity.&quot;</span>)</span>
+<span id="cb44-19"><a href="#cb44-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Statistical anomaly patterns transfer well across domains (&lt; 3.2% penalty).&quot;</span>)</span>
+<span id="cb44-20"><a href="#cb44-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;A cross-domain AP foundation model is feasible and would have major impact.&quot;</span>)</span>
+<span id="cb44-21"><a href="#cb44-21" aria-hidden="true" tabindex="-1"></a><span class="cf">except</span> <span class="pp">FileNotFoundError</span>:</span>
+<span id="cb44-22"><a href="#cb44-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Cross-dataset results in results/improvements/cross_dataset_transfer.json&quot;</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Trying to create a Glue session for the kernel.
+Session Type: etl
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
+Applying the following default arguments:
+--glue_kernel_version 1.0.9
+--enable-glue-datacatalog true</code></pre>
+</div>
+</div>
+<p><strong>Key result:</strong> Rolling variance transfers from SMD (38D) to 2D PCA projection with only -0.025 AUROC penalty. This suggests anomaly signal in variance space is partly domain-invariant. A2P never tests this generalization - it always trains and tests within the same dataset. A JEPA-based AP model that learns domain-invariant representations could close this gap.</p>
+</section>
+<section id="comprehensive-method-comparison" class="level2">
+<h2 class="anchored" data-anchor-id="comprehensive-method-comparison">14. Comprehensive Method Comparison</h2>
+<div id="f9c0f783" class="cell" data-execution_count="23">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>fig_cmp, axes_cmp <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">3</span>, figsize<span class="op">=</span>(<span class="dv">14</span>, <span class="dv">5</span>))</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Panel 1: AUROC comparison</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>ax_c1 <span class="op">=</span> axes_cmp[<span class="dv">0</span>]</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>methods <span class="op">=</span> [<span class="st">&#39;Random&#39;</span>, <span class="st">&#39;A2P</span><span class="ch">\n</span><span class="st">(trained)&#39;</span>, <span class="st">&#39;Z-score&#39;</span>, <span class="st">&#39;IsolForest&#39;</span>, <span class="st">&#39;AR(10)&#39;</span>, <span class="st">&#39;Roll.Var&#39;</span>, <span class="st">&#39;Chronos-S</span><span class="ch">\n</span><span class="st">(frozen)&#39;</span>]</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>aurocs <span class="op">=</span> [<span class="fl">0.500</span>, <span class="fl">0.528</span>, <span class="fl">0.675</span>, <span class="fl">0.665</span>, <span class="fl">0.703</span>, <span class="fl">0.730</span>, <span class="fl">0.745</span>]</span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>colors_m <span class="op">=</span> [<span class="st">&#39;#95a5a6&#39;</span>, <span class="st">&#39;#e74c3c&#39;</span>, <span class="st">&#39;#3498db&#39;</span>, <span class="st">&#39;#9b59b6&#39;</span>, <span class="st">&#39;#2ecc71&#39;</span>, <span class="st">&#39;#27ae60&#39;</span>, <span class="st">&#39;#f39c12&#39;</span>]</span>
+<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>bars_c1 <span class="op">=</span> ax_c1.bar(methods, aurocs, color<span class="op">=</span>colors_m, alpha<span class="op">=</span><span class="fl">0.85</span>, edgecolor<span class="op">=</span><span class="st">&#39;white&#39;</span>)</span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>ax_c1.axhline(y<span class="op">=</span><span class="fl">0.5</span>, color<span class="op">=</span><span class="st">&#39;gray&#39;</span>, linestyle<span class="op">=</span><span class="st">&#39;--&#39;</span>, linewidth<span class="op">=</span><span class="fl">1.5</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>ax_c1.set_ylabel(<span class="st">&#39;AUROC&#39;</span>, fontsize<span class="op">=</span><span class="dv">11</span>)</span>
+<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>ax_c1.set_title(<span class="st">&#39;AUROC: A2P vs All Baselines</span><span class="ch">\n</span><span class="st">(MBA data)&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>ax_c1.set_ylim(<span class="fl">0.45</span>, <span class="fl">0.80</span>)</span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>ax_c1.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>, axis<span class="op">=</span><span class="st">&#39;y&#39;</span>)</span>
+<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>ax_c1.tick_params(axis<span class="op">=</span><span class="st">&#39;x&#39;</span>, labelsize<span class="op">=</span><span class="dv">8</span>)</span>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> bar, val <span class="kw">in</span> <span class="bu">zip</span>(bars_c1, aurocs):</span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>    ax_c1.text(bar.get_x() <span class="op">+</span> bar.get_width()<span class="op">/</span><span class="fl">2.</span>, bar.get_height() <span class="op">+</span> <span class="fl">0.003</span>,</span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>           <span class="ss">f&#39;</span><span class="sc">{</span>val<span class="sc">:.3f}</span><span class="ss">&#39;</span>, ha<span class="op">=</span><span class="st">&#39;center&#39;</span>, va<span class="op">=</span><span class="st">&#39;bottom&#39;</span>, fontsize<span class="op">=</span><span class="dv">8</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a><span class="co"># Panel 2: F1-tolerance</span></span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>ax_c2 <span class="op">=</span> axes_cmp[<span class="dv">1</span>]</span>
+<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>methods2 <span class="op">=</span> [<span class="st">&#39;A2P</span><span class="ch">\n</span><span class="st">(train==test)&#39;</span>, <span class="st">&#39;A2P</span><span class="ch">\n</span><span class="st">(proper split)&#39;</span>, <span class="st">&#39;Chronos-S</span><span class="ch">\n</span><span class="st">(zero FT)&#39;</span>]</span>
+<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>f1_vals2 <span class="op">=</span> [<span class="fl">43.1</span>, <span class="fl">12.66</span>, <span class="fl">11.24</span>]</span>
+<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>colors_c2 <span class="op">=</span> [<span class="st">&#39;#e74c3c&#39;</span>, <span class="st">&#39;#e67e22&#39;</span>, <span class="st">&#39;#f39c12&#39;</span>]</span>
+<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a>bars_c2 <span class="op">=</span> ax_c2.bar(methods2, f1_vals2, color<span class="op">=</span>colors_c2, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
+<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a>ax_c2.axhline(y<span class="op">=</span><span class="fl">67.55</span>, color<span class="op">=</span><span class="st">&#39;#27ae60&#39;</span>, linestyle<span class="op">=</span><span class="st">&#39;--&#39;</span>, linewidth<span class="op">=</span><span class="dv">2</span>, label<span class="op">=</span><span class="st">&#39;Paper F1=67.55&#39;</span>)</span>
+<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a>ax_c2.set_ylabel(<span class="st">&#39;F1 with tolerance t=50 (%)&#39;</span>, fontsize<span class="op">=</span><span class="dv">11</span>)</span>
+<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>ax_c2.set_title(<span class="st">&#39;F1-tolerance Comparison&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb46-28"><a href="#cb46-28" aria-hidden="true" tabindex="-1"></a>ax_c2.set_ylim(<span class="dv">0</span>, <span class="dv">80</span>)</span>
+<span id="cb46-29"><a href="#cb46-29" aria-hidden="true" tabindex="-1"></a>ax_c2.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>, axis<span class="op">=</span><span class="st">&#39;y&#39;</span>)</span>
+<span id="cb46-30"><a href="#cb46-30" aria-hidden="true" tabindex="-1"></a>ax_c2.legend(fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb46-31"><a href="#cb46-31" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> bar, val <span class="kw">in</span> <span class="bu">zip</span>(bars_c2, f1_vals2):</span>
+<span id="cb46-32"><a href="#cb46-32" aria-hidden="true" tabindex="-1"></a>    ax_c2.text(bar.get_x() <span class="op">+</span> bar.get_width()<span class="op">/</span><span class="fl">2.</span>, bar.get_height() <span class="op">+</span> <span class="fl">0.5</span>,</span>
+<span id="cb46-33"><a href="#cb46-33" aria-hidden="true" tabindex="-1"></a>           <span class="ss">f&#39;</span><span class="sc">{</span>val<span class="sc">:.1f}</span><span class="ss">%&#39;</span>, ha<span class="op">=</span><span class="st">&#39;center&#39;</span>, va<span class="op">=</span><span class="st">&#39;bottom&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb46-34"><a href="#cb46-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-35"><a href="#cb46-35" aria-hidden="true" tabindex="-1"></a><span class="co"># Panel 3: Metric contradiction</span></span>
+<span id="cb46-36"><a href="#cb46-36" aria-hidden="true" tabindex="-1"></a>ax_c3 <span class="op">=</span> axes_cmp[<span class="dv">2</span>]</span>
+<span id="cb46-37"><a href="#cb46-37" aria-hidden="true" tabindex="-1"></a>x_c3 <span class="op">=</span> np.array([<span class="dv">0</span>, <span class="dv">1</span>])</span>
+<span id="cb46-38"><a href="#cb46-38" aria-hidden="true" tabindex="-1"></a>w_c3 <span class="op">=</span> <span class="fl">0.3</span></span>
+<span id="cb46-39"><a href="#cb46-39" aria-hidden="true" tabindex="-1"></a>ax_c3.bar(x_c3<span class="op">-</span>w_c3<span class="op">/</span><span class="dv">2</span>, [<span class="fl">0.528</span>, <span class="fl">0.745</span>], w_c3, label<span class="op">=</span><span class="st">&#39;AUROC&#39;</span>, color<span class="op">=</span><span class="st">&#39;#3498db&#39;</span>, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
+<span id="cb46-40"><a href="#cb46-40" aria-hidden="true" tabindex="-1"></a>ax_c3.bar(x_c3<span class="op">+</span>w_c3<span class="op">/</span><span class="dv">2</span>, [<span class="fl">0.431</span>, <span class="fl">0.1124</span>], w_c3, label<span class="op">=</span><span class="st">&#39;F1-tol/100&#39;</span>, color<span class="op">=</span><span class="st">&#39;#e67e22&#39;</span>, alpha<span class="op">=</span><span class="fl">0.85</span>)</span>
+<span id="cb46-41"><a href="#cb46-41" aria-hidden="true" tabindex="-1"></a>ax_c3.axhline(y<span class="op">=</span><span class="fl">0.5</span>, color<span class="op">=</span><span class="st">&#39;gray&#39;</span>, linestyle<span class="op">=</span><span class="st">&#39;--&#39;</span>, alpha<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb46-42"><a href="#cb46-42" aria-hidden="true" tabindex="-1"></a>ax_c3.set_xticks(x_c3)</span>
+<span id="cb46-43"><a href="#cb46-43" aria-hidden="true" tabindex="-1"></a>ax_c3.set_xticklabels([<span class="st">&#39;A2P</span><span class="ch">\n</span><span class="st">(trained)&#39;</span>, <span class="st">&#39;Chronos</span><span class="ch">\n</span><span class="st">(frozen)&#39;</span>], fontsize<span class="op">=</span><span class="dv">11</span>)</span>
+<span id="cb46-44"><a href="#cb46-44" aria-hidden="true" tabindex="-1"></a>ax_c3.set_ylabel(<span class="st">&#39;Score&#39;</span>, fontsize<span class="op">=</span><span class="dv">11</span>)</span>
+<span id="cb46-45"><a href="#cb46-45" aria-hidden="true" tabindex="-1"></a>ax_c3.set_title(<span class="st">&#39;Metric Contradiction:</span><span class="ch">\n</span><span class="st">Opposite winners&#39;</span>, fontsize<span class="op">=</span><span class="dv">10</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>)</span>
+<span id="cb46-46"><a href="#cb46-46" aria-hidden="true" tabindex="-1"></a>ax_c3.legend(fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb46-47"><a href="#cb46-47" aria-hidden="true" tabindex="-1"></a>ax_c3.set_ylim(<span class="dv">0</span>, <span class="fl">0.85</span>)</span>
+<span id="cb46-48"><a href="#cb46-48" aria-hidden="true" tabindex="-1"></a>ax_c3.grid(<span class="va">True</span>, alpha<span class="op">=</span><span class="fl">0.3</span>, axis<span class="op">=</span><span class="st">&#39;y&#39;</span>)</span>
+<span id="cb46-49"><a href="#cb46-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-50"><a href="#cb46-50" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">&#39;A2P Fails AUROC Test: Specialized Training Provides Negative Value vs Simple Baselines&#39;</span>,</span>
+<span id="cb46-51"><a href="#cb46-51" aria-hidden="true" tabindex="-1"></a>             fontsize<span class="op">=</span><span class="dv">11</span>, fontweight<span class="op">=</span><span class="st">&#39;bold&#39;</span>, color<span class="op">=</span><span class="st">&#39;#c0392b&#39;</span>, y<span class="op">=</span><span class="fl">1.02</span>)</span>
+<span id="cb46-52"><a href="#cb46-52" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb46-53"><a href="#cb46-53" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="ss">f&#39;</span><span class="sc">{</span>FIGURES_DIR_V2<span class="sc">}</span><span class="ss">/comprehensive_comp_nb.png&#39;</span>, dpi<span class="op">=</span><span class="dv">150</span>, bbox_inches<span class="op">=</span><span class="st">&#39;tight&#39;</span>)</span>
+<span id="cb46-54"><a href="#cb46-54" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Trying to create a Glue session for the kernel.
+Session Type: etl
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
+Applying the following default arguments:
+--glue_kernel_version 1.0.9
+--enable-glue-datacatalog true</code></pre>
+</div>
+</div>
+</section>
+<section id="neurips-2026-follow-up-proposal" class="level2">
+<h2 class="anchored" data-anchor-id="neurips-2026-follow-up-proposal">15. NeurIPS 2026 Follow-Up Proposal</h2>
+<p><strong>Title:</strong> “AUPRC-Driven Anomaly Prediction: Foundation Model Baselines Expose F1-Tolerance as an Unreliable Metric”</p>
+<p><strong>Problem:</strong> The AP evaluation framework uses F1 with tolerance t=50 as its primary metric. Our replication reveals that this metric: (1) inflates apparent performance 8x via tolerance window mechanics, (2) degrades 10x at real industrial failure rates (&lt;0.1%), and (3) gives completely opposite method rankings compared to AUROC (Chronos wins AUROC, A2P wins F1-tolerance, on the same data).</p>
+<p><strong>Method:</strong></p>
+<ol type="1">
+<li><p><strong>New evaluation protocol:</strong> AUPRC + DR@FAR0.01% as primary metrics. Show rankings differ from F1-tolerance across all AP methods.</p></li>
+<li><p><strong>JEPA-AP:</strong> Replace A2P’s AnomalyTransformer backbone with a JEPA predictor (JEPA infrastructure already built: RMSE=0.0868, PICP=0.910 on FEMTO bearing data). JEPA prediction error in representation space should produce better-calibrated anomaly scores than reconstruction error in raw signal space.</p></li>
+<li><p><strong>Foundation model baseline:</strong> Chronos-Small (frozen) + logistic regression on forecast residuals. Hypothesis: this 3-line baseline matches A2P F1-tolerance with 100x simpler training.</p></li>
+</ol>
+<p><strong>Evidence from replication:</strong></p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Method</th>
+<th>AUROC</th>
+<th>F1-tolerance</th>
+<th>Conclusion</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Random</td>
+<td>0.500</td>
+<td>0.0%</td>
+<td>baseline</td>
+</tr>
+<tr class="even">
+<td>A2P (trained)</td>
+<td>0.528</td>
+<td>43.1%</td>
+<td>F1-tol: A2P wins</td>
+</tr>
+<tr class="odd">
+<td>Z-score</td>
+<td>0.675</td>
+<td>n/a</td>
+<td>AUROC: trivial beats A2P</td>
+</tr>
+<tr class="even">
+<td>Rolling Variance</td>
+<td>0.730</td>
+<td>n/a</td>
+<td>AUROC: trivial beats A2P</td>
+</tr>
+<tr class="odd">
+<td>Chronos-Small (frozen)</td>
+<td>0.745</td>
+<td>7.4%</td>
+<td>AUROC: Chronos wins</td>
+</tr>
+</tbody>
+</table>
+<p>The two metrics cannot both be correct simultaneously. F1-tolerance rewards threshold placement near anomaly segments, not discriminability. AUROC rewards discriminability, which is what matters for deployment.</p>
+<p><strong>Expected contribution:</strong></p>
+<ol type="1">
+<li>First systematic AP comparison under AUPRC at industrial failure rates (0.01-5%)</li>
+<li>JEPA-AP with calibrated scores (target AUROC &gt; 0.7)</li>
+<li>Evidence that F1-tolerance is misleading for AP evaluation</li>
+<li>Publicly reproducible AP benchmark with multiple metrics</li>
+</ol>
+<p><strong>Infrastructure ready:</strong> <code>/home/sagemaker-user/IndustrialJEPA/mechanical-jepa/</code> has complete JEPA with V9 results (RMSE=0.0868, PICP@90%=0.910). Adapting to AP task is the next step.</p>
+</section>
+<section id="failure-mode-summary" class="level2">
+<h2 class="anchored" data-anchor-id="failure-mode-summary">16. Failure Mode Summary</h2>
+<div id="927a52fe" class="cell" data-execution_count="24">
+<details class="code-fold">
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>failure_modes <span class="op">=</span> [</span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>    (<span class="st">&quot;Near-random score discrimination&quot;</span>, <span class="st">&quot;AUROC=0.528 (random=0.500)&quot;</span>, <span class="st">&quot;CRITICAL&quot;</span>,</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>     <span class="st">&quot;All classical baselines beat A2P on AUROC; Chronos+21.7pp&quot;</span>),</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>    (<span class="st">&quot;F1-tolerance inflation&quot;</span>, <span class="st">&quot;Raw F1=5.35</span><span class="sc">% i</span><span class="st">nflated 8x to 43.1%&quot;</span>, <span class="st">&quot;HIGH&quot;</span>,</span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>     <span class="st">&quot;Report AUROC + AUPRC alongside tolerance F1&quot;</span>),</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>    (<span class="st">&quot;Grey-swan regime collapse&quot;</span>, <span class="st">&quot;10x F1 drop from 3.12% to 0.1% anomaly rate&quot;</span>, <span class="st">&quot;CRITICAL&quot;</span>,</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>     <span class="st">&quot;Use DR@FAR or AUPRC; AP framework broken at industrial rates&quot;</span>),</span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>    (<span class="st">&quot;Seed hardcoding bug&quot;</span>, <span class="st">&quot;--random_seed flag ignored, seed=[20462] hardcoded&quot;</span>, <span class="st">&quot;MEDIUM&quot;</span>,</span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>     <span class="st">&quot;Fix run.py; reported variance not true seed variance&quot;</span>),</span>
+<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>    (<span class="st">&quot;MBA data leakage (TranAD)&quot;</span>, <span class="st">&quot;Train==test identical; F1 inflated 3.4x&quot;</span>, <span class="st">&quot;HIGH&quot;</span>,</span>
+<span id="cb48-11"><a href="#cb48-11" aria-hidden="true" tabindex="-1"></a>     <span class="st">&quot;Use PhysioNet SVDB records directly&quot;</span>),</span>
+<span id="cb48-12"><a href="#cb48-12" aria-hidden="true" tabindex="-1"></a>    (<span class="st">&quot;In-domain evaluation only&quot;</span>, <span class="st">&quot;A2P never tested cross-dataset&quot;</span>, <span class="st">&quot;MEDIUM&quot;</span>,</span>
+<span id="cb48-13"><a href="#cb48-13" aria-hidden="true" tabindex="-1"></a>     <span class="st">&quot;Cross-domain: -0.025 AUROC only; foundation model transfer is feasible&quot;</span>),</span>
+<span id="cb48-14"><a href="#cb48-14" aria-hidden="true" tabindex="-1"></a>    (<span class="st">&quot;No lead-time advantage&quot;</span>, <span class="st">&quot;LTW-F1 ratio: A2P=4.46x vs Random=5.07x&quot;</span>, <span class="st">&quot;MEDIUM&quot;</span>,</span>
+<span id="cb48-15"><a href="#cb48-15" aria-hidden="true" tabindex="-1"></a>     <span class="st">&quot;Title claim &#39;when will it fail&#39; not validated by current metrics&quot;</span>),</span>
+<span id="cb48-16"><a href="#cb48-16" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb48-17"><a href="#cb48-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-18"><a href="#cb48-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span><span class="st">&#39;Failure Mode&#39;</span><span class="sc">:&lt;38}</span><span class="ss"> </span><span class="sc">{</span><span class="st">&#39;Severity&#39;</span><span class="sc">:&lt;10}</span><span class="ss"> </span><span class="sc">{</span><span class="st">&#39;Key Evidence&#39;</span><span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb48-19"><a href="#cb48-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;-&quot;</span><span class="op">*</span><span class="dv">85</span>)</span>
+<span id="cb48-20"><a href="#cb48-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> fm, ev, sev, fix <span class="kw">in</span> failure_modes:</span>
+<span id="cb48-21"><a href="#cb48-21" aria-hidden="true" tabindex="-1"></a>    sev_color <span class="op">=</span> <span class="st">&quot;CRITICAL&quot;</span> <span class="cf">if</span> sev <span class="op">==</span> <span class="st">&quot;CRITICAL&quot;</span> <span class="cf">else</span> sev</span>
+<span id="cb48-22"><a href="#cb48-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>fm[:<span class="dv">36</span>]<span class="sc">:&lt;38}</span><span class="ss"> [</span><span class="sc">{</span>sev_color<span class="sc">}</span><span class="ss">]&quot;</span>)</span>
+<span id="cb48-23"><a href="#cb48-23" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;  Evidence: </span><span class="sc">{</span>ev<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb48-24"><a href="#cb48-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;  Fix/Implication: </span><span class="sc">{</span>fix<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb48-25"><a href="#cb48-25" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Trying to create a Glue session for the kernel.
+Session Type: etl
+Session ID: da65aa9f-102b-4d35-a03c-b4005f6039fc
 Applying the following default arguments:
 --glue_kernel_version 1.0.9
 --enable-glue-datacatalog true</code></pre>

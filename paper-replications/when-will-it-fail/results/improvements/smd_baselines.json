@@ -1,0 +1,23 @@
+{
+  "dataset": "SMD (Server Machine Dataset)",
+  "n_train": 708405,
+  "n_test": 708420,
+  "n_channels": 38,
+  "anomaly_rate": 0.04156291484832764,
+  "methods": {
+    "zscore_mean": {
+      "auroc": 0.6409206752300552,
+      "auprc": 0.11399826446072076
+    },
+    "rolling_var_100": {
+      "auroc": 0.7725488740012546,
+      "auprc": 0.15374730487123114
+    },
+    "window_mse_10": {
+      "auroc": 0.7013793360085945,
+      "auprc": 0.1289123174433498
+    }
+  },
+  "a2p_paper_f1_tol": 36.29,
+  "note": "A2P uses F1-tol metric, these baselines use AUROC/AUPRC. F1-tol comparison pending A2P run."
+}

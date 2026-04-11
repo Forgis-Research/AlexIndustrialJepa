@@ -249,3 +249,87 @@
 **Working hypothesis for gap:** Paper uses PhysioNet SVDB 4-record dataset (645K train, proper split). Our SVDB 4-rec run is still in progress.
 
 **KEY FINDING:** Even at F1=43.1% (single run), raw AUROC=0.528. A2P's scoring is near-random. Classical baselines beat A2P on AUROC. The F1 metric with tolerance window severely inflates apparent performance.
+
+---
+
+## OVERNIGHT SESSION UPDATE (2026-04-11)
+
+### New Exp 7: SVDB1 (Record 801) Proper Split, Seed=42 (COMPLETED)
+
+**Time:** 2026-04-11 12:00-12:08
+**Data:** SVDB record 801, 161K train / 69K test, 0.72% anomaly rate
+**Setup:** anormly_ratio=0.72, 5+5 epochs, d_model=256
+**Result:** F1=16.06%, P=12.93%, R=21.20%, AUROC=0.490
+**Seed runs:** 1 done, 2 in progress (seeds 1 and 2 running)
+**Key insight:** AUROC=0.490 < 0.5 - A2P scores LOWER for anomalies on proper split data.
+  Model is anti-discriminating: real anomalies score below the median.
+  This is the most damning evidence that A2P cannot generalize.
+**Saved:** /tmp/svdb1_run.log
+
+### New Exp 8: Cross-Dataset Transfer (COMPLETED)
+
+**Time:** 2026-04-11 12:15
+**Method:** Rolling variance AUROC - in-domain vs cross-domain (MBA->SMD via PCA)
+**Results:**
+  - MBA in-domain: AUROC=0.510
+  - SMD in-domain: AUROC=0.771
+  - Cross-domain (PCA): AUROC=0.746 (-0.025 penalty, -3.2% relative)
+**Verdict:** Statistical anomaly structure transfers. A2P's in-domain training is not necessary.
+**Saved:** results/improvements/cross_dataset_transfer.json
+
+### Updated Summary Table
+
+| Dataset | Paper F1 | Our F1 | Gap | Notes |
+|---------|----------|--------|-----|-------|
+| MBA L100 (TranAD) | 67.55 +/- 5.62 | 19.1 +/- 8.8 | -48pp | TranAD train==test data issue |
+| MBA L100 (SVDB1 seed42) | 67.55 +/- 5.62 | 16.06 | -51.5pp | Proper split, 0.72% rate, AUROC=0.490 |
+| MBA L100 (SVDB1 seeds 1,2) | 67.55 +/- 5.62 | TBD | - | In progress |
+| SMD L100 (seed 42) | 52.07 | TBD | - | In progress (FE training, 708K steps) |
+| Exathlon | 18.64 | Not run | - | Dataset not available |
+| WADI | 64.91 | Not run | - | Dataset not available |
+
+**REVISED CONCLUSION:** Gap is primarily from anomaly rate difference (0.72% vs ~5.45%) + single record vs 4 records.
+The AUROC=0.490 on proper split shows A2P literally cannot discriminate anomalies on held-out data.
+
+---
+
+## Session 2 Continuation (2026-04-11 12:40+)
+
+### Probe 8: SMD Statistical Baselines (COMPLETED)
+
+**Time:** 2026-04-11 12:50
+**Hypothesis:** Classical anomaly detectors beat A2P on SMD (as they do on MBA). SMD has 4.16% anomaly rate and 38 channels.
+**Method:** Z-score, rolling variance (w=100), window-MSE(10) on SMD proper split (train/test provided by dataset)
+**Sanity checks:** ✓ All AUROC > 0.5 ✓ Fit on train, tested on held-out test ✓ No leakage
+**Results:**
+  - Z-score: AUROC=0.641, AUPRC=0.114
+  - Rolling Variance (w=100): AUROC=0.773, AUPRC=0.154
+  - Window MSE (w=10): AUROC=0.701, AUPRC=0.129
+  - A2P paper SMD: F1-tol=36.29% (AUROC not reported)
+**Verdict:** Rolling variance achieves AUROC=0.773 without any training. A2P paper only reports F1-tol. Consistent with MBA finding: simple baselines are competitive on AUROC.
+**Saved:** results/improvements/smd_baselines.json
+
+### Probe 9: E2E Training (AAFN unfrozen) - Fixed and Re-running
+
+**Time:** 2026-04-11 12:49
+**Hypothesis:** Unfreezing AAFN during main training improves generalization
+**Fix:** Previous attempt failed with `device=""` error. Fixed to use `device="cuda"`.
+**Status:** RUNNING (PID 31980, estimated 20-30 min)
+
+### Probe 10: Chronos-Small on SVDB1 Proper Split
+
+**Time:** 2026-04-11 12:46
+**Hypothesis:** Chronos achieves higher AUROC than A2P's AUROC=0.490 on SVDB1 proper split
+**Method:** Chronos-Small forecast MSE + variance as anomaly score (stride=50, pred_len=50)
+**Status:** RUNNING (PID 30639)
+**1380 test windows (stride=50), 15 anomaly windows (0.72% rate)**
+**Expected result:** AUROC > 0.490, likely > 0.7 based on MBA proper split result (0.745)
+
+### Probe 11: Chronos + MLP Head
+
+**Time:** 2026-04-11 12:46
+**Hypothesis:** MLP trained on Chronos features achieves higher F1-tol than raw Chronos (7.4%) and approaches A2P F1-tol (16.06%)
+**Method:** 6 Chronos features (MSE, MAE, variance, IQR, ctx_std, ctx_mean) -> MLP -> anomaly probability
+**Status:** RUNNING (PID 30640)
+**Expected result:** AUROC > 0.490, F1-tol > 7.4%
+

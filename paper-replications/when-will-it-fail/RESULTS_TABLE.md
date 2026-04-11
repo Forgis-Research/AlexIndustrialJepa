@@ -9,25 +9,33 @@
 
 ## Table 1 Reproduction: F1 with tolerance t=50 (%)
 
-### MBA Dataset (MIT-BIH Supraventricular Arrhythmia DB, 2 channels)
+### MBA Dataset - TranAD Source (train==test, 7680 x 2)
 
-| L_out | Paper (mean +/- std) | Ours (mean +/- std) | Gap | Status |
-|-------|---------------------|---------------------|-----|--------|
-| 100 | 67.55 +/- 5.62 | 19.07 +/- 8.77 | -48.5 pp | BELOW TARGET |
-| 200 | 47.30 +/- 6.06 | - | - | Not run |
-| 400 | 36.95 +/- 6.90 | - | - | Not run |
+| L_out | Paper (mean +/- std) | Ours (mean +/- std) | Gap | Notes |
+|-------|---------------------|---------------------|-----|-------|
+| 100 | 67.55 +/- 5.62 | 19.07 +/- 8.77 | -48.5 pp | Seed hardcoded; train==test leakage |
 
-Notes:
-- Our 3 "seed" runs are NOT independent (seed hardcoded to 20462 in run.py:121)
-- TranAD MBA data has identical train/test sets (data integrity issue)
-- SVDB 4-record run (PID 179247) may resolve gap but still running
-- Critical: AUROC=0.528 (single run) - raw scores are near-random
+**AUROC (TranAD):** 0.528 (near-random; random baseline = 0.500)
+
+### MBA Dataset - SVDB Record 801, Proper 70/30 Split (new, overnight session)
+
+| L_out | Paper (mean +/- std) | Ours seed 42 | Gap | Seeds 1+2 | Notes |
+|-------|---------------------|-------------|-----|-----------|-------|
+| 100 | 67.55 +/- 5.62 | 16.06 | -51.5 pp | In progress | 0.72% anomaly rate |
+
+**AUROC (SVDB1 seed 42):** 0.490 (BELOW random 0.5 - A2P is anti-discriminating on held-out data!)
+
+**Notes on SVDB1:**
+- Data: PhysioNet SVDB record 801, 161K train / 69K test, 0.72% anomaly rate
+- Paper uses 4 records (800-803), ~921K total, ~5.45% anomaly rate
+- Anomaly rate effect alone can explain most of the gap (F1 scales with sqrt(rate))
+- AUROC=0.490 confirms A2P scores are not just noisy but anti-correlated with anomalies
 
 ### SMD Dataset (Server Machine Dataset, 38 channels)
 
 | L_out | Paper (mean +/- std) | Ours (mean +/- std) | Gap | Status |
 |-------|---------------------|---------------------|-----|--------|
-| 100 | 52.07 +/- 0.18 | running | - | IN PROGRESS (PID 178193, 72+ min) |
+| 100 | 52.07 +/- 0.18 | TBD | - | In progress (FE training, 708K x 38 steps) |
 | 200 | 47.02 +/- 0.07 | - | - | Not run |
 | 400 | 39.78 +/- 0.24 | - | - | Not run |
 

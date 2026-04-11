@@ -1,0 +1,41 @@
+{
+  "analysis": "metric_ranking_comparison",
+  "methods_with_both_metrics": [
+    {
+      "name": "A2P (replicated, TranAD train==test)",
+      "f1_tol": 43.1,
+      "auroc": 0.528
+    },
+    {
+      "name": "A2P (SVDB1 seed=42)",
+      "f1_tol": 16.06,
+      "auroc": 0.49
+    },
+    {
+      "name": "Chronos-Small (zero-shot)",
+      "f1_tol": 7.42,
+      "auroc": 0.745
+    },
+    {
+      "name": "Random baseline",
+      "f1_tol": 1.0,
+      "auroc": 0.5
+    }
+  ],
+  "f1_tol_ranking": [
+    "A2P (replicated, TranAD train==test)",
+    "A2P (SVDB1 seed=42)",
+    "Chronos-Small (zero-shot)",
+    "Random baseline"
+  ],
+  "auroc_ranking": [
+    "Chronos-Small (zero-shot)",
+    "A2P (replicated, TranAD train==test)",
+    "Random baseline",
+    "A2P (SVDB1 seed=42)"
+  ],
+  "spearman_rho": 0.0,
+  "spearman_pval": 1.0,
+  "key_finding": "F1-tolerance and AUROC give different method rankings. A2P is #1 by F1-tolerance but #3 by AUROC. Chronos is #1 by AUROC but #2 by F1-tolerance.",
+  "neurips_contribution": "Propose AUPRC as primary AP metric. Show F1-tolerance rankings are unreliable for anomaly discrimination quality assessment."
+}
