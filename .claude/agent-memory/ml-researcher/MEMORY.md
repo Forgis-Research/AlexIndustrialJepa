@@ -1,5 +1,5 @@
-- [A2P Replication Findings](project_a2p_replication.md) — AUROC=0.499+/-0.008 (3-seed, random!); best APTransformer=0.642 AUROC; JEPA pretrain hurts (0.619); contrastive AP running
-- [STAR Replication Progress](project_star_replication.md) — FD001 4/5 seeds: RMSE=12.17 (paper=10.61, +14.7%); overnight run active; FD002-FD004 pending
+- [A2P Replication Findings](project_a2p_replication.md) — CRITICAL: APTransformer seed=42 (0.642) was 3.2-sigma lucky; TRUE 3-seed mean=0.524+/-0.037; all SSL pretraining fails; oracle=0.720
+- [STAR Replication Progress](project_star_replication.md) — FD001 5-seed COMPLETE: RMSE=12.186+/-0.553 (paper=10.61, +14.9%, GOOD); FD002 running (ETA ~18:15 April 11)
 - [DCSSL Replication Findings](project_dcssl_replication.md) — FPT shift is key failure mode; paper SimCLR avg≈trivial baseline; paper table had swapped columns; RUL-fix applied to cond2/3
 - [IndustrialJEPA Project Context](project_industrialjepa.md) — V11 ALL DONE: E2E=13.80; MLP=15.88; FD003 E2E=15.37; FD004 E2E=25.62 (6cond hard); cross-fault 28.79@10%; ext fine-tuning no help
 - [Dataset Catalog and Recommendations](datasets_catalog.md) — Paderborn=Tier2, WADI=Brain-JEPA, OXE proprio data verified and used

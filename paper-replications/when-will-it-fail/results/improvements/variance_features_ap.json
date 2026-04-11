@@ -1,0 +1,44 @@
+{
+  "logistic_regression": {
+    "val_auroc": 0.6512036540523978,
+    "test_auroc": 0.5865646481076399
+  },
+  "lr_variance_only": {
+    "val_auroc": 0.6432888607676988,
+    "test_auroc": 0.6160372821640981
+  },
+  "random_forest": {
+    "val_auroc": 0.6445072649408964,
+    "test_auroc": 0.5498083127156547
+  },
+  "gradient_boosting": {
+    "val_auroc": 0.6219407770680369,
+    "test_auroc": 0.5869837530614915
+  },
+  "direct_variance_score": {
+    "val_auroc": 0.47542696167399323,
+    "test_auroc": 0.4916207572764306
+  },
+  "max_variance_score": {
+    "val_auroc": 0.4078958998715395,
+    "test_auroc": 0.43041377655629715
+  },
+  "top_features": {
+    "var_full_1": 0.048120929522912824,
+    "ac1_1": 0.04802079583572641,
+    "ac1_0": 0.047239034459381546,
+    "mean_full_0": 0.047104940513504785,
+    "var_full_0": 0.0462720617802735,
+    "mean_full_1": 0.04457808322315215,
+    "rms_0": 0.04372324805759111,
+    "rms_1": 0.0433329325580002,
+    "var_50_0": 0.040282803918195345,
+    "var_50_1": 0.040236332005289616
+  },
+  "summary": {
+    "best_test_auroc": 0.5869837530614915,
+    "aptransformer_multiseed": 0.524,
+    "oracle_auroc": 0.72,
+    "random_baseline": 0.476
+  }
+}

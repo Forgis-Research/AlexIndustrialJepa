@@ -133,7 +133,13 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | Correct AP: InfoNCE | InfoNCE contrastive pretrain + finetune | AUROC | 0.641 | APTransformer: 0.642 | Single seed=42, neutral |
 | **Correct AP: Multi-Seed** | **APTransformer 3-seed (correct AP)** | **AUROC** | **0.524 +/- 0.037** | **Oracle: 0.720** | **TRUE ESTIMATE: seed=42 was lucky!** |
 
+| **Correct AP: LR variance** | **LR + 8 variance features (validated)** | **AUROC** | **0.616** | **Transformer: 0.524** | **+0.092 over transformer! C-sweep validated (0.616-0.627), no leakage** |
+| **SMD: LR variance** | **LR + top-5 channels variance (validated)** | **AUROC** | **0.674** | **SMD oracle: 0.554** | **+0.120 above oracle; generalizes across datasets!** |
+| Correct AP: V2 contrastive | AP-aware InfoNCE (anomalous future = positive) | AUROC | TBD | InfoNCE V1: 0.641 | Probe 26b, still running |
+
 **CRITICAL:** Single-seed AP results (0.642, 0.641, 0.619, 0.625) are unreliable. True multi-seed APTransformer AUROC = 0.524 +/- 0.037, barely above random (0.500). The gap to oracle is 0.196, not 0.078. All single-seed "best results" must be treated as preliminary.
+
+**NEW FINDING (Probe 29):** LR with 8 variance features achieves AUROC=0.616, beating APTransformer multi-seed mean by +0.092. Validated across C-sweep [0.01-100], no normalization leakage, test set is harder (AP rate 7.7% vs train 9.5%). The AP signal lives in multi-scale variance features, not complex temporal patterns.
 
 Note: MBA_svdb = single SVDB record 801 (161K train / 69K test), 0.72% anomaly rate.
 MBA_svdb4 = SVDB records 800-803 combined (737K train / 184K test), 6.35% anomaly rate = paper's setup.

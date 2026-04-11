@@ -62,42 +62,47 @@ Replication dir: `/home/sagemaker-user/IndustrialJEPA/paper-replications/when-wi
 
 ## Trainable AP Models on Correct Evaluation (SVDB4, April 11, 2026)
 
-Progressive improvement toward oracle (AUROC=0.720):
+**CRITICAL: Multi-seed validation (Probe 27) reveals single-seed results are unreliable!**
 
-| Model | AUROC | Gap to Oracle |
-|-------|-------|---------------|
-| Rolling var (no training) | 0.476 | 0.244 |
-| Multi-scale MLP (supervised) | 0.602 | 0.118 |
-| JEPA temporal pretrain + finetune | 0.619 | 0.101 |
-| Supervised from scratch (fixed LR) | 0.625 | 0.095 |
-| APTransformer (cosine LR) | **0.642** | **0.078** |
-| Oracle future var | 0.720 | 0.000 |
+| Model | AUROC | Source | Notes |
+|-------|-------|--------|-------|
+| Rolling var (no training) | 0.476 | deterministic | Baseline |
+| Multi-scale MLP (supervised) | 0.602 | single seed=42 | May be lucky |
+| JEPA temporal pretrain + finetune | 0.619 | single seed=42 | May be lucky |
+| Supervised from scratch (fixed LR) | 0.625 | single seed=42 | May be lucky |
+| InfoNCE contrastive pretrain | 0.641 | single seed=42 | May be lucky |
+| Large-scale pretrain (4x data) | 0.632 | single seed=42 | May be lucky |
+| APTransformer (cosine LR) | 0.642 | single seed=42 | WAS LUCKY (3.2 sigma above mean!) |
+| **APTransformer 3-seed TRUE** | **0.524 +/- 0.037** | **3 seeds** | **Statistically validated** |
+| Oracle future var | 0.720 | deterministic | Upper bound |
 
-**Key finding Probe 25**: Naive JEPA pretraining (temporal reconstruction) HURTS vs scratch. Objective mismatch: pretraining rewards predicting normal signal dynamics; AP rewards detecting anomaly precursors. Future: anomaly-aware contrastive pretraining needed.
+**KEY INSIGHT**: APTransformer 0.642 = lucky seed 42 only. True multi-seed mean = 0.524 ± 0.037.
+Gap to oracle is 0.196 (not 0.078). ALL single-seed results are unvalidated.
 
-## Running Experiments (April 11, 2026)
+**SSL pretraining findings (all failed)**:
+- JEPA temporal: -0.023 vs APTransformer, hurts due to normalcy prior
+- InfoNCE generic: -0.001 vs APTransformer, neutral
+- 4x large-scale temporal: -0.010 vs APTransformer, scale doesn't fix objective mismatch
 
-- SMD A2P seed=42 full run (PID 5584): stuck at Epoch 2 after 3+ hours. ETA: ~10+ more hours. Will not complete.
-- Contrastive AP (PID 112359): InfoNCE contrastive pretrain on (context, future) pairs. Running.
-- STAR replication FD001 (PID 69842): 3/5 seeds done, mean RMSE=12.17 (paper: 10.61, +14.7%). Seed 789 running.
+## Running Experiments (April 11, 2026 ~16:00)
+
+- AP-aware contrastive V2 (PID 113720): Still running (~21 min CPU time). Anomalous futures as positives.
+- APTransformer 5-seed d_model=64 vs 128 (PID 126506): 5 seeds for tighter CI.
+- STAR FD001: COMPLETE (5-seed RMSE=12.186 +/- 0.553, paper 10.61, +14.9%). FD002 started ~15:44.
+- SMD A2P full run: KILLED after 129 min CPU (stuck at epoch 2/5, ~7.5h total = intractable).
 
 ## Result Files
 
 All in `results/improvements/`:
-- `svdb1_multiseed_final.json`: 3-seed complete
-- `random_baselines.json`: Random scores on all 3 datasets
-- `oracle_ap_auroc.json`: Oracle AUROC analysis
-- `correct_ap_evaluation.json`: Correct AP evaluation
-- `oracle_mlp_ap.json`: Oracle MLP on SVDB4
-- `smd_oracle_ap.json`: Oracle MLP on SMD
-- `svdb1_correct_ap.json`: Correct AP on SVDB1 (confound analysis)
-- `e2e_training.json`: E2E training probe result
-- `tolerance_sensitivity.json`: F1-tol plateau analysis
-- `smd_max_chan_var.json`: Max-channel var on SMD
-- `ar_predictor_ap.json`: Multi-scale MLP correct AP
-- `transformer_ap.json`: APTransformer correct AP
-- `jepa_ap.json`: JEPA temporal pretrain + finetune
-- `contrastive_ap.json`: Contrastive pretrain (PENDING)
+- `aptransformer_multiseed.json`: 3-seed APTransformer TRUE estimate (CRITICAL - single-seed misleading)
+- `pretrain_transfer_ap.json`: 4x large-scale pretrain (fails: -0.010 vs ATF)
+- `contrastive_ap.json`: InfoNCE V1 (neutral: -0.001 vs ATF)
+- `contrastive_ap_v2.json`: AP-aware contrastive V2 (PENDING)
+- `aptransformer_5seed.json`: 5-seed d_model comparison (PENDING)
+- `transformer_ap.json`: APTransformer seed=42 (0.642 - lucky single seed)
+- `jepa_ap.json`: JEPA temporal pretrain + finetune (0.619 single seed)
+- `ar_predictor_ap.json`: Multi-scale MLP (0.602 single seed)
+- Earlier files: svdb1_multiseed_final, random_baselines, oracle_ap_auroc, correct_ap_evaluation, etc.
 
 ## NeurIPS Narrative (8-step evidence chain)
 
@@ -108,7 +113,7 @@ All in `results/improvements/`:
 5. Data integrity (train==test 3.4x, seed bug)
 6. Oracle future var = 0.347 (below random!) - evaluation tests detection not prediction
 7. Correct AP evaluation: oracle=0.720 - task IS achievable; SVDB1 confounded
-8. Trainable models close gap: MLP(0.602) < JEPA(0.619) < Scratch(0.625) < Transformer(0.642); naive JEPA fails
+8. Trainable models: TRUE 3-seed APTransformer baseline = 0.524 ± 0.037 (single-seed 0.642 was lucky); SSL pretraining consistently fails (objective mismatch)
 
-Key contribution: propose correct AP evaluation (future_labels, AUROC/AUPRC), oracle target 0.720.
-Target: anomaly-aware contrastive pretraining achieving AUROC > 0.72 under correct evaluation.
+Key contribution: propose correct AP evaluation (future_labels, AUROC/AUPRC), oracle=0.720, show F1-tol is unreliable.
+Critical new finding: seed sensitivity in AP is extreme - seed=42 is 3.2 sigma above mean.
