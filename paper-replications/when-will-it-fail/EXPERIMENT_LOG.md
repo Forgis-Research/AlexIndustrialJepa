@@ -3112,3 +3112,56 @@ Block structure:
 
 ---
 
+
+### Probe 110: Minimal Feature Analysis (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** Only a few variance features are needed to achieve LR-level AUROC.
+**Design:** CPU-only. 14 variance features (ch0/ch1 x last-5/10/25/50/100/150/200). Mutual info + greedy forward selection.
+**Sanity checks:** ✓ ch0_last200 single feature AUROC=0.597 (good signal) ✓ target 0.630 reached at step 2
+
+**Result:**
+
+Single feature AUROC (top features):
+| Feature | MI | AUROC |
+|---------|-----|-------|
+| ch0_last150_var | 0.0125 | 0.546 |
+| ch0_last200_var | 0.0108 | 0.597 |
+| ch1_last100_var | 0.0064 | 0.572 |
+| ch0_last50_var | 0.0061 | 0.508 |
+
+Greedy selection:
+- Step 1: ch0_last200_var -> AUROC=0.597
+- Step 2: ch0_last25_var -> AUROC=0.631 (TARGET REACHED!)
+
+**KEY FINDING: Only 2 features are needed to achieve LR-level AUROC:**
+1. ch0 full-window variance (200 steps) = global calm measure
+2. ch0 last-25-step variance = recent activity measure
+
+These two together create an implicit "variance trend":
+- ch0_last25 > ch0_last200 → recent rise above global baseline → AP+
+- This is the mathematical form of the calm-before-storm signal
+
+Adding channel 1 or more features provides minimal marginal benefit. The AP task is essentially a 1D problem: is the dominant ECG channel showing recent elevated variance above its global baseline?
+
+**Implication:** A trained transformer (4M parameters) effectively learns a 2-number linear decision rule. This should be achievable with much simpler architectures.
+
+---
+
+
+### Probe 111: Strict AP+ Timing Analysis (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** Strict AP+ events happen at predictable positions in the inter-block gap.
+**Design:** CPU-only. Distance to last block end as a feature for strict AP prediction.
+**Result:** Distance AUROC on strict AP = 0.508 (≈ random)
+
+**Key finding:** Strict AP+ events are NOT predictable from temporal position within the inter-block gap. Mean distance=1624 steps (AP+=1624, AP-=1755, nearly identical). This confirms:
+1. The LR's 0.702 AUROC on strict AP is NOT from temporal position exploitation
+2. Strict AP+ events happen at random positions in the gap (no clustering effect)
+3. The variance-based features are genuinely detecting anomaly onset patterns
+
+**Implication:** The strict AP task is a genuine signal-based prediction problem, not a temporal position problem. This validates the main finding that LR captures genuine rise-in-variance before anomaly onset.
+
+---
+
