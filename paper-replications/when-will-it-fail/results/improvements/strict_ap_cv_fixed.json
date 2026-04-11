@@ -1,0 +1,17 @@
+{
+  "probe": "120b_strict_ap_cv_fixed",
+  "cv_folds": 5,
+  "n_strict_ap_plus": 1170,
+  "n_ap_minus": 33308,
+  "oracle_full_auroc": 0.6483005674055872,
+  "lr_cv_mean": 0.7588819392595599,
+  "lr_cv_std": 0.014593752068997866,
+  "rf_cv_mean": 0.7910352171706603,
+  "rf_cv_std": 0.012929474607803557,
+  "oracle_cv_mean": 0.6481892905450246,
+  "oracle_cv_std": 0.010417529106484528,
+  "lr_beats_oracle": true,
+  "rf_beats_oracle": true,
+  "lr_over_oracle": 0.11069264871453532,
+  "rf_over_oracle": 0.14284592662563567
+}

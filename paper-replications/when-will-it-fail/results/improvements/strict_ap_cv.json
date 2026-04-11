@@ -1,0 +1,13 @@
+{
+  "probe": "120_strict_ap_cv",
+  "cv_folds": 5,
+  "n_strict_ap_plus": 1170,
+  "lr_mean": 0.7588819392595599,
+  "lr_std": 0.014593752068997866,
+  "rf_mean": 0.7910352171706603,
+  "rf_std": 0.012929474607803557,
+  "oracle_mean": 0.40337439064388947,
+  "oracle_std": 0.021951687625174455,
+  "lr_beats_oracle": true,
+  "rf_beats_oracle": true
+}
