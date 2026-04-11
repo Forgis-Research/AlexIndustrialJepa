@@ -1,0 +1,11 @@
+{
+  "n_sequences": 7081,
+  "ap_positive_rate": 0.06595113684507838,
+  "ap_plus_ctx_anomaly_mean": 0.30491432547569275,
+  "ap_minus_ctx_anomaly_mean": 0.02298836037516594,
+  "ap_plus_current_anomaly_rate": 0.3918629586696625,
+  "pct_ap_plus_with_any_ctx_anomaly": 0.4518201284796574,
+  "pct_ap_plus_clean": 0.5481798715203426,
+  "context_any_anomaly_auroc": 0.6716312616997622,
+  "context_rate_auroc": 0.6876847437367624
+}

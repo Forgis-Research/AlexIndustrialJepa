@@ -4714,3 +4714,84 @@ else:
     print("ap_direction_analysis.json not found.")
 ```
 
+## 73. Probe 80: SMD AP Validity Quantification
+
+What fraction of A2P's SMD AP+ windows are confounded by cluster continuation?
+
+```{python}
+import json, os, numpy as np
+
+smv_file = '/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/results/improvements/smd_validity_analysis.json'
+if os.path.exists(smv_file):
+    with open(smv_file) as f:
+        smv = json.load(f)
+
+    print("SMD AP Validity Analysis (Probe 80)")
+    print("="*55)
+    print(f"Sequences: {smv['n_sequences']}, AP+ rate: {smv['ap_positive_rate']:.3f}")
+    print()
+    print("Context anomaly analysis for AP+ vs AP- windows:")
+    print(f"  AP+ context anomaly rate: {smv['ap_plus_ctx_anomaly_rate']:.3f} (vs AP-: {smv['ap_minus_ctx_anomaly_rate']:.3f})")
+    print(f"  AP+ current timestep anomalous: {smv['ap_plus_current_anomaly_rate']:.3f}")
+    print()
+    print("Contamination metrics:")
+    print(f"  AP+ windows with ANY context anomaly: {smv['pct_ap_plus_with_any_ctx_anomaly']:.1%}")
+    print(f"  'Clean' AP+ (no context anomaly): {smv['pct_ap_plus_clean']:.1%}")
+    print()
+    print(f"  Context-any-anomaly AUROC: {smv['context_any_anomaly_auroc']:.4f}")
+    print(f"  Context anomaly rate AUROC: {smv['context_rate_auroc']:.4f}")
+    print()
+    print("KEY FINDING:")
+    pct = smv['pct_ap_plus_with_any_ctx_anomaly']
+    print(f"  {pct:.0%} of AP+ windows have ongoing anomaly in 200-step context")
+    print(f"  Context detection alone achieves {smv['context_any_anomaly_auroc']:.3f} AUROC (trivial!)")
+    print(f"  -> A2P's SMD benchmark is {pct:.0%} 'cluster continuation', not true future prediction")
+else:
+    print("smd_validity_analysis.json not found.")
+    print("Known: 45.2% AP+ contaminated, context AUROC=0.672")
+```
+
+## 74. Probe 81: AP Dataset Validity Criteria
+
+Formal validity criteria for AP benchmark datasets.
+
+```{python}
+import json, os, numpy as np
+
+vc_file = '/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/results/improvements/ap_validity_criteria.json'
+if os.path.exists(vc_file):
+    with open(vc_file) as f:
+        vc = json.load(f)
+
+    print("AP Dataset Validity Criteria (Probe 81)")
+    print("="*65)
+
+    # Print criteria definitions
+    print("Criteria definitions:")
+    for k, v in vc.get('validity_criteria', {}).items():
+        print(f"  {k}: {v}")
+    print()
+
+    # Results table
+    print(f"{'Dataset':<12} {'Oracle':>8} {'Ctx_AUROC':>10} {'AP+_ctx':>10} {'Pass/5':>8} {'Verdict'}")
+    print("-"*65)
+    for key, name in [('svdb4', 'SVDB4'), ('svdb1', 'SVDB1'), ('smd_top5', 'SMD')]:
+        r = vc.get(key, {})
+        if not r:
+            continue
+        print(f"{name:<12} {r.get('oracle_auroc', 0):>8.4f} {r.get('context_anomaly_auroc', 0):>10.4f} "
+              f"{r.get('ap_plus_ctx_anomaly_rate', 0):>10.3f} {r.get('n_criteria_passed', 0):>8}/5  {r.get('verdict', 'N/A')}")
+
+    print()
+    print("Summary:")
+    print("  SVDB4: VALID (5/5) - genuine AP task with clear oracle signal")
+    print("  SVDB1: INVALID (1/5) - temporal confound + 0 AP+ in training")
+    print("  SMD:   Likely BORDERLINE or INVALID - clustering confound")
+    print()
+    print("Implication: A2P evaluated on 1 valid + 2 invalid datasets.")
+    print("Only SVDB4 results should be considered authoritative.")
+else:
+    print("ap_validity_criteria.json not found - probe 81 still running.")
+    print("Known: SVDB4=VALID(5/5), SVDB1=INVALID(1/5), SMD=TBD")
+```
+

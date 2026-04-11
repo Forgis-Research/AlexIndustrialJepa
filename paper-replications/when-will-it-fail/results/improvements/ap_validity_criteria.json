@@ -1,0 +1,63 @@
+{
+  "svdb4": {
+    "name": "SVDB4",
+    "n_sequences": 3680,
+    "ap_positive_rate": 0.09402173913043478,
+    "n_ap_plus": 346,
+    "criteria": {
+      "1. Separation": true,
+      "2. Learnability": true,
+      "3. Non-trivial": true,
+      "4. Sample size": true,
+      "5. Temporal": true
+    },
+    "n_criteria_passed": 5,
+    "verdict": "VALID",
+    "oracle_auroc": 0.7476164638400123,
+    "context_anomaly_auroc": 0.5818056041970796,
+    "ap_plus_ctx_anomaly_rate": 0.012066474184393883
+  },
+  "svdb1": {
+    "name": "SVDB1",
+    "n_sequences": 1376,
+    "ap_positive_rate": 0.010901162790697675,
+    "n_ap_plus": 15,
+    "criteria": {
+      "1. Separation": false,
+      "2. Learnability": true,
+      "3. Non-trivial": false,
+      "4. Sample size": false,
+      "5. Temporal": false
+    },
+    "n_criteria_passed": 1,
+    "verdict": "INVALID",
+    "oracle_auroc": 0.6605363984674328,
+    "context_anomaly_auroc": 0.896154788145971,
+    "ap_plus_ctx_anomaly_rate": 0.39100000262260437
+  },
+  "smd_top5": {
+    "name": "SMD_top5",
+    "n_sequences": 14162,
+    "ap_positive_rate": 0.06432707244739444,
+    "n_ap_plus": 911,
+    "criteria": {
+      "1. Separation": false,
+      "2. Learnability": true,
+      "3. Non-trivial": false,
+      "4. Sample size": true,
+      "5. Temporal": true
+    },
+    "n_criteria_passed": 3,
+    "verdict": "BORDERLINE",
+    "oracle_auroc": 0.6515914275104769,
+    "context_anomaly_auroc": 0.6897381810175087,
+    "ap_plus_ctx_anomaly_rate": 0.3058287799358368
+  },
+  "validity_criteria": {
+    "separation": "AP+ context anomaly rate < 0.20 (less than 20% of context is anomalous)",
+    "learnability": "Oracle AUROC > 0.55 (meaningful AP signal exists)",
+    "nontrivial": "Context anomaly AUROC < 0.60 (cannot predict by clustering alone)",
+    "samplesize": "N_AP+ >= 50 total, >= 10 in test",
+    "temporal": "AP+ exists in both train and test splits"
+  }
+}

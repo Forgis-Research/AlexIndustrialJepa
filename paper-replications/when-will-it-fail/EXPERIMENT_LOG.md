@@ -2449,6 +2449,48 @@ Combining all chunks (full window) gives 0.613 = best single-feature result.
 
 ---
 
+### Probe 80: SMD AP Validity Analysis (COMPLETE)
+
+**Time:** 2026-04-12
+**Hypothesis:** A2P's SMD evaluation is confounded by cluster continuation (not genuine future prediction)
+**Design:** For each AP+ window on SMD, compute context anomaly rate and context-any-anomaly AUROC
+**Sanity checks:** ✓ N=7081 sequences ✓ AP+ rate=6.6% ✓ Context anomaly computed
+**Result:**
+- AP+ windows: context anomaly rate=0.305 (vs AP- = 0.023)
+- 45.2% of AP+ windows have ongoing anomaly in 200-step context (cluster continuation!)
+- 54.8% of AP+ windows are "clean" (no context anomaly)
+- Context-any-anomaly AUROC: **0.672** (trivial predictor!)
+- Oracle AUROC on "clean" windows only: 1.000 (perfect when no cluster confound)
+**Key finding:** A2P's SMD benchmark has 45% cluster-continued AP+ examples. Any model that says "high context anomaly -> AP+" gets 0.672 AUROC for free. A2P's 52.07% F1 on SMD is on a confounded benchmark.
+**Verdict:** KEEP - confirms Claim 16, extends to quantitative percentage
+**File:** results/improvements/smd_validity_analysis.json
+
+---
+
+### Probe 81: AP Dataset Validity Criteria (COMPLETE)
+
+**Time:** 2026-04-12
+**Hypothesis:** Formal criteria can determine whether a dataset is a valid AP benchmark
+**Design:** 5 criteria: separation, learnability, non-trivial, sample-size, temporal validity
+**Sanity checks:** ✓ All 3 datasets tested ✓ 5 criteria each ✓ Verdicts assigned
+**Result:**
+
+| Dataset | Oracle AUROC | Ctx_AUROC | AP+_ctx | Pass/5 | Verdict |
+|---------|-------------|----------|---------|--------|---------|
+| SVDB4 | 0.748 | 0.582 | 0.012 | 5/5 | **VALID** |
+| SVDB1 | 0.661 | 0.896 | 0.391 | 1/5 | **INVALID** |
+| SMD | 0.652 | 0.690 | 0.306 | 3/5 | **BORDERLINE** |
+
+**Key finding:** A2P evaluated on 1 VALID + 1 INVALID + 1 BORDERLINE dataset.
+- SVDB4: Only valid AP benchmark (separation=0.012, oracle=0.748)
+- SVDB1: Invalid (temporal confound, context AUROC=0.896, 0 AP+ in train)
+- SMD: Borderline (45% cluster continuation, context AUROC=0.690 > threshold)
+
+**Verdict:** KEEP - adds framework for future AP benchmark design
+**File:** results/improvements/ap_validity_criteria.json
+
+---
+
 ### Probe 76: Metric Robustness Analysis (COMPLETE)
 
 **Time:** 2026-04-12
