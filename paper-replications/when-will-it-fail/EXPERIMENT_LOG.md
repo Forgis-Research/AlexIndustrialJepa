@@ -4071,3 +4071,57 @@ Permutation p:      0.0555 (p > 0.05 - not significant)
 **File:** results/improvements/temporal_ci.json
 
 ---
+
+
+### Probe 133: Refined Calm Zone Features for Strict AP (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** Splitting the calm zone [100:160] into per-channel features, minimum/maximum sub-window variance, and AC1 will extract more signal than the scalar mean variance.
+**Design:** CPU-only. 13 features: var_full, calm_mean, calm_ch0, calm_ch1, calm_min, calm_max, calm_range, prior_mean, prior/calm, onset_ch0, onset_ch1, calm/onset, calm_ac1.
+
+**Results:**
+```
+Standard AP (C=0.01):
+  Baseline 4-feat:     AUROC=0.644 (reference)
+  Refined 13-feat:     AUROC=0.630 (WORSE - overfitting on standard AP)
+
+Strict AP (best C=1.0):
+  Baseline 4-feat:     AUROC=0.697
+  Mechanistic 10-feat: AUROC=0.707 (probe 132)
+  Refined 13-feat:     AUROC=0.734 (NEW RECORD!)
+  TF supervised (3sd): AUROC=0.723 ± 0.005
+
+Delta vs TF: +0.011 (LR > TF point estimate!)
+```
+
+**Single-feature AUROC (strict AP) - key features:**
+- `calm_range` (max-min in calm zone): 0.704 (neg = AP+ has LOW range = uniformly quiet)
+- `calm_max` (max sub-window var in calm): 0.704
+- `calm_ch0` (ch0 only): 0.695
+
+**Bootstrap CI for refined LR:**
+- LR 95% CI: [0.714, 0.754]
+- TF 95% CI (approximate): [0.714, 0.732]
+- CIs OVERLAP - LR is NOT significantly better than TF
+- But LR point estimate (0.734) exceeds TF mean (0.723)
+
+**Key finding: Simple LR with 13 features is COMPETITIVE with supervised transformer!**
+The practical implication: no training needed, inference is O(1), features have clear physical meaning.
+
+**Feature importances (strict AP, C=1.0):**
+- calm_mean: -1.122 (AP+ when calm zone has low mean variance)
+- calm_ch0: -1.086 (per-channel; ch0 calm var dominant)
+- calm/onset: -0.886 (AP+ when onset NOT rising relative to calm - inverted ratio!)
+- calm_ch1: +0.769 (ch1 opposite sign - channels are anti-correlated in calm zone!)
+- calm_min: -0.355 (minimum sub-window = most extreme quiet)
+- calm_ac1: +0.291 (AP+ when AC1 is HIGH in calm = structured calm, not random noise)
+
+**Anti-correlation of channels in calm zone is a new finding:** ch0 and ch1 calm variances have OPPOSITE signs, suggesting channels behave differently during calm zones (one channel becomes quiet while other may stay active).
+
+**Why refined beats mechanistic:** The per-channel features capture channel-specific behavior (ch0 and ch1 are not identical during calm zones). The calm_min feature captures the MOST extreme quiet moment. The calm_ac1 captures whether the calm zone has temporal structure.
+
+**Verdict:** KEEP - refined calm features give best LR performance on strict AP (0.734 vs 0.723 TF, CIs overlapping)
+
+**Files:** results/improvements/refined_calm_features.json, refined_lr_ci.json
+
+---
