@@ -1,0 +1,48 @@
+{
+  "method": "rolling_variance_window_sensitivity",
+  "paper_a2p_f1_tol": 36.29,
+  "results": {
+    "10": {
+      "window": 10,
+      "auroc": 0.6939,
+      "auprc": 0.1566,
+      "f1_tol": 59.63,
+      "thresh_pct": 95
+    },
+    "25": {
+      "window": 25,
+      "auroc": 0.724,
+      "auprc": 0.1825,
+      "f1_tol": 58.78,
+      "thresh_pct": 95
+    },
+    "50": {
+      "window": 50,
+      "auroc": 0.7371,
+      "auprc": 0.1814,
+      "f1_tol": 55.91,
+      "thresh_pct": 95
+    },
+    "100": {
+      "window": 100,
+      "auroc": 0.732,
+      "auprc": 0.1511,
+      "f1_tol": 52.11,
+      "thresh_pct": 95
+    },
+    "200": {
+      "window": 200,
+      "auroc": 0.7138,
+      "auprc": 0.1127,
+      "f1_tol": 49.21,
+      "thresh_pct": 95
+    },
+    "500": {
+      "window": 500,
+      "auroc": 0.6615,
+      "auprc": 0.0728,
+      "f1_tol": 33.19,
+      "thresh_pct": 95
+    }
+  }
+}

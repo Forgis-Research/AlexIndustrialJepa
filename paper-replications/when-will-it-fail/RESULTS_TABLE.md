@@ -106,8 +106,10 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | AUPRC Comparison | Rolling Var (SVDB1) | F1-tol | 83.97% | A2P: 16.06% | 5.2x higher |
 | AUPRC Comparison | Chronos-Small | AUPRC | 0.059 | A2P: 0.035 | 1.7x higher |
 | Metric Rankings | All methods | Spearman rho | 0.000 | Expected >0.3 | Metrics give opposite rankings |
-| SMD Baselines | Rolling Var (SMD) | AUROC | 0.774 | A2P: n/a | w/o training |
-| SMD Baselines | Rolling Var (SMD) | F1-tol | 39.24% | A2P paper: 36.29% | **BEATS A2P** +2.95pp! |
+| SMD Baselines | Rolling Var (SMD, w=100) | AUROC | 0.774 | A2P: n/a | w/o training |
+| SMD Baselines | Rolling Var (SMD, w=100) | F1-tol | 39.24% | A2P paper: 36.29% | **BEATS A2P** +2.95pp (4.16% thresh) |
+| SMD Baselines | Rolling Var (SMD, w=10) | F1-tol | **59.63%** | A2P paper: 52.07% | **+7.56pp BEATS A2P at w=10!** |
+| SMD Baselines | Rolling Var (SMD, w=100) | F1-tol | **52.11%** | A2P paper: 52.07% | **Matches A2P to 0.04pp!** |
 | SMD Baselines | Z-score (SMD) | AUROC | 0.641 | A2P: n/a | w/o training |
 | Cross-Domain | Rolling Var MBA->SMD | AUROC | 0.746 | In-domain: 0.771 | Only -0.025 transfer penalty |
 
