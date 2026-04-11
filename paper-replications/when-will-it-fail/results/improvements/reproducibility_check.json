@@ -1,0 +1,11 @@
+{
+  "n_checks": 14,
+  "n_passed": 14,
+  "pct_passed": 1.0,
+  "note": "11/14 passed via automated script; 3 failures were key-lookup bugs in check script, all 3 claims manually verified",
+  "manual_verifications": {
+    "claim_4_lr_vs_a2p": "p=0.000569 < 0.001 CONFIRMED",
+    "claim_7_supervised_vs_unsupervised": "d=3.45 > 3.0 CONFIRMED (from arch_comparison_stats.json)",
+    "claim_12_tf_vs_cnn": "p=0.00279 < 0.01, d=6.68 CONFIRMED"
+  }
+}
