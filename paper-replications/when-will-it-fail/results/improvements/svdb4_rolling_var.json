@@ -1,0 +1,38 @@
+{
+  "method": "rolling_variance_SVDB4_all_records",
+  "dataset": "MBA SVDB records 800-803 combined (paper setup)",
+  "n_train": 737280,
+  "n_test": 184320,
+  "anomaly_rate": 0.0634765625,
+  "paper_a2p_f1_tol": 67.55,
+  "results": {
+    "10": {
+      "window": 10,
+      "auroc": 0.6849,
+      "auprc": 0.1505,
+      "f1_tol_95pct": 73.35,
+      "f1_tol_anomaly_rate": 68.29
+    },
+    "25": {
+      "window": 25,
+      "auroc": 0.7226,
+      "auprc": 0.369,
+      "f1_tol_95pct": 80.37,
+      "f1_tol_anomaly_rate": 74.12
+    },
+    "50": {
+      "window": 50,
+      "auroc": 0.8127,
+      "auprc": 0.5139,
+      "f1_tol_95pct": 86.7,
+      "f1_tol_anomaly_rate": 79.8
+    },
+    "100": {
+      "window": 100,
+      "auroc": 0.7386,
+      "auprc": 0.2382,
+      "f1_tol_95pct": 78.3,
+      "f1_tol_anomaly_rate": 78.29
+    }
+  }
+}
