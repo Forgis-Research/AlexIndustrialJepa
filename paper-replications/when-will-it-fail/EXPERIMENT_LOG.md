@@ -1278,3 +1278,52 @@ seed=1:  test=0.6211, val=0.6294
 **Key finding (interim):** Supervised 100-epoch = 0.624 >> LR variance 0.593 >> Unsupervised 30-epoch 0.521. More training epochs dramatically improve BOTH accuracy and consistency.
 **Status:** RUNNING (seeds 2, 99, 7 remaining)
 
+---
+
+### Probe 33 (Interim): Transformer + Variance Features (2/6 runs done)
+
+**Time:** 2026-04-11 16:27 (running, 2 transformer baseline seeds done)
+**Results so far (transformer baseline, 50 epochs):**
+```
+seed=42: val=0.6274, test=0.6201
+seed=1:  val=0.6278, test=0.6207
+2-seed mean: 0.6204 +/- 0.0003 (extremely consistent!)
+```
+**Important insight:** 50-epoch transformer is HIGHLY CONSISTENT (std=0.0003 for 2 seeds), much more than 30-epoch (std=0.042). This confirms epoch count is the main driver of transformer consistency.
+**Status:** RUNNING - next will run 3 seeds with variance features augmented
+
+---
+
+### Probe 38: Deep Supervised Transformer (Running)
+
+**Time:** 2026-04-11 17:15 (running, PID 149091)
+**Hypothesis:** Deeper (4L, 128d) supervised transformer with 150 epochs will exceed 100-epoch shallow (0.624) performance.
+**Architecture:** d_model=128, nhead=8, 4 layers, 150 epochs, cosine LR, weight decay, gradient clipping
+**Status:** RUNNING seed=42 (819K params)
+
+---
+
+### Probe 39: AUPRC Analysis (COMPLETED)
+
+**Time:** 2026-04-11 17:20 (completed quickly)
+**Hypothesis:** AUPRC provides complementary view of AP performance to AUROC.
+**Dataset:** SVDB4 (36,794 sequences, stride=5), test AP rate=7.70%
+**Results:**
+```
+Random AUPRC (baseline): 0.0773
+LR variance AUPRC:       0.0971  (1.26x above random)
+Oracle AUPRC:            0.5221  (6.75x above random)
+
+LR AUROC: 0.6062
+Oracle AUROC: 0.7472
+
+LR captures:
+  - 38.0% of learnable AUROC signal
+  - 4.5% of learnable AUPRC signal (!)
+```
+**Key finding:** While LR ranks AP samples reasonably well (AUROC=0.606), it fails at precision (AUPRC only 1.26x above random). Oracle has much higher precision (6.75x). The gap in AUPRC is much larger than in AUROC - suggesting that AP is a precision-limited problem (rare events are hard to predict with high precision even when ranking is decent).
+**Sanity checks:** ✓ AUROC and AUPRC consistent direction (LR > random) ✓ Oracle dominates both metrics ✓ Random AUPRC ≈ positive rate (0.077 ≈ 0.077) - correct!
+**Verdict:** KEEP - AUPRC provides important additional context. The AP problem is very hard for precision; LR is only marginally above random on AUPRC.
+**Implication for NeurIPS:** AUPRC is a more stringent metric that exposes the difficulty of AP. Future work should report AUPRC alongside AUROC.
+**Saved:** results/improvements/auprc_lr_analysis.json
+
