@@ -4423,3 +4423,32 @@ Delta (reg - cls):       -0.058 (REGRESSION HURTS!)
 **File:** results/improvements/regression_vs_classification.json
 
 ---
+
+
+### Probe 139: Standard AP 5-fold CV for 20-bin LR (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** The 20-bin LR improvement on strict AP will also hold for standard AP in 5-fold CV.
+**Design:** Same protocol as probe 135b but on standard AP labels.
+
+**Results (5-fold CV, standard AP):**
+```
+LR 20-bin (C=1.0): 0.644 ± 0.022
+LR 4-feat (C=0.01): 0.615 ± 0.026
+RF 4-feat:          0.619 ± 0.023
+```
+
+**Strict AP vs Standard AP (5-fold CV):**
+| Method    | Standard AP | Strict AP | Difference |
+|-----------|-------------|-----------|------------|
+| LR 20-bin | 0.644       | 0.791     | +0.147     |
+| LR 4-feat | 0.615       | 0.759     | +0.144     |
+| RF 4-feat | 0.619       | 0.791     | +0.172     |
+
+**Contamination penalty = 0.147 AUROC:** This is the direct cost of the 66.4% contaminated AP+ events. Removing contamination improves all methods by ~0.147-0.172 AUROC.
+
+**Verdict:** COMPLETE - strict AP is 0.147 AUROC more learnable than standard AP; contamination is the primary bottleneck
+
+**File:** results/improvements/std_ap_cv.json
+
+---
