@@ -1,0 +1,42 @@
+{
+  "probe": "115_five_attacks",
+  "attacks": {
+    "attack1_contamination": {
+      "finding": "66.4% of AP+ events are detection not prediction",
+      "evidence": "Oracle AUROC: contaminated=0.794, strict=0.648",
+      "implication": "AP task conflates detection with prediction"
+    },
+    "attack2_metric": {
+      "finding": "F1-tol 8.1x inflation: raw F1=5.35% -> F1-tol=43.1%",
+      "evidence": "Random baseline F1-tol=68.1% BEATS A2P's 67.55%; Brier Skill=-0.117",
+      "implication": "F1-tol metric is uninterpretable and gameable"
+    },
+    "attack3_evaluation": {
+      "finding": "Context variance (detection) achieves AUROC=0.401 matching trained models",
+      "evidence": "A2P AUROC=0.528 barely exceeds trivial detection AUROC",
+      "implication": "Evaluation protocol does not distinguish detection from prediction"
+    },
+    "attack4_dataset": {
+      "finding": "SMD oracle AUROC=0.346 (below random) due to 38-channel noise",
+      "evidence": "Top-5 channels oracle=0.704; adding 33 channels degrades to below random",
+      "implication": "SMD dataset invalid for AP evaluation without channel selection"
+    },
+    "attack5_baseline": {
+      "finding": "Untrained LR (variance features) AUROC=0.636 vs A2P=0.528 (+0.108)",
+      "evidence": "On strict AP: LR=0.703 > oracle=0.648 (+0.055)",
+      "implication": "A2P provides no benefit over trivial feature engineering"
+    }
+  },
+  "key_numbers": {
+    "contamination_pct": 0.6643717728055077,
+    "f1_inflation": 8.1,
+    "brier_skill": -0.117,
+    "lr_auroc": 0.6358372294096699,
+    "a2p_auroc": 0.528,
+    "lr_gain": 0.10783722940966989,
+    "oracle_auroc": 0.7447974315901772,
+    "lr_strict_auroc": 0.7030045398605504,
+    "oracle_strict_auroc": 0.6483005674055872,
+    "lr_beats_oracle_strict_by": 0.05470397245496328
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "probe": "100_contamination_decomp",
+  "n_test": 7359,
+  "n_ap_plus": 567,
+  "n_contaminated_ap": 377,
+  "n_true_ap": 190,
+  "pct_ap_contaminated": 0.6649029850959778,
+  "oracle_auroc_all": 0.7471857128315706,
+  "oracle_auroc_contaminated": 0.8094380032055187,
+  "oracle_auroc_true": 0.623664062984316,
+  "lr_auroc_all": 0.6338609277851524,
+  "lr_auroc_contaminated": 0.612744202103895,
+  "lr_auroc_true": 0.675760957163226
+}

@@ -1,0 +1,48 @@
+{
+  "probe": "113_oracle_gap_bands",
+  "n_sequences": 36794,
+  "n_ap_plus": 3486,
+  "n_ap_minus": 33308,
+  "overall_lr_auroc": 0.6396905021310172,
+  "overall_oracle_auroc": 0.7447974315901772,
+  "ap_plus_oracle_mean": 0.06515349447727203,
+  "ap_plus_oracle_q25": 0.01576253119856119,
+  "ap_plus_oracle_q50": 0.03706091456115246,
+  "ap_plus_oracle_q75": 0.11845940351486206,
+  "n_contaminated": 2316,
+  "n_strict": 1170,
+  "pct_contaminated": 0.6643717728055077,
+  "near_zero_oracle_pct": 0.04819277108433735,
+  "high_oracle_pct": 0.4495123350545037,
+  "two_feat_lr_auroc": 0.6289557171884367,
+  "quartile_breakdown": [
+    {
+      "band": "Q1 (hard, low oracle)",
+      "n": 872,
+      "mean_oracle": 0.007788000628352165,
+      "lr_auroc": 0.7010909024803805,
+      "oracle_auroc": 0.3159446018423543
+    },
+    {
+      "band": "Q2 (med-low)",
+      "n": 871,
+      "mean_oracle": 0.02891857549548149,
+      "lr_auroc": 0.7718772926436721,
+      "oracle_auroc": 0.683758083238554
+    },
+    {
+      "band": "Q3 (med-high)",
+      "n": 871,
+      "mean_oracle": 0.06659404933452606,
+      "lr_auroc": 0.6456106641047197,
+      "oracle_auroc": 0.97968641012175
+    },
+    {
+      "band": "Q4 (easy, high oracle)",
+      "n": 872,
+      "mean_oracle": 0.15727345645427704,
+      "lr_auroc": 0.4403415288279643,
+      "oracle_auroc": 1.0
+    }
+  ]
+}

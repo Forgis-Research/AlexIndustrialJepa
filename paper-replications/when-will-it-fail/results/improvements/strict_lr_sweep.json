@@ -1,0 +1,8 @@
+{
+  "probe": "119_strict_lr_sweep",
+  "best_lr_auroc_strict": 0.7183860759818488,
+  "best_c": 0.001,
+  "rf_strict_auroc": 0.807605408315448,
+  "n_strict_ap_plus": 1170,
+  "n_ap_minus": 33308
+}

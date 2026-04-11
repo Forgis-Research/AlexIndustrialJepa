@@ -1,0 +1,47 @@
+{
+  "probe": "114_learnability",
+  "n_sequences": 36794,
+  "n_ap_plus": 3486,
+  "n_ap_minus": 33308,
+  "ap_minus_context": {
+    "mean_full_var": 0.04234754294157028,
+    "std_full_var": 0.02493065595626831,
+    "mean_last50_var": 0.0384407564997673,
+    "std_last50_var": 0.05187099054455757
+  },
+  "ap_plus_categories": {
+    "type_A_contaminated": 2316,
+    "type_B_strict_rising": 692,
+    "type_C_strict_calm": 6,
+    "type_D_no_signal": 472,
+    "pct_detectable": 0.8646012621916236,
+    "pct_not_predictable": 0.13539873780837636
+  },
+  "type_aurocs": {
+    "Type A (Contaminated)": {
+      "n": 2316,
+      "lr": 0.6077188222634694,
+      "oracle": 0.7935458474347239
+    },
+    "Type B (Strict+Rising)": {
+      "n": 692,
+      "lr": 0.7222418228605185,
+      "oracle": 0.5908835801914658
+    },
+    "Type C (Strict+Calm)": {
+      "n": 6,
+      "lr": 0.9175023017493295,
+      "oracle": 0.39881810175733556
+    },
+    "Type D (Strict+No signal)": {
+      "n": 472,
+      "lr": 0.6173938591634728,
+      "oracle": 0.7356510969523278
+    }
+  },
+  "oracle_breakdown": {
+    "contaminated": 0.7935458474347239,
+    "strict": 0.6483005674055872,
+    "combined": 0.7447974315901772
+  }
+}

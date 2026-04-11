@@ -1,0 +1,18 @@
+{
+  "probe": "122_temporal_patterns",
+  "n_strict_ap_plus": 1170,
+  "n_anomaly_blocks": 117,
+  "strict_dist_to_prev_block": {
+    "mean": 1337.0982905982905,
+    "median": 1147.0
+  },
+  "strict_dist_to_next_block": {
+    "mean": 160.04102564102564,
+    "median": 125.5,
+    "pct_within_200": 0.9794871794871794,
+    "pct_within_500": 0.9803418803418803
+  },
+  "proximity_auroc": 0.41968076923076925,
+  "early_var_ratio": 0.43292731046676636,
+  "late_var_ratio": 1.3862873315811157
+}

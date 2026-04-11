@@ -1,0 +1,10 @@
+{
+  "probe": "123_block_onset",
+  "n_strict_ap_plus": 1170,
+  "n_blocks": 117,
+  "blocks_with_predictors_pct": 1.0,
+  "pct_strict_in_window": 0.9794871794871794,
+  "dist_to_next_p50": 125.5,
+  "dist_to_next_p25": 113.0,
+  "dist_to_next_p75": 138.0
+}

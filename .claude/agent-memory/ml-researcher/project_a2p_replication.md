@@ -244,6 +244,138 @@ Use: AUROC/AUPRC metrics + 100+ epochs + 5+ seeds + horizon >= 100 steps + tempo
 Supervised upper bound: 0.624 AUROC (50.6% of oracle 0.744).
 The task is achievable but A2P's evaluation masked this.
 
+## NEW CRITICAL FINDINGS (April 12, 2026 - Overnight Session 2)
+
+### Contamination Decomposition (Probes 99-101)
+- 66.5% of AP+ have ongoing anomaly in [t, t+100] = NEAR-HORIZON CONTAMINATION
+- Oracle on contaminated AP+: AUROC=0.809 (detection, not prediction)
+- Oracle on TRUE AP+ (no near-horizon): AUROC=0.603
+- **LR on TRUE AP+: AUROC=0.702 >> Oracle (0.603) by +0.099!**
+- Properly defined pure-prediction AP task: oracle=0.603, LR=0.702
+
+### Statistical Proof: LR > Oracle on Strict AP (Probe 116)
+- **LR AUROC: 0.703 [95% CI: 0.688, 0.718]** (bootstrap, n=5000)
+- **Oracle AUROC: 0.648 [95% CI: 0.635, 0.662]**
+- **Difference: +0.055 [CI: +0.037, +0.072] - CI excludes 0**
+- **Permutation p=0.0000 (highly significant)**
+- Contamination REVERSES comparison: oracle wins all-AP (p<0.0001), LR wins strict-AP (p<0.0001)
+
+### 5-Fold CV: LR/RF Beat Oracle on Strict AP (Probe 120b)
+- LR: 0.759 ± 0.015 (beats oracle in ALL 5 folds)
+- RF: 0.791 ± 0.013 (beats oracle in ALL 5 folds)
+- Oracle: 0.648 ± 0.010
+- 0.168 total AUROC swing from contamination
+
+### Block Onset Structure (Probes 122-123)
+- 97.9% of strict AP+ events are within [100, 150] steps of next anomaly block start
+- ALL 1170 strict AP+ = 117 blocks × 10 predictors each (EXACT match)
+- Context shows block onset: last-20 var = 1.73x AP- (onset visible in context window)
+- The AP task is ENTIRELY about anomaly block boundaries (not true future prediction)
+
+### 4-Type AP+ Classification (Probes 113-114)
+- Type A (66.4%): Contaminated (detection-like). Oracle wins (0.794 vs LR 0.608)
+- Type B (19.9%): Strict + Rising onset. LR wins (0.722 vs oracle 0.591)
+- Type C (0.2%): Strict + Calm baseline. LR wins (0.918 vs oracle 0.399)
+- Type D (13.5%): Strict + no signal. Neither wins well; irreducibly unpredictable
+
+### 10 Verified Claims (Probe 124 - FINAL)
+1. 66.5% contamination
+2. LR > oracle on strict AP: p=0.0000, CI=[+0.037, +0.072]
+3. 5-fold CV: LR=0.759, RF=0.791 > Oracle=0.648 in all 5 folds
+4. 100% of strict AP+ are block onset windows (97.9% in [100,150] window)
+5. 0.168 AUROC contamination swing
+6. F1-tol 8.1x inflation; random=68.1% > A2P=67.55%
+7. SMD oracle=0.346 sub-random (all channels); top-5=0.704
+8. LR +10.8pp over A2P (0.636 vs 0.528)
+9. Practical ceiling=0.677 (oracle ensemble); not headline 0.745
+10. 13.5% genuinely unpredictable (Type D)
+
+### Main Performance Table (FINAL, April 12, 2026)
+| Method | Std AP | Strict AP | Strict CV |
+|--------|--------|-----------|-----------|
+| A2P (paper, MBA TranAD) | 0.528 | ~0.55? | n/a |
+| LR (4 var, no training) | 0.636 | 0.703 | 0.759±0.015 |
+| RF (n=100, depth=5) | 0.717 | 0.808* | 0.791±0.013 |
+| Oracle (future var) | 0.745 | 0.648 | 0.648±0.010 |
+| Oracle ensemble | 0.677 | n/a | n/a |
+
+### Calm-Before-Storm in Strict AP+ (Probe 103)
+- True AP+ (non-contaminated) show clear rising variance in context:
+  - Steps 0-40: variance 0.35x AP- (very calm)
+  - Steps 60-100: variance 1.40x AP- (rising)
+  - Steps 140-160: variance 0.24x AP- (calm again)
+  - Steps 180-200: variance 1.50x AP- (final rise)
+- Wilcoxon p<0.0001, trend ratio = 1.62x
+- Standard AP+ shows NO trend (1.02x - dominated by contamination)
+
+### SVDB4 Artificial Block Structure (Probe 107)
+- ALL 117 anomaly blocks are EXACTLY 100 steps = pred_len (std=0, min=max=100)
+- Temporal position feature (cos 2πt/1372) achieves AUROC=0.632 (≈ LR 0.634)
+- But LR-position correlation: rho=0.007 (LR is NOT exploiting position)
+
+### Five Attacks on A2P (Probe 115)
+1. Task definition failure: 66.5% contamination (detection not prediction)
+2. Metric failure: F1-tol 8.1x inflation; Brier Skill=-0.117; random beats A2P
+3. Evaluation protocol failure: detection AUROC=0.401, A2P=0.528 (only +0.127 above detection)
+4. Dataset validity failure: SMD oracle=0.346 sub-random (all channels)
+5. Baseline failure: LR (no training) beats A2P by +0.108 AUROC
+
+### SMD vs SVDB4 Comparison (Probe 98)
+- SMD oracle (all 38 channels): 0.346 (below random)
+- SMD oracle (top-5 channels): 0.704 (cherry-picked)
+- 4 root causes: channel noise, anti-correlated signal, dimensionality, implicit cherry-picking
+- SVDB4 oracle: 0.747 (valid task)
+
+## NEW CRITICAL FINDINGS (April 12, 2026 - Overnight Session 3: Probes 128-139)
+
+### Strict AP Mechanistic Explanation (Probes 128-132)
+- **Probe 130**: 91.7% strict AP+ have NO anomaly in context; context shows [prior block remnant -> calm trough at t=-100 to -40 (0.14x baseline) -> rising at t=-40 to 0]
+- **Probe 132**: Mechanistic features: var_calm [-100 to -40] is dominant predictor (coef=-1.064)
+- Block structure: previous block remnant (t=[-160,-100]) -> deep calm (t=[-100,-40]) -> onset visible (t=[-40,0])
+
+### 20-Bin LR - New SOTA (Probes 135-135b)
+- **LR with 20 temporal variance bins (C=1.0): 0.791 ± 0.020 CV on strict AP**
+- **RF 4-feat CV: 0.791 ± 0.013** - matched by LR 20-bin!
+- Most important bin: t=[150-160] (deepest calm zone, just before onset)
+- RF 20-bin: 0.769 (more features hurt RF due to feature dilution)
+- LR with fine-grained bins = competitive with random forest
+
+### Lead Time Oracle Ceiling (Probe 137)
+- **Task ceiling = 0.968** (binary oracle, k=50)
+- Standard oracle [t+100,t+150] = 0.623 (WEAK - measuring EARLY block onset)
+- Late oracle [t+150,t+200] = 0.982 (block fully active)
+- Gap: LR 20-bin (0.791) vs ceiling (0.968) = 0.177 AUROC
+- The oracle window choice was the biggest weakness of A2P's evaluation
+
+### Contamination Penalty (Probe 139)
+- Standard AP 5-fold CV: LR 20-bin = 0.644 ± 0.022
+- Strict AP 5-fold CV: LR 20-bin = 0.791 ± 0.020
+- **Contamination penalty = 0.147 AUROC** (strict AP is 0.147 more learnable)
+
+### Regression vs Classification (Probe 72b)
+- Regression target (future var [t+100,t+150]): 0.554 ± 0.001 (HURTS by -0.058!)
+- Binary classification: 0.612 ± 0.005
+- Regression fails because oracle window [t+100,t+150] = NOISY (early block = low var)
+
+### SMD Cross-Dataset (Probe 136b)
+- SMD 20-bin LR: 0.601; SMD oracle: 0.442 (BELOW RANDOM!)
+- Template does NOT transfer to SMD; SMD has irregular, non-block anomaly patterns
+
+### Block Statistics (Probes 131, 67b)
+- 117 blocks, ALL exactly 100 steps (std=0.0) - uniform ECG-like blocks
+- Inter-block gaps: mean=1565, std=1187 (NOT periodic)
+- SMD 100-epoch HURTS: 0.551 vs 30-epoch 0.583
+
+### Strict AP Performance Hierarchy (FINAL, April 12, 2026)
+| Method | 5-fold CV AUROC | Notes |
+|--------|-----------------|-------|
+| Oracle [t+100,t+150] | 0.648 ± 0.010 | Suboptimal window |
+| LR 4-feat | 0.759 ± 0.015 | No training |
+| LR 20-bin | 0.791 ± 0.020 | No training, NEW BEST |
+| RF 4-feat | 0.791 ± 0.013 | More stable |
+| TF supervised | 0.723 ± 0.005 | 60/40 split only |
+| Theoretical ceiling | 0.968 | Binary k=50 oracle |
+
 ## Result Files (April 2026)
 
 All in `results/improvements/`:

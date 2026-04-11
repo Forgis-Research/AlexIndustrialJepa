@@ -1,0 +1,29 @@
+{
+  "probe": "124_final_narrative",
+  "n_claims": 10,
+  "claims": {
+    "claim_1": "CLAIM 1: 66.5% of AP+ labels are contaminated (ongoing anomaly in prediction horizon)",
+    "claim_2": "CLAIM 2: LR (0-training) beats oracle on genuine AP (strict): 0.703 vs 0.648 (+0.055, p=0.0000)",
+    "claim_3": "CLAIM 3: 5-fold CV: LR=0.759\u00b10.015, RF=0.791\u00b10.013 > Oracle=0.648\u00b10.010",
+    "claim_4": "CLAIM 4: 97.9% of strict AP+ events are onset windows for regular anomaly blocks (100-step blocks)",
+    "claim_5": "CLAIM 5: Contamination creates 0.168 AUROC swing: Oracle appears +0.113 better (standard AP) but is actually -0.055 worse (strict AP)",
+    "claim_6": "CLAIM 6: F1-tol inflation 8.1x: raw F1=5.35% -> F1-tol=43.1%; random scores achieve 68.1% F1-tol > A2P's 67.55%",
+    "claim_7": "CLAIM 7: SMD oracle AUROC = 0.346 (sub-random!) with all 38 channels; top-5 channels = 0.704",
+    "claim_8": "CLAIM 8: LR (4 variance features, no training) beats A2P by +0.108 AUROC (10.8%)",
+    "claim_9": "CLAIM 9: Practical AUROC ceiling (oracle ensemble, type-optimal routing) = 0.655; not the headline 0.745",
+    "claim_10": "CLAIM 10: 13.5% of AP+ (Type D) are genuinely unpredictable from 200-step context windows"
+  },
+  "performance_table": {
+    "a2p_std": 0.528,
+    "lr_std": 0.636,
+    "lr_strict": 0.7030045398605504,
+    "lr_strict_cv": 0.7588819392595599,
+    "rf_std": 0.717,
+    "rf_strict": 0.808,
+    "rf_strict_cv": 0.7910352171706603,
+    "oracle_std": 0.745,
+    "oracle_strict": 0.6483005674055872,
+    "oracle_strict_cv": 0.6481892905450246,
+    "oracle_ensemble": 0.6554834514161917
+  }
+}

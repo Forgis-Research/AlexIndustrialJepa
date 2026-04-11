@@ -1,0 +1,16 @@
+{
+  "probe": "118_practical_ceiling",
+  "lr_auroc": 0.6358372294096699,
+  "oracle_auroc": 0.7447974315901772,
+  "oracle_ensemble_auroc": 0.6554834514161917,
+  "oracle_lr_gap": 0.10896020218050728,
+  "strict_oracle_auroc": 0.6483005674055872,
+  "strict_lr_auroc": 0.7030045398605504,
+  "strict_lr_beats_oracle": true,
+  "type_counts": {
+    "A_contaminated": 2316,
+    "B_onset": 692,
+    "C_calm": 6,
+    "D_unpredictable": 472
+  }
+}
