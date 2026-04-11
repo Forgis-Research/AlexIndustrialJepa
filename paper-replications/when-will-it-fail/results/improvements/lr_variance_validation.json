@@ -1,0 +1,38 @@
+{
+  "lr_variance_c_sweep": [
+    {
+      "C": 0.01,
+      "test_auroc": 0.6265567126383773
+    },
+    {
+      "C": 0.1,
+      "test_auroc": 0.6183028897987672
+    },
+    {
+      "C": 1.0,
+      "test_auroc": 0.6160372821640981
+    },
+    {
+      "C": 10.0,
+      "test_auroc": 0.615765149579441
+    },
+    {
+      "C": 100.0,
+      "test_auroc": 0.6157422987517216
+    }
+  ],
+  "temporal_split": {
+    "train_end": 110580,
+    "val_end": 147375,
+    "total_N": 184320,
+    "train_ap_rate": 0.09453705698251724,
+    "val_ap_rate": 0.11305884271860123,
+    "test_ap_rate": 0.07704851031303406
+  },
+  "lr_strict_normalization": 0.6160372821640981,
+  "comparison": {
+    "aptransformer_multiseed": 0.524,
+    "lr_variance_only": 0.616,
+    "oracle": 0.72
+  }
+}
