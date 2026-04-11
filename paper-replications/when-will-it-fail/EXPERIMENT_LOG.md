@@ -3638,3 +3638,18 @@ The SVDB4 AP task is well-structured but highly specific:
 **File:** results/improvements/final_narrative.json
 
 ---
+
+
+### Probe 125: Paper Figures - AP Task Decomposition (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Design:** Generated 3 paper-ready figures for the AP task decomposition analysis.
+
+**Figures generated:**
+1. `fig_ap_task_decomposition.pdf/png`: Pie chart (4-type AP+ classification) + bar chart (LR vs Oracle by type)
+2. `fig_strict_ap_variance_profile.pdf/png`: Context variance profile for strict AP+ vs AP- (calm-before-storm)
+3. `fig_standard_vs_strict_ap.pdf/png`: Standard vs Strict AP AUROC comparison showing reversal
+
+**Files:** figures/fig_ap_task_decomposition.*, figures/fig_strict_ap_variance_profile.*, figures/fig_standard_vs_strict_ap.*
+
+---
