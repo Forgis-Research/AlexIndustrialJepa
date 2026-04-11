@@ -3686,3 +3686,30 @@ Standard AP (9.47% positive rate, random AUPRC=0.095):
 **File:** results/improvements/strict_ap_auprc.json
 
 ---
+
+
+### Probe 127: A2P Claimed Success Analysis (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Design:** CPU-only synthesis. Why does A2P appear to work in the paper?
+
+**Five Reasons A2P Appears to Work:**
+
+1. **F1-tol is 8x inflated**: Raw F1=5.35% -> F1-tol=43.1%; random achieves 68.1% (BEATS A2P!)
+2. **Train==test data**: With proper split, F1-tol drops 3.4x (12.66% vs 43.1%)
+3. **AUROC suppressed**: A2P reports AUROC=0.528 (near-random) but doesn't highlight it
+4. **SMD invalidity**: Oracle=0.346 (sub-random); random beats A2P (+15.5pp F1-tol on SMD)
+5. **Task contamination**: 66.4% AP+ are detection events; paper's oracle=0.747 appears valid but masks oracle_strict=0.648
+
+**Honest Performance Table:**
+| Metric | A2P | LR (no train) | Oracle |
+|--------|-----|---------------|--------|
+| F1-tol | 43.1% | ~70-87%* | N/A |
+| AUROC | 0.528 | 0.636 | 0.745 |
+| AUROC (strict) | ~0.55? | 0.703 | 0.648 |
+| 5-fold CV (strict) | N/A | 0.759 | 0.648 |
+| BSS | -0.117 | +0.015 | N/A |
+
+**File:** results/improvements/a2p_success_analysis.json
+
+---

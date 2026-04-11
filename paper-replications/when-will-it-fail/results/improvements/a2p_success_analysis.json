@@ -1,0 +1,29 @@
+{
+  "probe": "127_a2p_success_analysis",
+  "a2p_paper_claims": {
+    "MBA_svdb4_f1tol": 67.55,
+    "SMD_f1tol": 52.07,
+    "WADI_f1tol": 64.91,
+    "Exathlon_f1tol": 18.64,
+    "average_f1tol": 46.84
+  },
+  "our_reproductions": {
+    "rolling_var_svdb4_f1tol": 86.7,
+    "rolling_var_smd_f1tol": 52.11,
+    "random_svdb4_f1tol": 68.1,
+    "random_smd_f1tol": 67.6,
+    "a2p_svdb4_auroc": 0.528,
+    "lr_svdb4_auroc": 0.636,
+    "oracle_svdb4_auroc": 0.745,
+    "strict_lr_svdb4_auroc": 0.703,
+    "strict_oracle_svdb4_auroc": 0.648,
+    "strict_lr_cv_auroc": 0.759
+  },
+  "gap_analysis": {
+    "svdb4_f1tol_gap": -0.5499999999999972,
+    "svdb4_rolling_var_beats_a2p": true,
+    "smd_random_beats_a2p": true,
+    "a2p_auroc_near_random": true,
+    "strict_lr_beats_a2p_auroc": true
+  }
+}
