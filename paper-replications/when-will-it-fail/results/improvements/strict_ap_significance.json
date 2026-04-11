@@ -1,0 +1,29 @@
+{
+  "probe": "116_strict_significance",
+  "strict_ap_plus": 1170,
+  "ap_minus": 33308,
+  "lr_strict_auroc": 0.7030045398605504,
+  "oracle_strict_auroc": 0.6483005674055872,
+  "diff_lr_minus_oracle": 0.05470397245496328,
+  "lr_ci_95": [
+    0.6878825099383223,
+    0.71789664824754
+  ],
+  "oracle_ci_95": [
+    0.6349420864344081,
+    0.6615989687418847
+  ],
+  "diff_ci_95": [
+    0.037292535596283954,
+    0.07177873324752454
+  ],
+  "diff_ci_excludes_0": true,
+  "permutation_p_value": 0.0,
+  "significant_lr_gt_oracle": true,
+  "all_ap_lr_auroc": 0.6358372294096699,
+  "all_ap_oracle_auroc": 0.7447974315901772,
+  "all_ap_diff_ci": [
+    -0.1244205532736722,
+    -0.09362365666839673
+  ]
+}

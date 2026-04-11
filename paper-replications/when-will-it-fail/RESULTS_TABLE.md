@@ -184,6 +184,9 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | **PROBE 113** | **Oracle Gap Analysis - AP+ by oracle quartile** | **AUROC by band** | **Q1(hard): LR=0.701, oracle=0.316; Q4(easy): LR=0.440, oracle=1.000** | LR all=0.640 | **COMPLETE - LR and Oracle solve DIFFERENT subtasks** |
 | **PROBE 114** | **AP+ Learnability Classification** | **Event types** | **Type A (66.4%, detect): oracle=0.794; Type B (19.9%, onset): LR=0.722; Type D (13.5%, unpredictable)** | - | **COMPLETE - 4 event types explain LR/oracle divergence** |
 | **PROBE 115** | **Five Attacks Synthesis** | **All attacks** | **Contamination=66.4%; F1-inflation=8.1x; LR+10.8pp; SMD oracle=0.346; Random beats A2P** | - | **COMPLETE - all 5 attacks quantified with statistics** |
+| **PROBE 116** | **Statistical Significance: LR > Oracle on Strict AP** | **p-value** | **p=0.0000, CI=[+0.037, +0.072], excludes 0** | - | **COMPLETE - LR SIGNIFICANTLY beats oracle on genuine prediction task** |
+| **PROBE 118** | **Practical AP Ceiling Analysis** | **AUROC** | **Oracle ensemble ceiling=0.677; simple oracle-A+LR-BCD=0.677; LR alone=0.636** | Oracle: 0.745 | **COMPLETE - best routing of oracle+LR = 0.677, not 0.745** |
+| **PROBE 120b** | **Strict AP 5-fold CV: LR vs RF vs Oracle** | **AUROC** | **LR=0.759±0.015; RF=0.791±0.013; Oracle=0.648±0.010** | Oracle: 0.648 | **COMPLETE - LR/RF beat oracle in ALL 5 folds; canonical strict AP estimate** |
 
 **CRITICAL:** Single-seed AP results (0.642, 0.641, 0.619, 0.625) are unreliable. True multi-seed APTransformer AUROC at 30ep = 0.5211 +/- 0.0415 (10 seeds), barely above random (0.500) and NOT statistically significant (p=0.081). All single-seed "best results" must be treated as preliminary. With 100ep supervised training, consistent AUROC=0.6238 ± 0.0075 is achieved (5 seeds, Probe 30).
 
