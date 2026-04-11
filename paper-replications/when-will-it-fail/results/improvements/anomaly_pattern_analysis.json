@@ -1,0 +1,34 @@
+{
+  "svdb4": {
+    "n_blocks": 117,
+    "mean_block_length": 100.0,
+    "std_block_length": 0.0,
+    "uniform_blocks": true,
+    "mean_inter_event_gap": 1464.8362068965516,
+    "cv_inter_event_gap": 0.8103191138543868,
+    "mean_lead_variance_ratio": 0.8030350804328918
+  },
+  "smd": {
+    "n_blocks": 327,
+    "mean_block_length": 90.0428134556575,
+    "std_block_length": 238.42048662444543,
+    "uniform_blocks": false,
+    "mean_inter_event_gap": 2047.9141104294479,
+    "cv_inter_event_gap": 1.507696911454921,
+    "mean_lead_variance_ratio": 0.08208002150058746
+  },
+  "svdb1": {
+    "n_blocks": 5,
+    "mean_block_length": 100.0,
+    "std_block_length": 0.0,
+    "uniform_blocks": true,
+    "mean_inter_event_gap": 88.25,
+    "cv_inter_event_gap": 0.021759619682100762,
+    "mean_lead_variance_ratio": 2.034590005874634
+  },
+  "interpretation": {
+    "svdb4_pattern": "calm_before_storm",
+    "smd_pattern": "storm_before_storm",
+    "why": "SVDB4 has synthetic uniform blocks with regular spacing; SMD has organic bursty anomalies with cascading failures"
+  }
+}

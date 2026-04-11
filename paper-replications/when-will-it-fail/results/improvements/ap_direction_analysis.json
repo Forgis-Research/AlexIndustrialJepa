@@ -1,0 +1,22 @@
+{
+  "svdb4": {
+    "name": "SVDB4",
+    "ap_positive_rate": 0.09479806490188618,
+    "ap_plus_ctx_anomaly_rate": 0.011175458319485188,
+    "ap_minus_ctx_anomaly_rate": 0.06908725202083588,
+    "context_anomaly_rate_auroc": 0.4196365216725422,
+    "context_var_auroc": 0.39603250468136164,
+    "combined_auroc": 0.6355765625064388,
+    "clustering_effect": 0.16175861437296987
+  },
+  "smd": {
+    "name": "SMD_top5",
+    "ap_positive_rate": 0.06427330631152287,
+    "ap_plus_ctx_anomaly_rate": 0.30708637833595276,
+    "ap_minus_ctx_anomaly_rate": 0.023346561938524246,
+    "context_anomaly_rate_auroc": 0.6913506182925317,
+    "context_var_auroc": 0.6365300345712981,
+    "combined_auroc": 0.6432351640660533,
+    "clustering_effect": 13.153387037936469
+  }
+}
