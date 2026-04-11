@@ -1,4 +1,4 @@
-- [A2P Replication Findings](project_a2p_replication.md) — REVISED: LR=0.5929 (full), transformer 10-seed=0.521; supervised 100ep=0.624; oracle=0.7445; SVDB1 invalid
+- [A2P Replication Findings](project_a2p_replication.md) — FINAL: 13 NeurIPS claims; LR 4-feat=0.631=TF (statistically equiv); 30ep=10% converge, 100ep=100%; near-horizon contaminated (66.4%); TF>LSTM(p=0.047)>CNN(p=0.003)
 - [STAR Replication Progress](project_star_replication.md) — FD001 5-seed COMPLETE: RMSE=12.186+/-0.553 (paper=10.61, +14.9%, GOOD); FD002 running (ETA ~18:15 April 11)
 - [DCSSL Replication Findings](project_dcssl_replication.md) — FPT shift is key failure mode; paper SimCLR avg≈trivial baseline; paper table had swapped columns; RUL-fix applied to cond2/3
 - [IndustrialJEPA Project Context](project_industrialjepa.md) — V11 ALL DONE: E2E=13.80; MLP=15.88; FD003 E2E=15.37; FD004 E2E=25.62 (6cond hard); cross-fault 28.79@10%; ext fine-tuning no help
