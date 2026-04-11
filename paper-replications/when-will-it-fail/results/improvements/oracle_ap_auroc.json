@@ -1,0 +1,11 @@
+{
+  "oracle_auroc": 0.3468662622409581,
+  "oracle_auprc": 0.04581981095769498,
+  "past_var_auroc": 0.8126651248184095,
+  "past_var_auprc": 0.5138997341547826,
+  "shifted_auroc": 0.44854257808515713,
+  "shifted_auprc": 0.05309823461696588,
+  "pred_len": 100,
+  "window": 50,
+  "dataset": "SVDB4"
+}

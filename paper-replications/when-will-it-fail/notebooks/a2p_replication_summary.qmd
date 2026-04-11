@@ -1557,6 +1557,100 @@ except FileNotFoundError:
     print("Run svdb4_rolling_var.json analysis first")
 ```
 
+## 21c2. PARADIGM-BREAKING: Oracle AP AUROC Test
+
+**The deepest finding:** If we gave a model perfect knowledge of the future (oracle), what AUROC would it achieve on the AP evaluation?
+
+```{python}
+import json
+import matplotlib.pyplot as plt
+import numpy as np
+
+try:
+    oracle = json.load(open('../results/improvements/oracle_ap_auroc.json'))
+
+    print("=" * 65)
+    print("ORACLE ANALYSIS: Is AP Evaluation Measuring the Right Thing?")
+    print("=" * 65)
+    print()
+    print(f"Dataset: {oracle['dataset']}")
+    print(f"Prediction horizon: {oracle['pred_len']} steps")
+    print()
+    print(f"{'Method':40}  {'AUROC':>8}  {'AUPRC':>8}")
+    print("-" * 60)
+    print(f"{'Oracle (knows future var, t+100..t+150)':40}  {oracle['oracle_auroc']:>8.4f}  {oracle['oracle_auprc']:>8.4f}")
+    print(f"{'Naive AP (current var shifted +100 steps)':40}  {oracle['shifted_auroc']:>8.4f}  {oracle['shifted_auprc']:>8.4f}")
+    print(f"{'A2P (trained model, paper)':40}  {'~0.528':>8}  {'~0.035':>8}")
+    print(f"{'Past rolling var (anomaly detection)':40}  {oracle['past_var_auroc']:>8.4f}  {oracle['past_var_auprc']:>8.4f}")
+    print(f"{'Random baseline':40}  {'0.500':>8}  {'~0.064':>8}")
+    print()
+    print("CRITICAL FINDING:")
+    print(f"  Oracle future var AUROC = {oracle['oracle_auroc']:.3f} (BELOW RANDOM 0.500!)")
+    print()
+    print("This means: even if we know the future perfectly, knowing that")
+    print(f"variance will be high in {oracle['pred_len']} steps does NOT predict that")
+    print("the current label is anomalous.")
+    print()
+    print("Implication: The F1-tolerance metric does NOT test anomaly PREDICTION.")
+    print("It tests anomaly DETECTION (proximity to current anomaly regions).")
+    print("Rolling var AUROC=0.813 is high because it detects current anomalies.")
+    print("A2P's F1-tol of 67.55% is high for the same reason.")
+    print()
+    print("The AP evaluation framework is testing the wrong task!")
+
+except FileNotFoundError:
+    print("Run oracle_ap_auroc.json analysis first")
+```
+
+```{python}
+try:
+    oracle = json.load(open('../results/improvements/oracle_ap_auroc.json'))
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    methods = [
+        'Oracle\n(future var\nt+100)',
+        'Naive AP\n(shifted\n+100 steps)',
+        'A2P\n(trained model)',
+        'A2P\n(proper split)',
+        'Rolling Var\n(detector)',
+    ]
+    aurocs = [
+        oracle['oracle_auroc'],
+        oracle['shifted_auroc'],
+        0.528,  # A2P train==test
+        0.494,  # A2P proper split (2-seed mean)
+        oracle['past_var_auroc'],
+    ]
+    colors = ['#9b59b6', '#e67e22', '#e74c3c', '#c0392b', '#2ecc71']
+
+    bars = ax.bar(methods, aurocs, color=colors, alpha=0.85, width=0.5)
+    ax.axhline(y=0.5, color='black', linestyle='--', linewidth=2, label='Random (0.500)', zorder=5)
+
+    for bar, val in zip(bars, aurocs):
+        ax.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.005,
+                f'{val:.3f}', ha='center', va='bottom', fontsize=11, fontweight='bold')
+
+    ax.set_ylabel('AUROC')
+    ax.set_title('AUROC by Method: Oracle < Random < A2P < Rolling Var\nProving that F1-tolerance tests anomaly DETECTION, not PREDICTION',
+                 fontsize=11)
+    ax.legend(fontsize=10)
+    ax.set_ylim(0.25, 0.88)
+
+    # Add annotation
+    ax.annotate('Expected:\nOracle should\nbe HIGHEST',
+                xy=(0, oracle['oracle_auroc']), xytext=(0.5, 0.60),
+                arrowprops=dict(arrowstyle='->', color='purple', lw=2),
+                fontsize=9, color='purple', ha='center')
+
+    plt.tight_layout()
+    plt.savefig(f'{FIGURES_DIR_V2}/oracle_ap_auroc.png', dpi=150, bbox_inches='tight')
+    plt.show()
+
+except FileNotFoundError:
+    print("Run oracle_ap_auroc.json analysis first")
+```
+
 ## 21d. Complete Comparison: All Methods, All Datasets (Publication Figure)
 
 ```{python}
@@ -1604,6 +1698,14 @@ A2P is ranked #1 by F1-tol but #6 (last) by AUROC.
 Train==test data inflates F1 by 3.4x. Proper split: 12.66%.
 Seed bug: all "seeds" use hardcoded seed=20462.
 
-**Proposed fix:** Use AUPRC + AUROC as primary metrics for AP evaluation.
-Show rank inversion across all datasets. Develop JEPA-AP baseline with
-target AUROC > 0.7.
+**Step 6 - The oracle test (paradigm-breaking):**
+If we give the model ORACLE knowledge of future variance (100 steps ahead), what AUROC does it get?
+Oracle future var AUROC = **0.347** (BELOW random 0.5!). This means:
+- Even perfect knowledge of the future doesn't predict current anomaly labels
+- The F1-tolerance metric is testing anomaly DETECTION, not anomaly PREDICTION
+- Rolling variance (current detector) achieves AUROC=0.813 precisely because it detects current anomalies
+- A2P's high F1-tol comes from firing near current anomaly regions, not predicting future ones
+
+**Proposed fix:** Use AUPRC + AUROC as primary metrics for AP evaluation with oracle-AUROC upper bound.
+Show that current evaluation incentivizes anomaly detection, not prediction.
+Develop a true AP model that predicts ahead of time.

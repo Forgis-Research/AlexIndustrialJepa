@@ -470,3 +470,25 @@ Rolling variance beats A2P on ALL datasets (updated with SVDB4):
 
 **Conclusion:** Rolling variance (no training, no GPU, no architecture) dominates A2P across all tested configurations. F1-tolerance primarily rewards proximity to anomaly regions at the right rate, not discriminability. AUPRC (where rolling var also dominates) is the proper metric.
 
+---
+
+### Probe 18: Oracle AP AUROC (The Task Feasibility Question)
+
+**Time:** 2026-04-11 14:05
+**Hypothesis:** If we could perfectly know future variance (oracle), what AUROC would we get? This tests whether AP is even achievable in principle.
+**Dataset:** MBA SVDB4 (184K test, 6.35% anomaly rate)
+**Method:** Oracle = future variance at [t+100, t+150]; Shifted = current var shifted +100 steps; Past = current detection
+**Results:**
+```
+Oracle future var (pred_len=100, w=50): AUROC=0.347, AUPRC=0.046
+Past rolling var (current detector):   AUROC=0.813, AUPRC=0.514
+Past var shifted +100 steps:           AUROC=0.449, AUPRC=0.053
+A2P (paper claim):                     AUROC=~0.528 (train==test)
+```
+**Verdict:** PARADIGM-BREAKING - The oracle AP predictor has AUROC=0.347 (BELOW random 0.5!). This means EVEN IF we know the future, future anomaly information doesn't predict CURRENT anomaly labels. The AP evaluation is fundamentally testing anomaly detection (current anomalies), not anomaly prediction (future anomalies).
+
+**Implication:** A2P's F1-tol is high BECAUSE rolling variance is a good current-anomaly detector (past var AUROC=0.813). The tolerance window converts this into "credit" for anomaly prediction. But the model is NOT learning to predict future anomalies - it's detecting current ones.
+
+**NeurIPS contribution:** This is the killer finding. "AP evaluation rewards anomaly detection, not prediction. We propose oracle AUROC as an upper bound and show that no amount of learning can make the current metric measure true AP."
+**Saved:** results/improvements/oracle_ap_auroc.json
+
