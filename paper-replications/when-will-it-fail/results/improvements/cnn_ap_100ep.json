@@ -1,0 +1,28 @@
+{
+  "model": "1D CNN (3x Conv1d, 64 filters)",
+  "seeds": [
+    42,
+    1,
+    2
+  ],
+  "epochs": 100,
+  "per_seed": [
+    {
+      "seed": 42,
+      "val_auroc": 0.6487778944856277,
+      "test_auroc": 0.5601837570084527
+    },
+    {
+      "seed": 1,
+      "val_auroc": 0.6743267241988898,
+      "test_auroc": 0.5810872008359248
+    },
+    {
+      "seed": 2,
+      "val_auroc": 0.6355906235636587,
+      "test_auroc": 0.5661061462494521
+    }
+  ],
+  "mean_test_auroc": 0.5691257013646099,
+  "std_test_auroc": 0.008796847002654873
+}
