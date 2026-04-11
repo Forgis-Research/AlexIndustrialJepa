@@ -65,7 +65,7 @@ Method                                AUROC    95% CI          % Oracle  Seeds
 -----------------------------------------------------------------------------------
 Random                                0.500  N/A                0.0%      N/A
 A2P (30ep unsupervised, 10-seed)      0.521  [0.490, 0.552]    8.6%      10
-LR 4-feature (var50+varfull, no train)0.631  [0.608, 0.652]   ~50%      bootstrap
+LR 4-feature (var50+varfull, no train)0.635  [0.612, 0.656]   ~50%    bootstrap AUPRC=0.1336
 Supervised transformer (5-seed, 100ep)0.624  [0.617, 0.630]   50.6%     5
 Oracle (future variance)              0.744  N/A              100.0%     N/A
 ```
@@ -107,7 +107,7 @@ Random                                 0.500    --       --    -0.124    --     
 
 ## Key Statistical Results
 
-- Transformer 30ep vs random: p=0.081 (NOT significant)
+- Transformer 30ep vs random: p=0.162 (NOT significant, corrected from earlier p=0.081; 10-seed two-tailed t-test)
 - Supervised 100ep vs random: p<<0.001 (VERY significant)
 - LR vs transformer: p=0.0006, d=1.73 (FULL dataset); p=0.18 (same test split, equivalent)
 - Supervised vs unsupervised: Welch t=7.17, p=0.000026, d=3.45
@@ -117,7 +117,7 @@ Random                                 0.500    --       --    -0.124    --     
 
 1. F1-tol 8.1x inflated (raw 5.35% -> 43.1%) [STRONG]
 2. Random beats A2P F1-tol on all 3 datasets (SVDB4: 69.6% vs 67.6%) [VERY STRONG, 5-seed]
-3. A2P AUROC not significant vs random (p=0.081) [STRONG, 10-seed]
+3. A2P AUROC not significant vs random (p=0.162, two-tailed t-test) [STRONG, 10-seed]
 4. LR variance beats A2P transformer (p=0.0006, d=1.73) [VERY STRONG]
 5. AP is learnable with correct training: supervised 0.624, p<<0.001 [VERY STRONG, 5-seed]
 6. Calm-before-storm: AP+ windows have 0.78x lower variance (consistent across all splits) [STRONG]
@@ -125,7 +125,7 @@ Random                                 0.500    --       --    -0.124    --     
 8. F1-tol and AUROC rankings are inverted (Spearman rho=0) [MODERATE, 3 methods]
 9. SVDB1 invalid (temporal confound, all labels at t>94%) [VERY STRONG]
 10. 30ep training insufficient: 10% converge; 100ep: 100% converge [VERY STRONG]
-11. LR 4-feat = TF statistically (p=0.18, CIs overlap): complexity adds nothing [STRONG]
+11. LR 4-feat ~ TF (p=0.047 borderline, bootstrap CIs overlap [0.612,0.656] vs [0.614,0.633], delta=+1.1pp) [MODERATE]
 12. TF > BiLSTM (p=0.047, d=3.5) > CNN (p=0.003, d=6.7): global attention is critical [VERY STRONG]
 13. Near-horizon (0-50) is contaminated: 66.4% AP+ have anomaly in context [VERY STRONG]
 14. AP not production-ready: LR=1.4x precision over random at 50% recall (8.4 FA/TP);
@@ -138,8 +138,26 @@ Hard AP+ (bottom-75% oracle): predict second half (mean pos=57.7), context noisy
 LR scores easy AP+ only 0.081 vs AP- 0.079 - LR FAILS to exploit the calm-before-storm for easy cases!
 LR learns "low full-window variance = AP+" (ch0_varfull coef=-0.665) but this signal doesn't separate easy from AP-.
 
-Practical utility: oracle achieves precision=1.000 at 36.7% recall (threshold=0.0929)
+Practical utility: oracle achieves precision=1.000 at 25% recall (oracle@25% = 1.000, LR@25%=0.097)
 These are the "easy" predictions corresponding to first-half block positions.
+
+## Temporal Calm Signal Analysis (April 12, 2026)
+
+Variance window analysis (AUROC vs AP+ labels):
+- last-5: 0.473 (BELOW random), last-10: 0.462, last-25: 0.459 (all below random!)
+- last-50: 0.519, last-100: 0.571, last-150: 0.555, last-200: 0.613 (BEST)
+- Signal monotonically increases with window length -> calm is GLOBAL (200+ steps)
+- Very recent variance below random because anomaly already started in last 5-25 steps
+
+Temporal chunk analysis (50-step blocks):
+- Oldest [0-50]: AUROC=0.558 (strongest single signal, ratio=0.729)  
+- Middle [50-100]: AUROC=0.493 (below random!)
+- Middle [100-150]: AUROC=0.527
+- Newest [150-200]: AUROC=0.524
+- Transformer can weight chunks, LR cannot -> partial explanation for TF > LR
+
+CNN receptive field: RF = 7+(7-1)+(7-1) = 19 steps = 9.5% of 200-step window
+This is the mechanistic reason CNN (0.569) << Transformer (0.624)
 
 ## Key Why: Root Causes of A2P's Failure
 
