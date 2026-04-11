@@ -1,0 +1,9 @@
+{
+  "dataset": "SMD (first 100000)",
+  "pred_len": 100,
+  "window": 50,
+  "future_anomaly_rate": 0.0421,
+  "oracle_correct_auroc": 0.6372744287515236,
+  "past_var_correct_auroc": 0.4617120106476087,
+  "past_var_wrong_auroc": 0.6121452117312585
+}
