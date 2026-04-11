@@ -4133,8 +4133,8 @@ if os.path.exists(cl_file):
     print(f"Feature: var(signal[t-50:t]) vs AP+ label at lead L")
     print()
 
-    lead_times = cl['lead_times']
-    aurocs = cl['lead_time_aurocs']
+    lead_times = sorted([int(k) for k in cl['lead_time_aurocs'].keys()])
+    aurocs = [cl['lead_time_aurocs'][str(lt)] for lt in lead_times]
     best_lead = cl['best_lead']
     best_auroc = cl['best_auroc']
 
@@ -4196,24 +4196,23 @@ if os.path.exists(pr_file):
 
     for method_key, method_name in [('lr_4feat', 'LR 4-feat'), ('oracle', 'Oracle')]:
         m = pr[method_key]
-        for recall_key in ['25pct', '50pct', '75pct']:
-            r = m[recall_key]
+        for recall_key, label in [('0.25', '25%'), ('0.5', '50%'), ('0.75', '75%')]:
+            r = m['pr_at_recalls'][recall_key]
             fa_tp = (1 - r['precision']) / r['precision'] if r['precision'] > 0 else float('inf')
             vs_rnd = r['precision'] / pos_rate
             print(f"{method_name:<20} {r['recall']:.2f}{'':>4} {r['precision']:.4f}{'':>6} {fa_tp:.1f}{'':>4} {vs_rnd:.2f}x")
 
     print()
     print("KEY FINDING:")
-    lr50 = pr['lr_4feat']['50pct']
-    ora50 = pr['oracle']['50pct']
+    lr50 = pr['lr_4feat']['pr_at_recalls']['0.5']
+    ora50 = pr['oracle']['pr_at_recalls']['0.5']
+    ora25 = pr['oracle']['pr_at_recalls']['0.25']
     print(f"  LR at 50% recall: precision={lr50['precision']:.3f} ({lr50['precision']/pos_rate:.1f}x over random), {(1-lr50['precision'])/lr50['precision']:.1f} FA per TP")
     print(f"  Oracle at 50% recall: precision={ora50['precision']:.3f} ({ora50['precision']/pos_rate:.1f}x over random), {(1-ora50['precision'])/ora50['precision']:.1f} FA per TP")
+    print(f"  Oracle at 25% recall: precision={ora25['precision']:.3f} (PERFECT! - easy first-half blocks only)")
     print()
     print("  Even with oracle foreknowledge, we expect ~4 false alarms per true positive at 50% recall.")
-    print("  For production use: oracle achieves precision=1.000 at 36.7% recall (easy first-half blocks).")
-    if 'oracle_perfect_precision' in pr:
-        pp = pr['oracle_perfect_precision']
-        print(f"  Oracle perfect precision threshold: {pp['threshold']:.4f}, {pp['n_flagged']} windows flagged")
+    print("  For production use: oracle achieves precision=1.000 at 25% recall (easy first-half blocks).")
 else:
     print("pr_analysis.json not found.")
 ```
@@ -4235,16 +4234,19 @@ if os.path.exists(eh_file):
     print()
     print(f"{'Category':<15} {'N':>6} {'Context var':>12} {'Oracle score':>13} {'Block pos':>10} {'LR score':>10}")
     print("-" * 68)
-    easy = eh['easy']; hard = eh['hard']; neg = eh['ap_neg']
-    print(f"{'Easy AP+':<15} {eh['n_easy']:>6} {easy['context_var_last50']:.4f}{'':>8} {easy['oracle_score']:.4f}{'':>9} {easy['block_pos_mean']:.1f}+/-{easy['block_pos_std']:.1f}{'':>1} {easy['lr_score']:.4f}")
-    print(f"{'Hard AP+':<15} {eh['n_hard']:>6} {hard['context_var_last50']:.4f}{'':>8} {hard['oracle_score']:.4f}{'':>9} {hard['block_pos_mean']:.1f}+/-{hard['block_pos_std']:.1f}{'':>1} {hard['lr_score']:.4f}")
-    print(f"{'AP- (normal)':<15} {'':>6} {neg['context_var_last50']:.4f}{'':>8} {neg['oracle_score']:.4f}{'':>9} {'N/A':>10} {neg['lr_score']:.4f}")
+    cv = eh['context_variance']; fv = eh['future_variance']
+    lr_sc = eh['lr_scores']; bp = eh['block_positions']
+    print(f"{'Category':<15} {'N':>6} {'Context var':>12} {'Oracle score':>13} {'Block pos':>10} {'LR score':>10}")
+    print("-" * 68)
+    print(f"{'Easy AP+':<15} {eh['n_easy']:>6} {cv['easy_last50']:.4f}{'':>8} {fv['easy']:.4f}{'':>9} {bp['easy_mean']:.1f}{'':>10} {lr_sc['easy_applus']:.4f}")
+    print(f"{'Hard AP+':<15} {eh['n_hard']:>6} {cv['hard_last50']:.4f}{'':>8} {fv['hard']:.4f}{'':>9} {bp['hard_mean']:.1f}{'':>10} {lr_sc['hard_applus']:.4f}")
+    print(f"{'AP- (normal)':<15} {'':>6} {cv['apneg_last50']:.4f}{'':>8} {fv['apneg']:.4f}{'':>9} {'N/A':>10} {lr_sc['apneg']:.4f}")
     print()
     print("KEY FINDINGS:")
-    print(f"1. Easy AP+ = first half of 100-step blocks (pos {easy['block_pos_mean']:.0f}): context is CALM ({easy['context_var_last50']:.3f} vs AP- {neg['context_var_last50']:.3f})")
-    print(f"2. Hard AP+ = second half (pos {hard['block_pos_mean']:.0f}): context is noisy ({hard['context_var_last50']:.3f} ~ AP- {neg['context_var_last50']:.3f})")
-    print(f"3. LR FAILS on easy windows: LR score {easy['lr_score']:.3f} barely above AP- {neg['lr_score']:.3f}")
-    print(f"4. LR scores hard AP+ ({hard['lr_score']:.3f}) HIGHER than easy ({easy['lr_score']:.3f}) - paradox!")
+    print(f"1. Easy AP+ = first half of 100-step blocks (pos {bp['easy_mean']:.0f}): context is CALM ({cv['easy_last50']:.3f} vs AP- {cv['apneg_last50']:.3f})")
+    print(f"2. Hard AP+ = second half (pos {bp['hard_mean']:.0f}): context is noisy ({cv['hard_last50']:.3f} ~ AP- {cv['apneg_last50']:.3f})")
+    print(f"3. LR FAILS on easy windows: LR score {lr_sc['easy_applus']:.3f} barely above AP- {lr_sc['apneg']:.3f}")
+    print(f"4. LR scores hard AP+ ({lr_sc['hard_applus']:.3f}) HIGHER than easy ({lr_sc['easy_applus']:.3f}) - paradox!")
     print(f"   Reason: LR learns 'high variance = alert' but easy AP+ has LOW variance (calm-before-storm)")
     print()
     print("IMPLICATION: A model that detects 'unusual quiet' would improve on easy cases.")
