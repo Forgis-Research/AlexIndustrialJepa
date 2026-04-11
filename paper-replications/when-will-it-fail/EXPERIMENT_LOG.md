@@ -2289,6 +2289,32 @@ The entire predictive signal in SVDB4 AP is captured by "is the signal unusually
 
 ---
 
+### Analysis: Temporal Distribution of Calm Signal (COMPLETE)
+
+**Time:** 2026-04-12 02:45 (CPU-only)
+**Finding:** Variance AUROC improves monotonically with window length:
+- last-5: 0.473 (BELOW random!) 
+- last-10: 0.462 (BELOW random!)
+- last-25: 0.459 (BELOW random!)
+- last-50: 0.519
+- last-100: 0.571
+- last-200: 0.613 (BEST = full window)
+
+**Temporal chunk analysis** (50-step blocks of 200-step window):
+- Oldest [0-50]: AUROC=0.558, AP+ var ratio=0.729 (strongest calm)
+- Middle [50-100]: AUROC=0.493 (below random!)
+- Middle [100-150]: AUROC=0.527
+- Newest [150-200]: AUROC=0.524
+
+**Key insight:** The calm before storm is a GLOBAL property lasting 200+ steps, NOT a brief pre-event calm. 
+Very recent variance (last 5-25 steps) is actually below random (anomaly may have already started there).
+The oldest part of the window [0-50] carries the STRONGEST individual signal.
+Combining all chunks (full window) gives 0.613 = best single-feature result.
+
+**Why Transformer > LR for AP:** Transformer can learn that "calm during oldest 50 steps" matters more than "calm during newest 50 steps", while LR uses all features equally. This explains some of the Transformer's marginal AUROC advantage.
+
+---
+
 ### Probe 68b: AUPRC Full Comparison (RUNNING)
 
 **Time:** 2026-04-12 02:15 (GPU, PID 187037)
