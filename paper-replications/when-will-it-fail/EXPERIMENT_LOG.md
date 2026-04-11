@@ -2015,3 +2015,35 @@ This strengthens the case for A2P's default horizon choice (100-150), even thoug
 
 ---
 
+
+### Probe 65: Architecture Statistical Comparison (COMPLETE)
+
+**Time:** 2026-04-11 22:25 (CPU-only, immediate computation)
+**Hypothesis:** Transformer significantly beats LSTM and CNN; LSTM and CNN statistically equivalent.
+**Design:** Welch t-test on held-out test AUROC distributions.
+**Results:**
+```
+Architecture   Seeds | Mean AUROC | Std    | Seeds
+Transformer      5   | 0.6238    | 0.0075 | [0.627, 0.621, 0.625, 0.611, 0.634]
+BiLSTM           3   | 0.5805    | 0.0156 | [0.584, 0.598, 0.560]
+1D CNN           3   | 0.5691    | 0.0088 | [0.560, 0.581, 0.566]
+
+Pairwise Comparisons (Welch t-test):
+TF vs LSTM: t=3.71, p=0.047 (two-sided), d=3.53  [SIGNIFICANT at alpha=0.05]
+TF vs CNN:  t=7.52, p=0.003 (two-sided), d=6.68  [VERY SIGNIFICANT]
+LSTM vs CNN: t=0.90, p=0.43,             d=0.90  [NOT significant]
+```
+**Sanity checks:** ✓ Direction correct ✓ TF > LSTM > CNN ✓ P-values reasonable
+**Verdict:** KEEP - formal statistical foundation for architecture comparison
+**Key findings:**
+1. Transformer significantly outperforms BiLSTM (p=0.047, d=3.5)
+2. Transformer significantly outperforms CNN (p=0.003, d=6.7)
+3. BiLSTM and CNN are NOT significantly different (p=0.43)
+4. Transformer advantage grows with architecture quality (d=3.5 vs LSTM, d=6.7 vs CNN)
+**Interpretation:** Global self-attention (O(T^2) over 200-step window) is the critical inductive bias for AP.
+Both sequential (LSTM) and local (CNN) architectures miss the "calm before storm" global pattern.
+The LSTM/CNN being statistically equivalent suggests the bottleneck is temporal locality, not capacity.
+**Saved:** results/improvements/architecture_comparison_stats.json
+
+---
+

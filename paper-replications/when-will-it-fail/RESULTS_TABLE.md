@@ -162,15 +162,18 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 
 **PROBE 51 KEY FINDING:** Horizon analysis reveals near-future (0-50 steps) is easiest (0.646, 66% of oracle), while 25-75 step gap is paradoxically hardest (0.517, 8%). A2P default (100-150) achieves 0.624 (56%). All horizons have identical oracle AUROC (0.721) - the difficulty difference is entirely in which precursor patterns are accessible.
 
-**ARCHITECTURE COMPARISON (Probes 47/48/57/62):**
+**ARCHITECTURE COMPARISON (Probes 47/48/62/65, all statistical):**
 - Transformer (5-seed, 100ep, MLP head): 0.6238 ± 0.0075 [REFERENCE]
-- LR 4-feature (var50+varfull, Probe 63): 0.6308 (single) [BEATS TRANSFORMER on single estimate]
-- BiLSTM 2-layer (3-seed, 100ep): 0.5805 ± 0.0156 [-0.043 vs TF]
+- LR 4-feature (var50+varfull, Probe 63): 0.6308 (deterministic, ±0.0001 across C values)
+- BiLSTM 2-layer (3-seed, 100ep): 0.5805 ± 0.0156 [-0.043 vs TF, p=0.047, d=3.53]
 - 1D CNN (3-seed, 100ep): 0.5691 ± 0.0088 [-0.055 vs TF, p=0.003, d=6.67]
-- Transformer near-horizon (0-50): 0.759 seed=42 (RUNNING - likely optimistic)
+- LSTM vs CNN: p=0.43 (NOT significant - equivalent performance)
+- Near-horizon (0-50) transformer seed=42: 0.759 (CONTAMINATED - 66.4% AP+ have anomaly in context)
 - Width ablation (Probe 62): RUNNING
-- Key insight: Transformer's O(T^2) global attention is essential for AP. CNN's local kernels (k=7) and LSTM's sequential state cannot capture global 200-step "calm before storm" patterns.
-- Surprising: 4-feature LR (just short-term + long-term variance per channel) is competitive with or beats transformer. This simplicity is a key NeurIPS finding.
+- Key insight: Transformer's O(T^2) global attention is essential for AP. CNN's local kernels and LSTM's sequential state miss global patterns.
+- CRITICAL: 4-feature LR (no training needed) is competitive with supervised transformer (p=0.18, 0.93 sigma difference).
+- Near-horizon is NOT a valid AP task: 66.4% of AP+ labels have ongoing anomaly already in context window.
+- Probe 65: Formal t-tests confirm TF > BiLSTM (p=0.047) >> CNN (p=0.003); LSTM ~= CNN (p=0.43).
 
 **REVISED FINDING (Probe 35):** Full-dataset LR with 8 variance features achieves AUROC=0.5929, beating APTransformer multi-seed mean (0.5255) by +0.067 (1.63 sigma). This is the reliable estimate using 183K sequences; the 0.616 from Probe 29 used a 5x smaller sample and has higher variance. Key: LR captures 38% of learnable signal (oracle=0.7445), transformer captures only 10.4%.
 

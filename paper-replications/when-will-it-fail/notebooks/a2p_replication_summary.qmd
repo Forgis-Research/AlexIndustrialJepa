@@ -3625,3 +3625,177 @@ print("  3. CNN kernel=7 sees only 7 consecutive steps -> misses global pattern"
 print("  4. BiLSTM has sequential state but no direct cross-time comparison")
 print("  5. Transformer: O(T^2) attention computes all pairwise relationships")
 ```
+
+## 48. Probe 48: BiLSTM Complete - Architecture Hierarchy Finalized
+
+Does BiLSTM fill the gap between CNN and Transformer for AP prediction?
+
+```{python}
+import json, numpy as np
+from scipy import stats
+
+# Load all architecture results
+with open('/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/results/improvements/supervised_ap_5seed.json') as f:
+    tf = json.load(f)
+with open('/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/results/improvements/lstm_ap_100ep.json') as f:
+    lstm = json.load(f)
+with open('/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/results/improvements/cnn_ap_100ep.json') as f:
+    cnn = json.load(f)
+
+tf_tests = [r['test_auroc'] for r in tf['per_seed']]
+lstm_tests = [r['test_auroc'] for r in lstm['per_seed']]
+cnn_tests = [r['test_auroc'] for r in cnn['per_seed']]
+
+print("Architecture Comparison (supervised, 100 epochs, SVDB4, correct AP eval)")
+print("=" * 75)
+print(f"{'Architecture':<40} {'AUROC':>8} {'± SD':>8} {'Seeds'}")
+print("-" * 75)
+print(f"{'Transformer (d=64, L=2, MLP head)':<40} {np.mean(tf_tests):>8.4f} {np.std(tf_tests):>8.4f} {len(tf_tests)}")
+print(f"{'LR 4-feature (var50+varfull, no training)':<40} {'0.6308':>8} {'~0.0001':>8} {'N/A'}")
+print(f"{'BiLSTM (hidden=64, 2 layers)':<40} {np.mean(lstm_tests):>8.4f} {np.std(lstm_tests):>8.4f} {len(lstm_tests)}")
+print(f"{'1D CNN (3xConv1d, k=7, 64 filt)':<40} {np.mean(cnn_tests):>8.4f} {np.std(cnn_tests):>8.4f} {len(cnn_tests)}")
+print(f"{'A2P unsupervised (30ep, 10-seed)':<40} {'0.521':>8} {'0.042':>8} {'10'}")
+print(f"{'Random':<40} {'0.500':>8} {'N/A':>8} {'N/A'}")
+
+print()
+print("Statistical Comparisons (Welch t-test, two-sided):")
+for (a, a_vals), (b, b_vals) in [
+    (('Transformer', tf_tests), ('BiLSTM', lstm_tests)),
+    (('Transformer', tf_tests), ('CNN', cnn_tests)),
+    (('BiLSTM', lstm_tests), ('CNN', cnn_tests))
+]:
+    t, p = stats.ttest_ind(a_vals, b_vals, equal_var=False)
+    d = (np.mean(a_vals)-np.mean(b_vals)) / np.sqrt((np.std(a_vals)**2+np.std(b_vals)**2)/2)
+    sig = "***" if p < 0.01 else "**" if p < 0.05 else "*" if p < 0.1 else "ns"
+    print(f"  {a} vs {b}: t={t:.2f}, p={p:.4f} {sig}, d={d:.2f}")
+
+print()
+print("KEY: Transformer significantly beats both BiLSTM (p=0.047) and CNN (p=0.003).")
+print("BiLSTM and CNN are NOT significantly different (p=0.43).")
+print()
+print("Interpretation: The bottleneck is not model capacity or temporal order preservation,")
+print("but global temporal attention. Both sequential (LSTM) and local (CNN) fail equally.")
+```
+
+## 49. Probe 40 Final: Epoch Learning Curve - Head Architecture is Critical
+
+How does AUROC change with epoch count, and why does the MLP head matter?
+
+```{python}
+import json, numpy as np
+
+try:
+    with open('/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/results/improvements/epoch_curve.json') as f:
+        ep_data = json.load(f)
+    
+    print("Epoch Learning Curve - LN+Linear Head (Probe 40)")
+    print("Compare: MLP head (Probe 30) = 0.6238 ± 0.0075 at ep100")
+    print()
+    print(f"{'Epoch':>6} | {'Mean AUROC':>10} | {'Std':>7} | {'Min':>7} | {'Max':>7}")
+    print("-" * 50)
+    for ep in ep_data['summary']:
+        s = ep_data['summary'][ep]
+        print(f"{ep:>6} | {s['mean']:>10.4f} | {s['std']:>7.4f} | {s['min']:>7.4f} | {s['max']:>7.4f}")
+    
+    print()
+    ep_list = sorted([int(e) for e in ep_data['summary'].keys()])
+    means = [ep_data['summary'][str(e)]['mean'] for e in ep_list]
+    peak_ep = ep_list[means.index(max(means))]
+    print(f"Peak: epoch {peak_ep} (AUROC={max(means):.4f})")
+    print(f"EP100: AUROC={ep_data['summary']['100']['mean']:.4f}")
+    print()
+    print("FINDING: LN+Linear head PEAKS at ep 10-20 then DECLINES.")
+    print("MLP head (Probe 30): stable and improving, reaches 0.624 at ep100.")
+    print("=> The 2-layer MLP head prevents overfitting and improves stability.")
+    print("=> Head architecture is as important as transformer architecture for AP.")
+except Exception as e:
+    print(f"Error: {e}")
+```
+
+## 50. Probes 61/63: Feature Ablation - Simpler LR is Better
+
+Which features matter most for LR variance prediction?
+
+```{python}
+import json, numpy as np
+
+try:
+    with open('/home/sagemaker-user/IndustrialJEPA/paper-replications/when-will-it-fail/results/improvements/optimal_lr.json') as f:
+        opt = json.load(f)
+    
+    print("LR Feature Ablation Results (SVDB4, correct AP eval)")
+    print(f"{'Configuration':<45} {'AUROC':>8}")
+    print("-" * 55)
+    print(f"{'8 features (all: var50+var100+varfull+ac1, 2ch)':<45} {opt['8feat_ref']:>8.4f}  [reference]")
+    print(f"{'6 features (drop ac1)':<45} {opt['6feat_drop_ac1']:>8.4f}  {opt['6feat_drop_ac1']-opt['8feat_ref']:>+.4f}")
+    print(f"{'4 features (drop ac1+var100)':<45} {opt['4feat_drop_ac1_var100']:>8.4f}  {opt['4feat_drop_ac1_var100']-opt['8feat_ref']:>+.4f}  ***")
+    print(f"{'2 features (var50 only)':<45} {opt['2feat_var50']:>8.4f}  {opt['2feat_var50']-opt['8feat_ref']:>+.4f}")
+    
+    print()
+    print(f"Best improvement: {opt['best_delta']:>+.4f}")
+    print()
+    print("KEY FINDINGS:")
+    print("1. AC1 (autocorrelation at lag 1) HURTS performance - adds noise")
+    print("2. var100 is redundant given var50 and varfull - removing HELPS")
+    print("3. Optimal 4-feature LR: ch0_var50, ch1_var50, ch0_varfull, ch1_varfull")
+    print("4. 4-feat LR achieves 0.6308, competitive with supervised transformer (0.624)")
+    print()
+    print("Interpretation: The AP signal lives in SHORT-TERM local variance (50-step window).")
+    print("The 'calm before storm' is detected by comparing current short-term variability")
+    print("to the long-term baseline (full-window variance). AC1 captures temporal structure")
+    print("but adds noise to the variance-based signal for this task.")
+except Exception as e:
+    print(f"Error: {e}")
+```
+
+## 51. Probe 64: Near-Horizon Contamination - Defining Valid AP Evaluation
+
+Why is the near-horizon (0-50 step) evaluation misleading for AP prediction?
+
+```{python}
+import numpy as np
+
+test_x = np.load('/tmp/MBA_svdb4/MBA_test.npy').astype(np.float32)
+test_labels = np.load('/tmp/MBA_svdb4/MBA_test_label.npy')
+N, C = test_x.shape
+seq_len = 200
+
+# Analyze context contamination for different horizons
+print("Context Contamination Analysis: % of AP+ labels with anomaly in context")
+print("=" * 70)
+print(f"{'Horizon':<20} {'AP+ Contamination':>20} {'Valid AP Task?'}")
+print("-" * 60)
+
+for h_start, h_end, name in [
+    (0, 50, 'Near (0-50)'),
+    (25, 75, 'Gap (25-75)'),
+    (50, 100, 'Gap (50-100)'),
+    (100, 150, 'A2P Default (100-150)'),
+    (150, 200, 'Far (150-200)'),
+]:
+    future_ap_labels = np.zeros(N)
+    for t in range(N - h_end - 10):
+        future_ap_labels[t] = 1.0 if test_labels[t+h_start:t+h_end].any() else 0.0
+    
+    count_overlap = 0; count_total = 0
+    for t in range(seq_len, N - h_end - 10, 5):
+        if future_ap_labels[t] == 1:
+            count_total += 1
+            if test_labels[max(0,t-200):t].any():
+                count_overlap += 1
+    
+    rate = count_overlap / max(1, count_total)
+    valid = "YES - clean" if rate < 0.05 else f"NO - {rate:.1%} contaminated"
+    print(f"{name:<20} {rate:>20.1%} {valid}")
+
+print()
+print("FINDING: Only horizons >= 100 steps are uncontaminated.")
+print("SVDB4 anomaly blocks are exactly 100 steps long.")
+print("For gap < 100: the 200-step context window includes the very anomaly being predicted.")
+print()
+print("=> Near-horizon 'AP' is actually anomaly detection with a future-shifted label.")
+print("=> A2P's default 100-150 step horizon is methodologically sound.")
+print("=> The 'horizon comparison' (Probe 51) is contaminated for near/gap horizons.")
+print("=> Our primary result (0.624 on 100-150 step horizon) is the valid AP evaluation.")
+```
+
