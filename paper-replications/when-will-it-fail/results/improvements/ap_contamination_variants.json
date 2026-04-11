@@ -1,0 +1,10 @@
+{
+  "probe": "101_ap_contamination_variants",
+  "standard_n_ap": 567,
+  "strict_n_ap": 190,
+  "very_strict_n_ap": 190,
+  "standard_oracle": 0.7471857128315706,
+  "strict_oracle": 0.6030129725205746,
+  "very_strict_oracle": 0.6030129725205746,
+  "contamination_pct": 0.6649029850959778
+}

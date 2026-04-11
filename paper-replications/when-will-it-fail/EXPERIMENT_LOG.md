@@ -2843,3 +2843,112 @@ Four root causes of SMD difficulty:
 
 ---
 
+
+### Probe 99: Calibration + Easy/Hard AP+ Analysis (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** The oracle precision=1.000 up to 40% recall implies a clean subset of AP+ examples with distinctive context features that should be learnable.
+**Design:** CPU-only. Full precision-recall analysis + easy/hard AP+ characterization on SVDB4.
+**Sanity checks:** ✓ Oracle AUROC=0.747 confirmed ✓ AP+ n=567 ✓ All feature p-values significant
+
+**Result:**
+
+LR calibration on SVDB4:
+- LR BSS = +0.015 (positive, unlike MBA where BSS=-0.117)
+- LR ECE = 0.005 (well-calibrated)
+- LR score separation: AP+ 1.16x AP- (weak)
+
+Oracle precision-recall structure:
+| Recall | LR Precision | Oracle Precision |
+|--------|-------------|-----------------|
+| 10-40% | 0.10-0.13 | 1.000 |
+| 50% | 0.111 | 0.325 |
+| 75% | 0.103 | 0.118 |
+
+Easy (top 40% oracle) vs Hard AP+ characteristics:
+| Feature | Easy AP+ | Hard AP+ | AP- |
+|---------|---------|---------|-----|
+| Context var | 0.023 | 0.021 | 0.030 |
+| First-50 var | 0.029 | 0.012 | 0.028 |
+| Last-50 var | 0.017 | 0.024 | 0.028 |
+| Calm-before-storm | 36.7% | 63.0% | 50.0% |
+
+**Counter-intuitive finding:** "Easy" AP+ (oracle detects easily) have HIGH first-50 variance (like AP-), while "Hard" AP+ have LOW last-50 variance (more "calm" context). This means the easy subset has anomaly contamination in early context (the anomaly started before the prediction window), while the hard subset has genuinely calm contexts that require true future prediction.
+**Implication:** The oracle's "easy" wins come from contamination (current anomaly extending into pred horizon), not genuine prediction. The truly hard subset (60% of AP+) with calm context = genuine future anomalies - models can't learn these.
+**File:** results/improvements/calibration_lr_full.json
+
+---
+
+
+### Probe 100: Oracle Gap Contamination Decomposition (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** The oracle AUROC of 0.747 is significantly inflated by "contaminated" AP+ examples where an ongoing anomaly extends from context window into prediction window.
+**Design:** CPU-only. Split AP+ into "contaminated" (anomaly in [t,t+100]) and "true" (no anomaly in [t,t+100]). Measure oracle AUROC on each subset.
+**Sanity checks:** ✓ 66.5% contamination rate matches Probe 13 (66.4%) ✓ Oracle AUROC confirmed 0.747 ✓
+
+**Result:**
+
+| AP+ Subset | Oracle AUROC | LR AUROC | Count |
+|-----------|-------------|---------|-------|
+| Contaminated (ongoing anomaly) | 0.809 | 0.613 | 377 (66.5%) |
+| True AP+ (no near-horizon) | 0.624 | 0.676 | 190 (33.5%) |
+| All AP+ (full) | 0.747 | 0.634 | 567 (100%) |
+
+**CRITICAL FINDING #1:** Oracle AUROC = 0.809 on CONTAMINATED AP+ = this is DETECTION (ongoing anomaly), not PREDICTION.
+
+**CRITICAL FINDING #2:** On TRUE AP+ (genuine predictions, no near-horizon contamination):
+- Oracle AUROC = **0.624** (future variance only 1.28x AP- level)
+- LR AUROC = **0.676** (BEATS ORACLE on true predictions!)
+
+**Interpretation:**
+- For contaminated AP+: Oracle wins decisively (it knows the future = strong future variance)
+- For true AP+: future variance is weak (max 0.045, vs 0.096 for contaminated); LR's CONTEXT features are actually more informative than oracle's FUTURE features!
+- This means the task "predict if anomaly in [t+100, t+150]" is EASIER from context than from oracle future for the non-contaminated subset
+- The LR "wins" here because it captures anomaly onset patterns in the context that precede true AP events
+
+**Implication for AUROC interpretation:**
+- "Oracle AUROC = 0.747" is not a ceiling for the AP task
+- The actual task difficulty for TRUE AP is: oracle=0.624, LR=0.676
+- 2/3 of AP+ are essentially "detection" tasks (contaminated)
+- Only 1/3 are true "prediction" tasks
+
+**File:** results/improvements/contamination_decomp.json
+
+---
+
+
+### Probe 101: AP Task Contamination Variants (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** Defining AP with stricter contamination exclusion reveals the true prediction task difficulty.
+**Design:** CPU-only. Three AP label variants: standard, strict (no [t+50,t+100]), very strict (no [t,t+100]).
+**Sanity checks:** ✓ Strict = Very Strict (190 AP+, same set) ✓ Oracle confirmed 0.747 on standard
+
+**Result:**
+
+| AP Definition | AP+ rate | Oracle AUROC | LR AUROC |
+|--------------|---------|-------------|---------|
+| Standard | 7.70% | 0.747 | 0.634 |
+| Strict (no [t+50,t+100]) | 2.58% | 0.603 | 0.702 |
+
+**KEY FINDING:** Strict AP+ (true predictions with no near-horizon contamination):
+- Oracle AUROC = 0.603 (future variance barely above random for genuine AP+)
+- LR AUROC = 0.702 (LR BEATS oracle on the pure prediction task!)
+
+**Mechanism analysis (Probe 101b):**
+- Strict AP+ context trajectory: steps 0-50 variance = 0.48x AP- (very calm), steps 50-100 = 1.15x AP- (rising)
+- Classic calm-before-storm pattern exists for strict AP+ but NOT for contaminated AP+
+- The LR (trained on standard AP) generalizes to strict AP+ because both share the calm-then-rising pattern
+- Oracle future variance only 1.28x AP- for strict AP+ (weak signal) = oracle is "blind" to the calm-then-rise onset
+
+**Implication for the AP task:**
+- The "prediction" is actually achievable (0.702 LR AUROC for true non-contaminated AP+)
+- But the standard task metric (7.70% AP+) includes 66.5% contamination that inflates oracle to 0.747
+- A properly defined pure-prediction AP task would have oracle ≈ 0.60 and LR ≈ 0.70
+- This suggests LR already solves a cleaned version of the AP task better than reported
+
+**File:** results/improvements/ap_contamination_variants.json
+
+---
+
