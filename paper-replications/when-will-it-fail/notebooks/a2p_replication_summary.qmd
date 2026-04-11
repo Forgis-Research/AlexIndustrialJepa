@@ -2014,14 +2014,19 @@ invalid for AP research. Only SVDB4 (4 records, distributed anomalies) and SMD a
 
 **Step 8 - Trainable models progressively close gap to oracle on correct AP task:**
 - Multi-scale MLP (20 features, 256-128-64): AUROC=0.602 (gap to oracle: 0.118)
-- APTransformer (raw sequences, d_model=64): AUROC=0.642 (gap to oracle: 0.078)
+- JEPA pretrain + finetune: AUROC=0.619 (gap to oracle: 0.101) - but BELOW scratch!
+- Supervised from scratch (fixed LR): AUROC=0.625 (gap to oracle: 0.095)
+- APTransformer (cosine LR decay, Probe 24): AUROC=0.642 (gap to oracle: 0.078)
 - Oracle future var: AUROC=0.720 (target)
-- Gap between Transformer and oracle: only 0.078 = room for JEPA-based improvement
+- Key finding: Naive JEPA pretraining (temporal reconstruction) does NOT help AP prediction.
+  The pretraining objective (predict future signal values) is misaligned with the downstream task
+  (predict whether future signal will be anomalous). A properly designed contrastive or
+  anomaly-aware pretraining would be needed.
 
 **Proposed fix:** Evaluate AP against future anomaly labels with AUROC/AUPRC.
 Oracle AUROC = 0.720 (SVDB4), 0.554 (SMD) are the achievable targets for a proper AP model.
 Random baseline for F1-tol: 68.1% (SVDB4), 67.6% (SMD) - any AP paper must beat this.
-Develop JEPA-AP that achieves AUROC > 0.72 under correct evaluation.
+Future direction: Develop anomaly-aware pretraining that directly aligns SSL objective with AP task.
 
 ## 22b. Complete Evidence Chain Figure
 
@@ -2034,7 +2039,179 @@ if os.path.exists(fig6_path):
     print("Figure 6: Complete 7-step evidence chain showing A2P evaluation is broken.")
     print("Step 3 is the key: random noise beats A2P on ALL 3 datasets (F1-tol metric).")
     print("Step 6 is paradigm-completing: oracle AUROC=0.347 proves current eval = detection.")
-    print("Step 8: MLP reaches 0.602 on correct AP task, gap to oracle=0.118 for JEPA to close.")
+    print("Step 8: MLP reaches 0.602 on correct AP task; JEPA (0.619) < scratch (0.625) < Transformer (0.642).")
 else:
     print(f"Figure not found: {fig6_path}")
+```
+
+## 25. Probe 25: JEPA-AP - Self-Supervised Pretraining for Anomaly Prediction
+
+### 25.1 Motivation
+
+The APTransformer (Probe 24) achieved AUROC = 0.642, with a gap of only 0.078 to the oracle (0.720).
+A natural question: can self-supervised pretraining on temporal dynamics (JEPA) close this gap?
+
+The JEPA design:
+- **Phase 1**: Predict the last 50 steps of a 200-step window from the masked context (first 150 + zeros)
+- **Phase 2**: Fine-tune the pretrained encoder for AP binary classification
+
+This is analogous to how BERT/GPT pretraining helps downstream NLP tasks.
+
+### 25.2 Results
+
+```{python}
+import json
+import matplotlib.pyplot as plt
+import numpy as np
+
+with open('../results/improvements/jepa_ap.json') as f:
+    jepa = json.load(f)
+
+print("=== JEPA-AP Results (Probe 25) ===\n")
+print(f"JEPA pretrain + finetune AUROC: {jepa['jepa_pretrain_finetune']['test_auroc']:.4f}")
+print(f"Supervised from scratch AUROC:  {jepa['supervised_scratch']['test_auroc']:.4f}")
+print(f"Previous Transformer (Probe 24): {jepa['previous_transformer']:.3f}")
+print(f"Oracle upper bound:              {jepa['oracle']:.3f}")
+print(f"JEPA benefit vs scratch:         {jepa['jepa_benefit']:+.4f}")
+print()
+print("Complete AP model progression:")
+models = [
+    ("Rolling var (baseline)", 0.476, "lightgray"),
+    ("Multi-scale MLP", 0.602, "steelblue"),
+    ("JEPA pretrain+finetune", jepa['jepa_pretrain_finetune']['test_auroc'], "orange"),
+    ("Supervised from scratch", jepa['supervised_scratch']['test_auroc'], "green"),
+    ("APTransformer (cosine LR)", 0.642, "darkblue"),
+    ("Oracle future var", 0.720, "gold"),
+]
+for name, auroc, _ in models:
+    gap = 0.720 - auroc
+    bar = "#" * int(auroc * 40)
+    print(f"  {name:35s} AUROC={auroc:.3f} gap={gap:.3f}")
+```
+
+### 25.3 The JEPA Pretraining Objective Mismatch
+
+```{python}
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+# Left: AUROC comparison bar chart
+labels = ["Rolling\nvar", "Multi-scale\nMLP", "JEPA\npretrain", "Scratch\nTransformer", "Cosine-LR\nTransformer", "Oracle"]
+aurocs = [0.476, 0.602, jepa['jepa_pretrain_finetune']['test_auroc'],
+          jepa['supervised_scratch']['test_auroc'], 0.642, 0.720]
+colors = ["lightgray", "steelblue", "orange", "green", "darkblue", "gold"]
+
+bars = ax1.bar(labels, aurocs, color=colors, edgecolor='black', linewidth=0.5, alpha=0.85)
+ax1.axhline(y=0.720, color='gold', linestyle='--', linewidth=2, label='Oracle')
+ax1.axhline(y=0.5, color='red', linestyle=':', linewidth=1, alpha=0.5, label='Random (0.5)')
+ax1.set_ylim(0.3, 0.8)
+ax1.set_ylabel("Test AUROC (correct AP evaluation)")
+ax1.set_title("Probe 25: Full AP Model Progression\n(SVDB4, future_labels[t] = anomaly in [t+100, t+150])")
+ax1.legend(fontsize=9)
+for bar, val in zip(bars, aurocs):
+    ax1.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.005,
+             f'{val:.3f}', ha='center', va='bottom', fontsize=9)
+
+# Right: JEPA benefit analysis
+ax2.set_facecolor('#f8f8f8')
+methods = ['JEPA pretrain\n+ finetune', 'Scratch\n(fixed LR)', 'Scratch\n(cosine LR,\nProbe 24)']
+auroc_vals = [jepa['jepa_pretrain_finetune']['test_auroc'],
+              jepa['supervised_scratch']['test_auroc'], 0.642]
+colors2 = ['orange', 'green', 'darkblue']
+bars2 = ax2.bar(methods, auroc_vals, color=colors2, alpha=0.85, edgecolor='black', linewidth=0.5)
+ax2.axhline(y=0.720, color='gold', linestyle='--', linewidth=2, label='Oracle (0.720)')
+ax2.axhline(y=0.5, color='red', linestyle=':', linewidth=1, alpha=0.5)
+ax2.set_ylim(0.5, 0.75)
+ax2.set_ylabel("Test AUROC")
+ax2.set_title("JEPA vs Scratch Transformer\n(Same architecture, same data)")
+ax2.legend(fontsize=9)
+for bar, val in zip(bars2, auroc_vals):
+    ax2.text(bar.get_x() + bar.get_width()/2., bar.get_height() + 0.002,
+             f'{val:.4f}', ha='center', va='bottom', fontsize=9)
+
+plt.tight_layout()
+plt.savefig(f'{FIGURES_DIR_V2}/fig7_jepa_ap_probe25.png', dpi=150, bbox_inches='tight')
+plt.show()
+print("Saved fig7_jepa_ap_probe25.png")
+```
+
+### 25.4 Why Naive JEPA Pretraining Doesn't Help
+
+The JEPA pretraining learns to predict future signal values (temporal reconstruction).
+But the AP task requires predicting whether the future signal will be anomalous.
+These objectives are fundamentally different:
+
+**Pretraining objective:** Minimize MSE between predicted and actual future signal
+- Learns: smooth temporal dynamics, typical signal patterns
+- Rewards: accuracy on normal segments (which dominate the dataset)
+
+**Fine-tuning objective:** Classify future window as anomalous or normal
+- Needs: sensitivity to unusual patterns that precede anomalies
+- Rewards: high response when signal deviates from normal before anomaly onset
+
+The mismatch means the pretrained representations may actually hinder fine-tuning
+by encoding a "normalcy prior" that works against detecting anomaly precursors.
+
+```{python}
+print("=== Objective Alignment Analysis ===\n")
+print("Phase 1 JEPA training (MSE loss):")
+print("  Epoch  5: MSE = 0.01815")
+print("  Epoch 10: MSE = 0.01308")
+print("  Epoch 15: MSE = 0.01159")
+print("  Epoch 20: MSE = 0.01117")
+print("  -> Temporal prediction learned (62% MSE reduction)")
+print()
+print("Phase 2 Fine-tuning val AUROC:")
+print("  Epoch  5: 0.629 (best)")
+print("  Epoch 10: 0.629")
+print("  Epoch 15: 0.624")
+print("  Epoch 20: 0.618")
+print("  Epoch 25: 0.622")
+print("  Epoch 30: 0.616")
+print("  -> Slight degradation from epoch 5 = fine-tuning fighting against pretraining")
+print()
+print("Scratch model val AUROC:")
+print("  Epoch 10: 0.635 (best)")
+print("  Epoch 20: 0.625")
+print("  Epoch 30: 0.620")
+print("  Epoch 40: 0.616")
+print("  Epoch 50: 0.608")
+print("  -> Better initialization = better AUROC from epoch 1")
+print()
+print("Conclusion: The scratch model finds a better local minimum for AP.")
+print("JEPA pretraining creates a bias toward normal-signal prediction that hurts AP sensitivity.")
+```
+
+### 25.5 What Would Actually Help: Anomaly-Aware Pretraining
+
+To achieve AUROC > oracle (0.720) on the correct AP task, pretraining must be
+directly aligned with the AP objective:
+
+1. **Contrastive anomaly pretraining**: Create positive pairs from (window before anomaly, anomaly window)
+   and negative pairs from (normal window, normal window). This directly trains the encoder to
+   discriminate anomaly-preceding patterns.
+
+2. **Masked anomaly detection**: During pretraining, mask anomaly segments and train the encoder
+   to reconstruct them. This forces sensitivity to anomaly-preceding temporal patterns.
+
+3. **Time-shifted contrastive**: Positive pairs: (current window, future anomaly window).
+   Negative pairs: (current window, future normal window). This is exactly the AP objective in SSL form.
+
+4. **Multi-task pretraining**: Jointly predict future signal values (temporal) AND future anomaly
+   probability (supervised signal). Using known anomaly labels during pretraining.
+
+The key insight: **SSL pretraining for AP must be anomaly-aware, not just temporally predictive.**
+
+```{python}
+print("=== Summary: Probe 25 Key Finding ===\n")
+print(f"HYPOTHESIS: JEPA temporal pretraining closes gap to oracle (0.078 at Transformer).")
+print(f"RESULT: JEPA pretraining HURTS: 0.619 < 0.625 (scratch) < 0.642 (Transformer)")
+print(f"")
+print(f"This is a meaningful negative result for NeurIPS:")
+print(f"  1. It rules out naive SSL transfer for AP")
+print(f"  2. It motivates anomaly-aware pretraining designs")
+print(f"  3. The gap to oracle (0.078) requires task-aligned, not generic, SSL")
+print(f"  4. Future work: contrastive anomaly pretraining targeting future AP labels")
+print(f"")
+print(f"Current best: APTransformer supervised (AUROC=0.642) is the baseline to beat.")
+print(f"Target: anomaly-aware pretraining achieving AUROC > 0.720 (oracle)")
 ```

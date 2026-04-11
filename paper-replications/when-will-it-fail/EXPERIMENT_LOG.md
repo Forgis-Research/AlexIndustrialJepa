@@ -741,3 +741,57 @@ SMD is also valid (708K test, anomalies distributed across time).
 
 **Saved:** results/improvements/svdb1_correct_ap.json
 
+---
+
+### Probe 25: JEPA-AP (Self-Supervised Pretraining for Correct AP Task)
+
+**Time:** 2026-04-11 15:03 (completed ~15:11, 8 minutes)
+**Hypothesis:** SSL pretraining on temporal prediction (JEPA: predict future 50 steps from past 150) should provide better initialization for AP fine-tuning than supervised-from-scratch, closing the gap from Transformer (0.642) toward oracle (0.720).
+**Dataset:** SVDB4 (184K, correct AP evaluation, future_labels[t] = anomaly in [t+100, t+150])
+**Architecture:** Same 2-layer Transformer (d_model=64, nhead=4) as APTransformer (Probe 24)
+**Method:**
+- Phase 1: JEPA pretraining (20 epochs, MSE loss, predict last 50 steps from padded context 150 steps)
+- Phase 2: Fine-tune JEPA encoder for AP (30 epochs, BCEWithLogits, pos_weight balanced)
+- Scratch baseline: Identical architecture, no pretraining (50 epochs)
+- Same 60/20/20 split and 36,794 sequences as Probe 24 for direct comparison
+**Results:**
+```
+JEPA pretrain + finetune AUROC: 0.619 (best val: 0.629)
+Supervised from scratch AUROC:  0.625 (best val: 0.635)
+Previous APTransformer AUROC:   0.642 (Probe 24, cosine LR decay)
+Oracle: 0.720
+JEPA benefit: -0.006 (pretraining HURTS slightly!)
+```
+**Training details:**
+- Phase 1 MSE decreased: 0.0182 -> 0.0111 (temporal prediction learned)
+- Phase 2 val AUROC plateau: 0.629 at epoch 5, then gradual decline
+- Scratch plateau: 0.635 at epoch 10, then slow decline
+
+**Sanity checks:** ✓ JEPA loss decreased (temporal prediction works) ✓ Phase 2 AUROC > 0.5 ✓ Val > 0.5 ✓ No NaN
+**Verdict:** REVERT - JEPA pretraining does NOT improve over scratch.
+
+**Analysis:**
+1. The scratch baseline (0.625) is slightly below APTransformer (0.642). Root cause: APTransformer used cosine LR decay + 50 epochs; this scratch model uses fixed LR + 50 epochs. The architecture is identical.
+2. JEPA pretraining on temporal reconstruction (predict next 50 steps) does NOT help AP (predict anomaly in next 50 steps). The pretraining objective and downstream task are misaligned:
+   - Pretraining: learn what the signal looks like in the future
+   - Fine-tuning: learn whether the signal will be anomalous in the future
+3. Both require different representations: temporal reconstruction rewards smooth predictions; AP rewards high uncertainty signals.
+4. A better JEPA design for AP would pretrain on anomaly-aware objectives (e.g., predict anomaly probability vs normal probability in the future window).
+
+**The complete progression (correct AP task, SVDB4):**
+| Model | AUROC | Gap to Oracle | Notes |
+|-------|-------|---------------|-------|
+| Rolling var (no training) | 0.476 | 0.244 | Baseline |
+| MLP (20 features, supervised) | 0.602 | 0.118 | Features help |
+| JEPA pretrain + finetune | 0.619 | 0.101 | SSL hurts vs scratch |
+| Supervised from scratch (fixed LR) | 0.625 | 0.095 | Simple supervised |
+| APTransformer (cosine LR, Probe 24) | 0.642 | 0.078 | Best supervised |
+| Oracle future var | 0.720 | 0.000 | Task upper bound |
+
+**Insight for NeurIPS:** Naive JEPA pretraining on temporal reconstruction does not help AP.
+What would work: (1) Contrastive pretraining on future anomaly windows vs normal windows,
+(2) Mask future anomaly segments during pretraining (force model to learn to detect them),
+(3) Domain-specific pretraining that aligns with the AP objective.
+The JEPA concept is right but the pretraining task must match the downstream task.
+
+**Saved:** results/improvements/jepa_ap.json

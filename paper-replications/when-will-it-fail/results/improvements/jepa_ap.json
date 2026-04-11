@@ -1,0 +1,15 @@
+{
+  "jepa_pretrain_finetune": {
+    "test_auroc": 0.6192175720787813,
+    "best_val_auroc": 0.6294217216061095
+  },
+  "supervised_scratch": {
+    "test_auroc": 0.6254435137925519,
+    "best_val_auroc": 0.6346992632673746
+  },
+  "previous_transformer": 0.642,
+  "oracle": 0.72,
+  "jepa_benefit": -0.006225941713770666,
+  "dataset": "SVDB4",
+  "evaluation": "correct_AP"
+}

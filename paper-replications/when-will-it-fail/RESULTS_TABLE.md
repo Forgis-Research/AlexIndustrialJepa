@@ -125,6 +125,10 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | Oracle AP | Oracle supervised MLP (SMD, correct AP eval) | AUROC | 0.652 | Rolling var: 0.515 | SMD oracle MLP better than rolling var |
 | **Random Baselines** | **Random scores (SVDB4, 5 seeds)** | **F1-tol** | **68.10% ± 0.04%** | A2P paper: 67.55% | **RANDOM BEATS A2P!** |
 | **Random Baselines** | **Random scores (SMD, 5 seeds)** | **F1-tol** | **67.60% ± 0.03%** | A2P paper: 52.07% | **RANDOM +15.5pp over A2P!** |
+| Correct AP: MLP | Multi-scale MLP (SVDB4, correct AP eval) | AUROC | 0.602 | Rolling var: 0.476 | +0.126 with supervised features |
+| Correct AP: JEPA | JEPA pretrain + finetune (SVDB4, correct AP) | AUROC | 0.619 | Scratch: 0.625 | Pretraining HURTS vs scratch! |
+| Correct AP: Scratch | Supervised scratch Transformer (correct AP) | AUROC | 0.625 | Rolling var: 0.476 | Simple supervised outperforms JEPA |
+| Correct AP: Transformer | APTransformer (cosine LR, correct AP eval) | AUROC | **0.642** | Oracle: 0.720 | Best model, gap=0.078 |
 
 Note: MBA_svdb = single SVDB record 801 (161K train / 69K test), 0.72% anomaly rate.
 MBA_svdb4 = SVDB records 800-803 combined (737K train / 184K test), 6.35% anomaly rate = paper's setup.
