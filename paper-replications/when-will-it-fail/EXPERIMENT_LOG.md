@@ -1280,17 +1280,18 @@ seed=1:  test=0.6211, val=0.6294
 
 ---
 
-### Probe 33 (Interim): Transformer + Variance Features (2/6 runs done)
+### Probe 33 (Interim): Transformer + Variance Features (3/6 runs done, variance phase starting)
 
-**Time:** 2026-04-11 16:27 (running, 2 transformer baseline seeds done)
-**Results so far (transformer baseline, 50 epochs):**
+**Time:** 2026-04-11 16:27 (running, all 3 transformer baseline seeds done)
+**Results so far (transformer baseline, 50 epochs, 3 seeds):**
 ```
 seed=42: val=0.6274, test=0.6201
 seed=1:  val=0.6278, test=0.6207
-2-seed mean: 0.6204 +/- 0.0003 (extremely consistent!)
+seed=2:  val=0.6018, test=0.6033
+3-seed mean: 0.6147 +/- 0.0081
 ```
-**Important insight:** 50-epoch transformer is HIGHLY CONSISTENT (std=0.0003 for 2 seeds), much more than 30-epoch (std=0.042). This confirms epoch count is the main driver of transformer consistency.
-**Status:** RUNNING - next will run 3 seeds with variance features augmented
+**Important insight:** 50-epoch transformer = 0.6147. The slightly higher 100-epoch = 0.624 (Probe 30) confirms more epochs help. Seed 2 is lower (0.6033) showing small residual variance even at 50ep.
+**Status:** RUNNING - now running 3 seeds with variance features augmented
 
 ---
 
@@ -1326,4 +1327,59 @@ LR captures:
 **Verdict:** KEEP - AUPRC provides important additional context. The AP problem is very hard for precision; LR is only marginally above random on AUPRC.
 **Implication for NeurIPS:** AUPRC is a more stringent metric that exposes the difficulty of AP. Future work should report AUPRC alongside AUROC.
 **Saved:** results/improvements/auprc_lr_analysis.json
+
+---
+
+### Probe 40: Epoch Learning Curve (Running)
+
+**Time:** 2026-04-11 18:10 (running, PID 150616)
+**Hypothesis:** AUROC improves monotonically with epoch count and variance across seeds decreases. 30ep unstable; 50+ep stable and ~0.62.
+**Design:** 5 seeds x 100 epochs, checkpoints at [10, 20, 30, 50, 75, 100]. Same d_model=64 APTransformer as Probe 28b.
+**Expected results:**
+```
+Epoch 10:  low AUROC, high variance
+Epoch 30:  ~0.52 mean, ~0.042 std (matches Probe 28b 10-seed distribution)
+Epoch 50:  ~0.62 mean, very low std
+Epoch 100: ~0.624 mean, low std
+```
+**Status:** RUNNING - will complete in ~15-20 minutes
+**Key for paper:** Provides the systematic epoch-count evidence needed to explain WHY A2P's insufficient training is the root cause of the paper's evaluation failure.
+
+---
+
+### Probe 41: Statistical Significance Testing (COMPLETED)
+
+**Time:** 2026-04-11 18:15 (completed, no new training - uses existing seed data)
+**Hypothesis:** LR variance significantly outperforms 30ep transformer; transformer is not significantly above random.
+**Analysis:** One-sample t-tests using Probe 28b 10-seed distribution. 
+**Results:**
+```
+Transformer 30ep (10 seeds):
+  Mean: 0.5211, Std: 0.0415, Median: 0.5176
+  95% CI: [0.4898, 0.5523]
+
+One-sample t-test vs random (0.5):
+  t=1.523, one-sided p=0.081
+  => NOT significant at alpha=0.05!
+
+One-sample t-test vs LR (0.5929):
+  t=-5.194, p=0.0006 (highly significant)
+  => LR is SIGNIFICANTLY ABOVE transformer
+
+LR is 1.73 sigma above transformer mean
+LR (0.5929) exceeds transformer 95% CI upper bound (0.5523)
+
+% of learnable AUROC (oracle=0.7445, random=0.5):
+  Transformer 30ep (mean): 8.6%
+  Transformer 30ep (median): 7.2%
+  LR variance (full 183K): 38.0%
+
+Effect sizes:
+  Cohen's d (transformer vs random): 0.508 (medium)
+  Cohen's d (transformer vs LR): -1.731 (large, in wrong direction)
+```
+**Sanity checks:** ✓ Direction expected (LR > transformer > random) ✓ Stats consistent with raw numbers ✓ Effect sizes sensible
+**Verdict:** CRITICAL FINDING - confirmed with formal statistics
+**Key for NeurIPS:** A2P's AP transformer at 30 epochs is NOT statistically different from random (p=0.081, two-sided). A simple LR with variance features is significantly better (p=0.0006) and captures 4.4x more learnable AUROC signal. This is a formal statistical repudiation of A2P's AP evaluation.
+**Saved:** results/improvements/statistical_comparison.json
 

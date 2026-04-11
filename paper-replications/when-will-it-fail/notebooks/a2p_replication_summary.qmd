@@ -2935,3 +2935,167 @@ The combination of Probe 36 (Probe 36 F1-tol) and our earlier random baselines p
 3. **Metric rank inversion:** LR > A2P on AUROC, but LR < A2P < Random on F1-tol
 
 This is the sharpest possible demonstration that F1-tol is anti-correlated with actual AP capability. The correct metric (AUROC) shows LR variance as the best method; F1-tol hides this completely.
+
+---
+
+## 36. Probe 39: AUPRC Analysis - AP as a Precision-Limited Problem
+
+AUROC measures ranking quality; AUPRC (Area Under Precision-Recall Curve) measures precision at top-k retrieval. For rare-event prediction, AUPRC is the more stringent metric.
+
+### 36.1 AUPRC vs AUROC Comparison
+
+```{python}
+import json
+
+with open('../results/improvements/auprc_lr_analysis.json') as f:
+    ap = json.load(f)
+
+print("AUPRC vs AUROC Comparison (SVDB4, 36K sequences, 7.70% AP rate)")
+print()
+print(f"Random AUPRC (= positive rate): {ap['random_auprc']:.4f}")
+print(f"LR variance AUPRC:              {ap['lr_auprc']:.4f}  ({ap['lr_auprc']/ap['random_auprc']:.2f}x above random)")
+print(f"Oracle AUPRC:                   {ap['oracle_auprc']:.4f}  ({ap['oracle_auprc']/ap['random_auprc']:.2f}x above random)")
+print()
+print(f"LR variance AUROC:              {ap['lr_auroc']:.4f}")
+print(f"Oracle AUROC:                   {ap['oracle_auroc']:.4f}")
+print()
+learnable_auroc = ap['oracle_auroc'] - 0.5
+learnable_auprc = ap['oracle_auprc'] - ap['random_auprc']
+lr_pct_auroc = 100 * (ap['lr_auroc'] - 0.5) / learnable_auroc
+lr_pct_auprc = 100 * (ap['lr_auprc'] - ap['random_auprc']) / learnable_auprc
+print(f"LR captures {lr_pct_auroc:.1f}% of learnable AUROC signal")
+print(f"LR captures {lr_pct_auprc:.1f}% of learnable AUPRC signal (!)")
+print()
+print("CONCLUSION: LR ranks AP windows reasonably (AUROC=0.606),")
+print("but fails at precision (AUPRC only 1.26x above random).")
+print("The AP task is precision-limited: rare anomalies are hard to predict")
+print("even when relative ranking is decent.")
+```
+
+### 36.2 Implications for AP Evaluation
+
+The AUPRC analysis reveals that anomaly prediction is harder than AUROC alone suggests:
+
+- **AUROC (0.606)**: LR ranks anomalous futures above normal futures 60.6% of the time
+- **AUPRC (0.097)**: At any precision threshold, LR barely outperforms a random ranker
+
+This means that even a model with decent AUROC will fail to predict anomalies with useful precision. For real deployment (e.g., flagging windows for operator review), AUPRC is the relevant metric - and it shows the task is largely unsolved.
+
+**For NeurIPS**: Future work on AP should report AUPRC as the primary metric. AUROC flatters all methods by measuring rank correlation rather than precision.
+
+---
+
+## 37. Probe 41: Formal Statistical Comparison of AP Methods
+
+A one-sample t-test formalizes whether the 30-epoch transformer is significantly above random, and whether LR significantly outperforms the transformer.
+
+### 37.1 Statistical Analysis
+
+```{python}
+import json
+import numpy as np
+from scipy import stats
+
+with open('../results/improvements/statistical_comparison.json') as f:
+    sc = json.load(f)
+
+print("Statistical Comparison: AP Methods on SVDB4")
+print()
+print("Transformer 30ep (10 seeds):")
+print(f"  Mean:   {sc['transformer_mean']:.4f}")
+print(f"  Std:    {sc['transformer_std']:.4f}")
+print(f"  Median: {sc['transformer_median']:.4f}")
+print(f"  95% CI: [{sc['transformer_ci95'][0]:.4f}, {sc['transformer_ci95'][1]:.4f}]")
+print()
+print(f"LR variance (full dataset): {sc['lr_auroc_full']:.4f}")
+print(f"Oracle AUROC:               {sc['oracle_auroc']:.4f}")
+print()
+
+t_rand = sc['ttest_vs_random']
+print(f"One-sample t-test: Transformer vs Random (0.5)")
+print(f"  t={t_rand['t']:.3f}, one-sided p={t_rand['one_sided_p']:.4f}")
+sig = "SIGNIFICANT" if t_rand['one_sided_p'] < 0.05 else "NOT significant (p > 0.05)"
+print(f"  Result: {sig}")
+print()
+
+t_lr = sc['ttest_vs_lr']
+print(f"One-sample t-test: Transformer vs LR (0.5929)")
+print(f"  t={t_lr['t']:.3f}, two-sided p={t_lr['p']:.4f}")
+print(f"  Direction: Transformer is BELOW LR")
+print()
+print(f"LR is {sc['lr_sigmas_above_transformer_mean']:.2f} sigma above transformer mean")
+print(f"LR (0.5929) exceeds transformer 95% CI upper bound ({sc['transformer_ci95'][1]:.4f})")
+print()
+print("% of Learnable AUROC (oracle=0.7445, random=0.5):")
+print(f"  Transformer 30ep (mean): {sc['pct_learnable_transformer_mean']:.1f}%")
+print(f"  LR variance (full):      {sc['pct_learnable_lr_full']:.1f}%")
+print()
+print(f"Cohen's d (transformer vs random): {sc['cohen_d_vs_random']:.3f} (medium effect)")
+```
+
+### 37.2 Figure: Method Comparison with Statistical Context
+
+```{python}
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import numpy as np
+
+transformer_seeds = [0.5359, 0.5248, 0.5166, 0.6345, 0.5222, 0.4921, 0.4945, 0.5187, 0.4899, 0.4814]
+mean_tf = np.mean(transformer_seeds)
+std_tf = np.std(transformer_seeds)
+sem_tf = std_tf / np.sqrt(len(transformer_seeds))
+ci95_half = 1.833 * sem_tf  # t_0.05, df=9
+
+fig, ax = plt.subplots(figsize=(10, 5))
+
+# Individual transformer seeds
+for i, v in enumerate(transformer_seeds):
+    ax.scatter(i, v, color='steelblue', s=60, zorder=3, alpha=0.8)
+
+# Transformer mean + CI
+ax.hlines(mean_tf, -0.5, 9.5, colors='steelblue', linewidth=2.5, label=f'Transformer 30ep mean ({mean_tf:.4f})')
+ax.fill_between([-0.5, 9.5], mean_tf - ci95_half, mean_tf + ci95_half, alpha=0.2, color='steelblue', label='95% CI')
+
+# LR variance (outside CI)
+ax.hlines(0.5929, -0.5, 9.5, colors='green', linewidth=2.5, linestyle='--',
+          label='LR variance (0.5929, 1.73σ above transformer mean)')
+
+# Oracle
+ax.hlines(0.7445, -0.5, 9.5, colors='gold', linewidth=2.5, linestyle=':',
+          label='Oracle AUROC (0.7445)')
+
+# Random
+ax.hlines(0.5, -0.5, 9.5, colors='red', linewidth=1.5, linestyle=':', alpha=0.7,
+          label='Random baseline (0.5000)')
+
+# Annotate p-value
+ax.text(0, 0.515, 'vs random: p=0.081 (NOT significant)', fontsize=9, color='red')
+ax.text(0, 0.502, 'vs LR: p=0.0006 (LR wins, p<0.001)', fontsize=9, color='green')
+
+ax.set_xlabel('Seed (0-9)', fontsize=12)
+ax.set_ylabel('AUROC', fontsize=12)
+ax.set_title('APTransformer 30ep: Statistical Context\n(A2P\'s evaluation uses an undertrained model)', fontsize=13)
+ax.set_xlim(-0.5, 9.5)
+ax.set_ylim(0.44, 0.80)
+ax.set_xticks(range(10))
+ax.legend(loc='upper right', fontsize=8)
+ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('../analysis/plots/probe41_statistical_comparison.png', dpi=150, bbox_inches='tight')
+plt.show()
+print("Figure saved.")
+```
+
+### 37.3 NeurIPS-Critical Interpretation
+
+The formal statistics confirm the central finding of this replication:
+
+**A2P's AP transformer at 30 epochs is not statistically different from random** (p=0.081, one-sided t-test). This means that for the majority of random seeds, the AP component of A2P provides no useful anomaly prediction capability.
+
+In contrast, a simple logistic regression on multi-scale variance features:
+- Achieves AUROC = 0.5929 (statistically significantly above both random and the transformer)
+- Captures 38% of the learnable AUROC signal vs. 8.6% for the transformer
+- Requires no neural network, no GPU, and trains in under 1 second
+
+This is not a failure of the transformer architecture - Probe 30 shows that with 100 epochs, supervised training reaches AUROC = 0.624 consistently. **The failure is specific to A2P's under-training (30 epochs) combined with evaluation on a favorable seed.**

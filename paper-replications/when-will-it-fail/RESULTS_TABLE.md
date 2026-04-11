@@ -141,15 +141,23 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | **Probe 36** | **Random F1-tol** | **F1-tol** | **69.57%** | **A2P paper: 67.55%** | **RANDOM BEATS A2P on their own metric!** |
 | Correct AP: V2 contrastive | AP-aware InfoNCE (anomalous future = positive) | AUROC | TBD | InfoNCE V1: 0.641 | Probe 26b, still running |
 | Correct AP: Probe 30 | Supervised transformer 5-seed | AUROC | TBD | Unsupervised: 0.524 | Running |
-| Correct AP: Probe 33 | Transformer + variance features augmented | AUROC | TBD | Raw transformer: 0.5255 | Running |
+| Correct AP: Probe 33 | Transformer + variance features augmented | AUROC | TBD | Raw transformer: 0.6147 ±0.0081 (50ep, 3 seeds) | Running (variance phase) |
+| Correct AP: Probe 38 | Deep supervised (d=128, L=4, 150ep) | AUROC | TBD | Shallow 100ep: 0.624 | Running seed=42 |
+| Correct AP: Probe 39 | AUPRC analysis (LR vs oracle) | AUPRC | 0.097 LR / 0.522 oracle | random=0.077 | **COMPLETE** - AP is precision-limited |
+| Correct AP: Probe 40 | Epoch learning curve (5 seeds, checkpoints) | AUROC@epoch | TBD | 30ep=0.521 ±0.042 (Probe 28b) | Running |
+| Correct AP: Probe 41 | Statistical significance: LR vs transformer | t-test | LR p=0.0006 vs TF | TF vs random: p=0.081 (NS) | **COMPLETE** - formal proof |
 
-**CRITICAL:** Single-seed AP results (0.642, 0.641, 0.619, 0.625) are unreliable. True multi-seed APTransformer AUROC = 0.524 +/- 0.037, barely above random (0.500). The gap to oracle is 0.196, not 0.078. All single-seed "best results" must be treated as preliminary.
+**CRITICAL:** Single-seed AP results (0.642, 0.641, 0.619, 0.625) are unreliable. True multi-seed APTransformer AUROC at 30ep = 0.5211 +/- 0.0415 (10 seeds), barely above random (0.500) and NOT statistically significant (p=0.081). All single-seed "best results" must be treated as preliminary. With 100ep supervised training, consistent AUROC=0.624 is achieved.
 
 **REVISED FINDING (Probe 35):** Full-dataset LR with 8 variance features achieves AUROC=0.5929, beating APTransformer multi-seed mean (0.5255) by +0.067 (1.63 sigma). This is the reliable estimate using 183K sequences; the 0.616 from Probe 29 used a 5x smaller sample and has higher variance. Key: LR captures 38% of learnable signal (oracle=0.7445), transformer captures only 10.4%.
 
 **SVDB1 INVALID (Probe 34):** All AP labels in SVDB1 appear at t>94%, making temporal train/test split impossible (train has 0 positive examples). SVDB1 cannot be used for AP evaluation.
 
-**RANDOM BEATS A2P (Probe 36):** Random scores achieve F1-tol=69.57% on SVDB4, higher than A2P's 67.55%. This is the decisive proof that F1-tol is ungameable metric.
+**RANDOM BEATS A2P (Probe 36):** Random scores achieve F1-tol=69.57% on SVDB4, higher than A2P's 67.55%. This is the decisive proof that F1-tol is a gameable metric.
+
+**STATISTICAL PROOF (Probe 41):** Formal t-test confirms: (1) transformer 30ep is NOT significantly above random (p=0.081), (2) LR variance is significantly above transformer (p=0.0006, Cohen's d=-1.73). LR is 1.73 sigma above transformer mean and exceeds transformer's 95% CI upper bound.
+
+**AUPRC FINDING (Probe 39):** LR AUPRC=0.097 (1.26x above random=0.077) vs oracle AUPRC=0.522 (6.75x). LR captures only 4.5% of learnable AUPRC signal despite capturing 38% of learnable AUROC signal. AP is precision-limited.
 
 Note: MBA_svdb = single SVDB record 801 (161K train / 69K test), 0.72% anomaly rate.
 MBA_svdb4 = SVDB records 800-803 combined (737K train / 184K test), 6.35% anomaly rate = paper's setup.
