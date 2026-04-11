@@ -3653,3 +3653,36 @@ The SVDB4 AP task is well-structured but highly specific:
 **Files:** figures/fig_ap_task_decomposition.*, figures/fig_strict_ap_variance_profile.*, figures/fig_standard_vs_strict_ap.*
 
 ---
+
+
+### Probe 126: Strict AP AUPRC Analysis (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** LR also beats oracle on AUPRC for strict AP (not just AUROC).
+**Design:** CPU-only. AUPRC with 5-fold CV. Compare strict vs standard AP.
+**Sanity checks:** ✓ Standard AP: LR AUROC=0.636, oracle=0.745 consistent. ✓ Strict AP rate=3.39%.
+
+**Results:**
+
+Strict AP (3.39% positive rate, random AUPRC=0.034):
+| Method | AUROC | AUPRC | vs Random | CV AUPRC | CV vs Random |
+|--------|-------|-------|-----------|----------|-------------|
+| LR | 0.703 | 0.066 | 1.95x | 0.078 ± 0.004 | **2.30x** |
+| Oracle | 0.648 | 0.052 | 1.54x | 0.053 ± 0.002 | 1.56x |
+| **LR > Oracle** | YES | YES | YES | YES | YES |
+
+Standard AP (9.47% positive rate, random AUPRC=0.095):
+| Method | AUROC | AUPRC | vs Random |
+|--------|-------|-------|-----------|
+| LR | 0.636 | 0.138 | 1.46x |
+| Oracle | 0.745 | **0.530** | **5.59x** |
+| **LR > Oracle** | NO | NO | NO |
+
+**AUPRC also shows contamination reversal:**
+- Standard AP: Oracle wins AUPRC by 3.84x ratio advantage (5.59x vs 1.46x)
+- Strict AP: LR wins AUPRC by 1.48x ratio advantage (2.30x vs 1.56x)
+- The oracle's massive AUPRC advantage on standard AP is entirely due to contamination
+
+**File:** results/improvements/strict_ap_auprc.json
+
+---

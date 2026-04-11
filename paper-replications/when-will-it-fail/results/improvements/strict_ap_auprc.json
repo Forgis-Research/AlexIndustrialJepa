@@ -1,0 +1,17 @@
+{
+  "probe": "126_strict_auprc",
+  "strict_ap_rate": 0.0339346829862521,
+  "random_auprc": 0.0339346829862521,
+  "lr_strict_auroc": 0.7030045398605504,
+  "lr_strict_auprc": 0.06611672394881937,
+  "oracle_strict_auroc": 0.6483005674055872,
+  "oracle_strict_auprc": 0.05214734803583658,
+  "lr_cv_auprc_mean": 0.07815656015837799,
+  "lr_cv_auprc_std": 0.004271333180585535,
+  "oracle_cv_auprc_mean": 0.05284686235476384,
+  "oracle_cv_auprc_std": 0.0022055388908598203,
+  "lr_auprc_gt_oracle_strict": true,
+  "lr_cv_auprc_gt_oracle_cv": true,
+  "standard_ap_lr_auprc": 0.13789675586031175,
+  "standard_ap_oracle_auprc": 0.5299125853325871
+}
