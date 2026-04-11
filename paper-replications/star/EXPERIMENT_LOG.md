@@ -89,3 +89,22 @@ Replication started: 2026-04-11
 - **Wall time**: 992s
 - **Notes**: none
 
+---
+
+## FD001 Summary (5-seed, COMPLETE)
+
+| Seed | Test RMSE | Test Score | Best Val RMSE | Epochs | Status |
+|------|-----------|------------|---------------|--------|--------|
+| 42 | 12.301 | 253.2 | 13.150 | 39 | GOOD |
+| 123 | 12.969 | 286.7 | 11.396 | 54 | ABOVE |
+| 456 | 11.250 | 196.2 | 11.316 | 41 | EXACT |
+| 789 | 12.095 | 252.8 | 12.140 | 61 | GOOD |
+| 1024 | 12.315 | 278.4 | 11.002 | 33 | GOOD |
+| **Mean** | **12.186 +/- 0.553** | **253.5 +/- 31.6** | - | - | **GOOD** |
+| Paper | 10.61 | 169 | - | - | - |
+| Gap | +14.9% | +50% | - | - | GOOD |
+
+**Assessment**: GOOD replication. 4/5 seeds in GOOD range (<=12.7), 1/5 EXACT (<=11.7). Mean 14.9% above paper. Score gap 50% (score is exponentially scaled, so larger gap is expected with RMSE gap). FD002 started 2026-04-11T15:44:20.
+
+---
+
