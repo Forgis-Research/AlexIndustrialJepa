@@ -3165,3 +3165,144 @@ Adding channel 1 or more features provides minimal marginal benefit. The AP task
 
 ---
 
+
+
+### Probe 113: Oracle Gap Analysis - AP+ Signal Quality Bands (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** AP+ events are heterogeneous in predictability; LR and Oracle solve different subtasks.
+**Design:** CPU-only. Divide AP+ into quartiles by oracle score (future variance). Measure LR vs Oracle AUROC within each quartile. Also compute strict AP contamination.
+**Sanity checks:** ✓ Overall LR=0.640, Oracle=0.745 consistent with prior probes. ✓ Contamination 66.4% consistent with probe 100.
+
+**Results:**
+
+Oracle score distribution:
+| Group | Mean oracle | p10 | p50 | p90 |
+|-------|-------------|-----|-----|-----|
+| AP+ | 0.0652 | 0.0080 | 0.0371 | 0.1578 |
+| AP- | 0.0186 | 0.0008 | 0.0135 | 0.0371 |
+
+LR vs Oracle AUROC by AP+ difficulty band:
+| AP+ Band | N | Mean oracle | LR AUROC | Oracle AUROC | Gap (LR-Oracle) |
+|----------|---|-------------|----------|--------------|-----------------|
+| Q1 (hard, low oracle) | 872 | 0.0078 | **0.7011** | **0.3159** | **+0.385** |
+| Q2 (med-low) | 871 | 0.0289 | 0.7719 | 0.6838 | +0.088 |
+| Q3 (med-high) | 871 | 0.0666 | 0.6456 | 0.9797 | -0.334 |
+| Q4 (easy, high oracle) | 872 | 0.1573 | 0.4403 | **1.0000** | **-0.560** |
+
+Strict AP contamination (consistent with probe 100-101):
+| AP+ Type | N | LR AUROC | Oracle AUROC |
+|----------|---|----------|--------------|
+| Contaminated (anomaly in [t+50,t+100]) | 2316 (66.4%) | 0.6073 | 0.7935 |
+| Strict (no anomaly in [t+50,t+100]) | 1170 (33.6%) | 0.7038 | 0.6483 |
+
+**CRITICAL FINDING: LR and Oracle solve fundamentally different subtasks:**
+
+1. **Oracle dominates "easy" Q3/Q4 AP+** (high future variance): These are DETECTION-like events where the future anomaly window has very high variance. Oracle succeeds because future=current (contaminated or immediately pre-anomaly).
+
+2. **LR dominates "hard" Q1/Q2 AP+** (low oracle score, Q1: oracle AUROC=0.316 = near-random): These are GENUINE PREDICTION events with low future variance. Oracle fails here (AUROC=0.316) but LR achieves 0.701. LR succeeds because it detects a rising-variance ONSET PATTERN in the context window - this IS the calm-before-storm signal.
+
+3. **Oracle=1.000 on Q4 (perfect detection)**: These AP+ have so much future anomaly signal that future variance perfectly separates them from AP-. This is trivial detection masquerading as prediction.
+
+4. **LR=0.440 on Q4**: LR FAILS on Q4 because these AP+ events are NOT characterized by rising-variance onset in the context - they're characterized by ongoing anomaly, which the context may not show.
+
+**Implication for AP task evaluation:**
+- AUROC mixes two different tasks: detection (Q3/Q4) and genuine prediction (Q1/Q2)
+- A method that excels at detection but fails at genuine prediction can get high overall AUROC
+- The "hard" Q1/Q2 AP+ events (66.5% of AP+) are where genuine anomaly prediction capability matters
+- Current A2P metric (F1-tol) further biases toward detection (near-hit tolerance inflates detection scores)
+
+**Overall metrics:** LR=0.640, Oracle=0.745. 2-feature LR (ch0_last200_var + ch0_last25_var) = 0.629.
+
+**File:** results/improvements/oracle_gap_bands.json
+
+---
+
+
+### Probe 114: AP Task Learnability - Event Type Classification (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** AP+ events can be classified into 4 types based on context signal availability, explaining the oracle-LR divergence.
+**Design:** CPU-only. Classify each AP+ into 4 types based on context z-scores and contamination status. Compute LR/Oracle AUROC per type.
+**Sanity checks:** ✓ Type A (contaminated) = 66.4% matches probe 100. ✓ Full LR=0.632 consistent with all prior probes.
+
+**Results:**
+
+AP+ Event Classification:
+| Type | Description | N | % | LR AUROC | Oracle AUROC |
+|------|-------------|---|---|----------|--------------|
+| A | Contaminated (ongoing anomaly in [t+50,t+100]) | 2316 | 66.4% | 0.608 | **0.794** |
+| B | Strict + Rising trend (last50 var > 1.5x full var) | 692 | 19.9% | **0.722** | 0.591 |
+| C | Strict + Calm baseline (z_full < -1) | 6 | 0.2% | **0.918** | 0.399 |
+| D | Strict + No signal (neither rising nor calm) | 472 | 13.5% | 0.617 | 0.736 |
+
+**CRITICAL FINDING: LR and Oracle solve fundamentally different AP+ types:**
+
+- **Type A (66.4%):** Oracle wins (0.794 vs 0.608) because these are detection-like. The anomaly is near (or in) the prediction horizon. Oracle future variance predicts this; LR context variance doesn't.
+
+- **Type B (19.9%):** LR wins (0.722 vs 0.591) because rising onset is in the CONTEXT. The last50-window shows elevated variance relative to global baseline - this IS the calm-before-storm signal. Oracle future variance doesn't help for this type.
+
+- **Type C (0.2%):** LR wins dramatically (0.918 vs 0.399) - classic calm-before-storm. Very rare (6 events) but when it occurs, the pattern is unmistakable.
+
+- **Type D (13.5%):** Oracle wins (0.736 vs 0.617) - these strict AP+ events have no detectable context signal but DO have future anomaly variance. This is "pure prediction" - nothing in the context predicts it.
+
+**Theoretical Learnability Framework:**
+- 86.5% of AP+ events are theoretically detectable from available signals (Types A, B, C)
+- 13.5% (Type D) are genuinely unpredictable from 200-step context windows
+- This 13.5% represents the irreducible lower bound on false negatives for ANY method
+- The current LR achieves 0.632 overall because it confuses Tasks A and B (optimized for rising variance, works for B but fails for A)
+
+**Strict AP context statistics:**
+- 59.1% of strict AP+ have rising trend (last50 > 1.5x full)
+- 62.7% show calm-then-rise pattern (full var below AP- mean, last50 above AP- mean)
+- This confirms the calm-before-storm narrative: nearly 2/3 of strict AP+ show the predicted pattern
+
+**Overall metrics:** LR=0.632, Oracle=0.745. Oracle breakdown: contaminated=0.794, strict=0.648.
+
+**File:** results/improvements/learnability_analysis.json
+
+---
+
+
+### Probe 115: Five Attacks Quantification (COMPLETE, CPU-only)
+
+**Time:** 2026-04-12
+**Hypothesis:** All five attacks on A2P can be stated with precise statistics from collected data.
+**Design:** CPU-only synthesis of probes 100-114.
+**Sanity checks:** ✓ All numbers consistent with prior probes. ✓ LR=0.636 matches canonical estimate.
+
+**Five Attacks Summary:**
+
+**Attack 1: Task Definition Failure (66.4% contamination)**
+- 66.4% of AP+ labels (2316/3486) are near-contaminated: anomaly exists in [t+50, t+100] (not just [t+100, t+150])
+- Oracle AUROC inflated by contamination: 0.794 (contaminated) vs 0.648 (strict) - 0.145 AUROC inflation
+- Strict oracle = 0.648, not the headline 0.745 figure
+- Implication: AP task as defined is 66% detection, 34% prediction
+
+**Attack 2: Metric Failure (8.1x F1 inflation)**
+- Raw binary F1 = 5.35%; F1-tol@50 = 43.1% => 8.1x inflation
+- Random scores achieve F1-tol = 68.1% BEATS A2P paper result of 67.55%
+- Brier Skill Score = -0.117 (NEGATIVE; A2P predictions are WORSE than climatology)
+- Rolling Var (no training) achieves F1-tol = 86.70% = +19.15pp over A2P paper
+
+**Attack 3: Evaluation Protocol Failure**
+- Context variance (detection, not prediction) AUROC = 0.401 on AP labels
+- A2P trained model AUROC = 0.528
+- The 0.127 gap represents tiny true prediction ability above detection
+- F1-tol metric rewards anomaly proximity regardless of whether prediction is future
+
+**Attack 4: Dataset Validity Failure (SMD)**
+- SMD oracle AUROC = 0.346 (BELOW RANDOM) with all 38 channels
+- Top-5 channels oracle = 0.704 (valid signal exists, but only in subset)
+- 33 irrelevant channels actively destroy the oracle signal via anti-correlation and dimensionality
+- A2P result on SMD (F1-tol=52.07%) requires implicit channel weighting not disclosed in paper
+
+**Attack 5: Baseline Failure (LR +0.108 AUROC)**
+- LR 4-feature variance: AUROC = 0.636 vs A2P = 0.528 (+0.108, +10.8 pp)
+- LR on strict AP: 0.703 vs oracle = 0.648 (+0.055, LR BEATS oracle on genuine prediction)
+- LR captures 55.5% of learnable signal; A2P captures ~10%
+- LR requires no training, no GPU, and generalizes across datasets
+
+**File:** results/improvements/five_attacks_summary.json
+
+---

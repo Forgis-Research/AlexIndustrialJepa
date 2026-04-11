@@ -181,6 +181,9 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | Probe 72b | Regression vs classification target (3 seeds) | AUROC delta | PENDING | Classification TF: ~0.624 | STILL RUNNING |
 | Probe 73b | LR + TF ensemble (3 TF seeds) | AUROC | PENDING | TF: 0.624, LR: 0.631 | STILL RUNNING |
 | Probe 102 | Strict AP TF (3 seeds, 100ep) | AUROC | PENDING | Strict LR: 0.702, oracle: 0.603 | STILL RUNNING |
+| **PROBE 113** | **Oracle Gap Analysis - AP+ by oracle quartile** | **AUROC by band** | **Q1(hard): LR=0.701, oracle=0.316; Q4(easy): LR=0.440, oracle=1.000** | LR all=0.640 | **COMPLETE - LR and Oracle solve DIFFERENT subtasks** |
+| **PROBE 114** | **AP+ Learnability Classification** | **Event types** | **Type A (66.4%, detect): oracle=0.794; Type B (19.9%, onset): LR=0.722; Type D (13.5%, unpredictable)** | - | **COMPLETE - 4 event types explain LR/oracle divergence** |
+| **PROBE 115** | **Five Attacks Synthesis** | **All attacks** | **Contamination=66.4%; F1-inflation=8.1x; LR+10.8pp; SMD oracle=0.346; Random beats A2P** | - | **COMPLETE - all 5 attacks quantified with statistics** |
 
 **CRITICAL:** Single-seed AP results (0.642, 0.641, 0.619, 0.625) are unreliable. True multi-seed APTransformer AUROC at 30ep = 0.5211 +/- 0.0415 (10 seeds), barely above random (0.500) and NOT statistically significant (p=0.081). All single-seed "best results" must be treated as preliminary. With 100ep supervised training, consistent AUROC=0.6238 ± 0.0075 is achieved (5 seeds, Probe 30).
 
