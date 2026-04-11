@@ -1,0 +1,13 @@
+{
+  "model": "APTransformer (d_model=64, nhead=4, 2 layers)",
+  "dataset": "SVDB4",
+  "evaluation": "correct_AP (future_labels[t] = anomaly in [t+100, t+150])",
+  "test_auroc": 0.6423305351456118,
+  "test_auprc": 0.10805150859620236,
+  "best_val_auroc": 0.6391037671919011,
+  "oracle_auroc": 0.72,
+  "mlp_auroc": 0.602,
+  "gap_to_oracle": 0.07766946485438819,
+  "seq_len": 200,
+  "stride": 5
+}

@@ -2012,7 +2012,29 @@ SVDB1 (single record) has ALL anomalies clustered at the very end of the test se
 Any monotonically increasing score gets AUROC > 0.95. This confound makes SVDB1
 invalid for AP research. Only SVDB4 (4 records, distributed anomalies) and SMD are valid.
 
+**Step 8 - Trainable models progressively close gap to oracle on correct AP task:**
+- Multi-scale MLP (20 features, 256-128-64): AUROC=0.602 (gap to oracle: 0.118)
+- APTransformer (raw sequences, d_model=64): AUROC=0.642 (gap to oracle: 0.078)
+- Oracle future var: AUROC=0.720 (target)
+- Gap between Transformer and oracle: only 0.078 = room for JEPA-based improvement
+
 **Proposed fix:** Evaluate AP against future anomaly labels with AUROC/AUPRC.
 Oracle AUROC = 0.720 (SVDB4), 0.554 (SMD) are the achievable targets for a proper AP model.
 Random baseline for F1-tol: 68.1% (SVDB4), 67.6% (SMD) - any AP paper must beat this.
 Develop JEPA-AP that achieves AUROC > 0.72 under correct evaluation.
+
+## 22b. Complete Evidence Chain Figure
+
+```{python}
+from IPython.display import Image, display
+import os
+fig6_path = f'{FIGURES_DIR_V2}/fig6_complete_evidence_chain.png'
+if os.path.exists(fig6_path):
+    display(Image(fig6_path, width=900))
+    print("Figure 6: Complete 7-step evidence chain showing A2P evaluation is broken.")
+    print("Step 3 is the key: random noise beats A2P on ALL 3 datasets (F1-tol metric).")
+    print("Step 6 is paradigm-completing: oracle AUROC=0.347 proves current eval = detection.")
+    print("Step 8: MLP reaches 0.602 on correct AP task, gap to oracle=0.118 for JEPA to close.")
+else:
+    print(f"Figure not found: {fig6_path}")
+```
