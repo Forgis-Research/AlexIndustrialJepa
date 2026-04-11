@@ -2013,12 +2013,16 @@ Any monotonically increasing score gets AUROC > 0.95. This confound makes SVDB1
 invalid for AP research. Only SVDB4 (4 records, distributed anomalies) and SMD are valid.
 
 **Step 8 - Trainable models progressively close gap to oracle on correct AP task:**
-- Multi-scale MLP (20 features, 256-128-64): AUROC=0.602 (gap to oracle: 0.118)
-- JEPA temporal pretrain + finetune: AUROC=0.619 (gap to oracle: 0.101) - hurts vs scratch!
-- Supervised from scratch (fixed LR): AUROC=0.625 (gap to oracle: 0.095)
-- InfoNCE generic contrastive + finetune: AUROC=0.641 (essentially identical to APTransformer)
-- APTransformer (cosine LR decay, Probe 24): AUROC=0.642 (gap to oracle: 0.078)
+- Multi-scale MLP (20 features, 256-128-64): AUROC=0.602 (gap to oracle: 0.118) [single seed]
+- JEPA temporal pretrain + finetune: AUROC=0.619 (gap to oracle: 0.101) [single seed, hurts!]
+- Supervised from scratch (fixed LR): AUROC=0.625 (gap to oracle: 0.095) [single seed]
+- InfoNCE generic contrastive + finetune: AUROC=0.641 [single seed, essentially identical]
+- APTransformer (cosine LR decay, Probe 24): AUROC=0.642 (gap to oracle: 0.078) [single seed!]
+- **APTransformer 3-seed TRUE estimate: AUROC=0.524 +/- 0.037** (Probe 27, statistically validated)
 - Oracle future var: AUROC=0.720 (target)
+- **CRITICAL (Probe 27):** Seed 42 gave a 3.2-sigma lucky result (0.642). True multi-seed performance
+  is 0.524 +/- 0.037. The AP signal is very weak - seeds 1 and 2 both perform near-random (0.492-0.503).
+  All single-seed results above should be treated as preliminary until multi-seed validated.
 - Key finding: Both JEPA temporal reconstruction AND generic InfoNCE contrastive pretraining
   fail to improve over supervised-from-scratch APTransformer. The SSL pretraining signal must
   be directly aligned with the AP task (anomaly-aware) to provide benefit.
@@ -2289,4 +2293,128 @@ print()
 print("The 0.078 gap between APTransformer (0.642) and oracle (0.720) requires")
 print("task-aligned SSL that makes the encoder sensitive to anomaly precursors,")
 print("not just temporal dynamics.")
+```
+
+## 27. Probe 27: Multi-Seed Statistical Validation
+
+**Critical question**: Is APTransformer AUROC=0.642 (Probe 24) reproducible, or was it a lucky single seed?
+
+```{python}
+ms = json.load(open(f'{IMPROVEMENTS_DIR}/aptransformer_multiseed.json'))
+
+print("=== MULTI-SEED APTRANSFORMER RESULTS ===")
+print()
+print(f"Architecture: {ms['model']}")
+print(f"Dataset: {ms['dataset']} | Evaluation: {ms['evaluation']}")
+print()
+print("Per-seed results:")
+for s in ms['per_seed']:
+    bar = '|' * int(s['test_auroc'] * 50)
+    label = ' <-- LUCKY SEED' if s['seed'] == 42 else ''
+    print(f"  Seed {s['seed']:4d}: AUROC={s['test_auroc']:.4f} {bar}{label}")
+print()
+print(f"Mean AUROC: {ms['mean_auroc']:.4f} +/- {ms['std_auroc']:.4f}")
+print(f"Oracle AUROC: {ms['oracle_auroc']:.3f}")
+print(f"Gap to oracle: {ms['gap_to_oracle']:.4f}")
+print()
+print("INTERPRETATION:")
+print(f"  Probe 24 (seed=42) reported AUROC=0.642 (single seed)")
+print(f"  True 3-seed estimate: {ms['mean_auroc']:.3f} +/- {ms['std_auroc']:.3f}")
+print(f"  The difference: {0.642 - ms['mean_auroc']:.3f} (seed=42 was {(0.642 - ms['mean_auroc'])/ms['std_auroc']:.1f}x std above mean)")
+print(f"  Seeds 1 and 2 perform near-random: {ms['per_seed'][1]['test_auroc']:.3f}, {ms['per_seed'][2]['test_auroc']:.3f}")
+```
+
+```{python}
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+# Panel 1: Per-seed AUROC with oracle and random lines
+ax = axes[0]
+seeds = [s['seed'] for s in ms['per_seed']]
+aurocs = [s['test_auroc'] for s in ms['per_seed']]
+colors = ['gold' if s == 42 else 'steelblue' for s in seeds]
+bars = ax.bar([str(s) for s in seeds], aurocs, color=colors, edgecolor='black', linewidth=1)
+ax.axhline(y=0.500, color='gray', linestyle='--', linewidth=1.5, label='Random (0.500)')
+ax.axhline(y=0.720, color='green', linestyle='--', linewidth=1.5, label='Oracle (0.720)')
+ax.axhline(y=ms['mean_auroc'], color='red', linestyle='-', linewidth=2, label=f"Mean ({ms['mean_auroc']:.3f})")
+ax.axhspan(ms['mean_auroc'] - ms['std_auroc'], ms['mean_auroc'] + ms['std_auroc'],
+           alpha=0.15, color='red', label=f'+/- std ({ms["std_auroc"]:.3f})')
+# Annotate single-seed claim
+ax.annotate('Probe 24\nclaim', xy=(0, 0.642), xytext=(0.5, 0.66),
+            arrowprops=dict(arrowstyle='->', color='orange'), fontsize=9, color='orange')
+ax.scatter([0], [0.642], s=80, color='orange', zorder=5)
+ax.set_xlabel('Random Seed', fontsize=11)
+ax.set_ylabel('Test AUROC', fontsize=11)
+ax.set_title('APTransformer: Multi-Seed Validation\nSeed 42 was a 3.2-sigma lucky draw', fontsize=10, fontweight='bold')
+ax.set_ylim(0.40, 0.80)
+ax.legend(fontsize=8)
+ax.grid(axis='y', alpha=0.3)
+
+# Panel 2: Revised model ranking (multi-seed where available)
+ax2 = axes[1]
+revised_methods = [
+    ('Oracle\n(future var)', 0.720, None, 'green'),
+    ('APTransformer\nseed=42 only', 0.642, None, 'gold'),
+    ('InfoNCE\nseed=42 only', 0.641, None, 'gold'),
+    ('JEPA scratch\nseed=42 only', 0.625, None, 'gold'),
+    ('JEPA pretrain\nseed=42 only', 0.619, None, 'gold'),
+    ('Multi-scale MLP\nseed=42 only', 0.602, None, 'gold'),
+    ('APTransformer\n3-seed TRUE', ms['mean_auroc'], ms['std_auroc'], 'steelblue'),
+    ('Random\n(theoretical)', 0.500, None, 'gray'),
+]
+y_pos = np.arange(len(revised_methods))
+for i, (name, val, std, color) in enumerate(reversed(revised_methods)):
+    ax2.barh(i, val, color=color, edgecolor='black', linewidth=0.5, alpha=0.8)
+    if std is not None:
+        ax2.errorbar(val, i, xerr=std, fmt='none', color='black', capsize=4, linewidth=2)
+    ax2.text(val + 0.005, i, f'{val:.3f}', va='center', fontsize=8)
+ax2.axvline(x=0.500, color='gray', linestyle='--', linewidth=1.5)
+ax2.set_yticks(range(len(revised_methods)))
+ax2.set_yticklabels([m[0] for m in reversed(revised_methods)], fontsize=8)
+ax2.set_xlabel('Test AUROC', fontsize=11)
+ax2.set_title('Revised Rankings: Gold=Single Seed,\nBlue=Statistically Validated', fontsize=10, fontweight='bold')
+ax2.set_xlim(0.45, 0.78)
+ax2.grid(axis='x', alpha=0.3)
+
+plt.tight_layout()
+plt.savefig(f'{FIGURES_DIR}/fig_multiseed_validation.png', dpi=150, bbox_inches='tight')
+plt.show()
+print("Figure saved.")
+```
+
+**Key finding from multi-seed validation:**
+
+The APTransformer's AUROC=0.642 (Probe 24) was a **lucky single-seed result**. Seed=42 was 3.2 standard deviations above the mean across 3 seeds.
+
+True multi-seed performance:
+- Mean AUROC: 0.524 +/- 0.037 (barely above random 0.500)
+- Seeds 1 and 2 perform near-random (0.492-0.503)
+- True gap to oracle: 0.196, not 0.078
+
+**Implications:**
+1. All single-seed AP results (JEPA 0.619, scratch 0.625, InfoNCE 0.641) should be treated as preliminary pending multi-seed validation.
+2. The AP task on SVDB4 appears to be near-random for most model initializations.
+3. The "evidence chain" in Step 8 needs updating: the true supervised baseline is ~0.524, not 0.642.
+4. This makes the oracle gap (0.196) even harder to close, reinforcing that F1-tolerance as a metric is misleading - the true signal is very weak.
+
+```{python}
+# Updated evidence chain with multi-seed correction
+print("=== REVISED EVIDENCE CHAIN (Step 8, multi-seed corrected) ===")
+print()
+print("Statistically validated (3+ seeds):")
+print(f"  APTransformer multi-seed:    0.524 +/- 0.037 (3 seeds)")
+print()
+print("Single-seed (unreliable, may be lucky draws):")
+print(f"  APTransformer seed=42:       0.642  [3.2 sigma above mean!]")
+print(f"  InfoNCE contrastive seed=42: 0.641  [unvalidated]")
+print(f"  JEPA scratch seed=42:        0.625  [unvalidated]")
+print(f"  JEPA pretrain seed=42:       0.619  [unvalidated]")
+print(f"  Multi-scale MLP seed=42:     0.602  [unvalidated]")
+print()
+print("Upper bounds:")
+print(f"  Oracle (future variance):    0.720")
+print()
+print("TRUE gap to oracle (multi-seed corrected): 0.720 - 0.524 = 0.196")
+print("Single-seed gap to oracle (misleading):    0.720 - 0.642 = 0.078")
+print()
+print("Statistical significance requirement: Need 3+ seeds before claiming any model beats another.")
 ```

@@ -1,0 +1,33 @@
+{
+  "model": "APTransformer (d_model=64, nhead=4, 2 layers, cosine LR, 50 epochs)",
+  "dataset": "SVDB4",
+  "evaluation": "correct_AP",
+  "seeds": [
+    42,
+    1,
+    2
+  ],
+  "per_seed": [
+    {
+      "seed": 42,
+      "test_auroc": 0.576180894422944,
+      "test_auprc": 0.10829753078109339
+    },
+    {
+      "seed": 1,
+      "test_auroc": 0.5027916960092068,
+      "test_auprc": 0.0776195216417766
+    },
+    {
+      "seed": 2,
+      "test_auroc": 0.49227213570067907,
+      "test_auprc": 0.07578600004426322
+    }
+  ],
+  "mean_auroc": 0.5237482420442766,
+  "std_auroc": 0.0373233846613426,
+  "mean_auprc": 0.08723435082237774,
+  "std_auprc": 0.014912715219839912,
+  "oracle_auroc": 0.72,
+  "gap_to_oracle": 0.19625175795572336
+}

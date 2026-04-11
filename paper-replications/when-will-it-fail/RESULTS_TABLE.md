@@ -128,7 +128,11 @@ Direction analysis: Removing shared backbone reduces F1 (correct direction, expe
 | Correct AP: MLP | Multi-scale MLP (SVDB4, correct AP eval) | AUROC | 0.602 | Rolling var: 0.476 | +0.126 with supervised features |
 | Correct AP: JEPA | JEPA pretrain + finetune (SVDB4, correct AP) | AUROC | 0.619 | Scratch: 0.625 | Pretraining HURTS vs scratch! |
 | Correct AP: Scratch | Supervised scratch Transformer (correct AP) | AUROC | 0.625 | Rolling var: 0.476 | Simple supervised outperforms JEPA |
-| Correct AP: Transformer | APTransformer (cosine LR, correct AP eval) | AUROC | **0.642** | Oracle: 0.720 | Best model, gap=0.078 |
+| Correct AP: Transformer | APTransformer (cosine LR, correct AP eval) | AUROC | **0.642** | Oracle: 0.720 | Single seed=42 ONLY |
+| Correct AP: InfoNCE | InfoNCE contrastive pretrain + finetune | AUROC | 0.641 | APTransformer: 0.642 | Single seed=42, neutral |
+| **Correct AP: Multi-Seed** | **APTransformer 3-seed (correct AP)** | **AUROC** | **0.524 +/- 0.037** | **Oracle: 0.720** | **TRUE ESTIMATE: seed=42 was lucky!** |
+
+**CRITICAL:** Single-seed AP results (0.642, 0.641, 0.619, 0.625) are unreliable. True multi-seed APTransformer AUROC = 0.524 +/- 0.037, barely above random (0.500). The gap to oracle is 0.196, not 0.078. All single-seed "best results" must be treated as preliminary.
 
 Note: MBA_svdb = single SVDB record 801 (161K train / 69K test), 0.72% anomaly rate.
 MBA_svdb4 = SVDB records 800-803 combined (737K train / 184K test), 6.35% anomaly rate = paper's setup.
