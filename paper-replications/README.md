@@ -7,9 +7,12 @@ Each subfolder targets a single paper and contains its spec, code, results, and 
 
 | Folder | Paper | Venue | Status |
 |--------|-------|:-----:|:------:|
+| [`star/`](star/) | Fan et al. "STAR: A Simple Transformer with Adaptive Residuals for Remaining Useful Life Prediction" | ICASSP 2024 | FD001 done, FD002 done, FD003/4 in progress |
 | [`cnn-gru-mha/`](cnn-gru-mha/) | Yu et al. "Remaining Useful Life of the Rolling Bearings Prediction Method Based on Transfer Learning Integrated with CNN-GRU-MHA" | Appl. Sci. 2024 | done |
 | [`dcssl/`](dcssl/) | Shen et al. "A novel dual-dimensional contrastive self-supervised learning-based framework for rolling bearing RUL prediction" | Sci. Rep. (Nature) 2026 | done |
-| [`when-will-it-fail/`](when-will-it-fail/) | Park et al. "When Will It Fail?: Anomaly to Prompt for Forecasting Future Anomalies in Time Series" | ICML 2025 | in progress |
+| [`when-will-it-fail/`](when-will-it-fail/) | Park et al. "When Will It Fail?: Anomaly to Prompt for Forecasting Future Anomalies in Time Series" | ICML 2025 | probes 1-141 complete, paper figures rendered |
+
+`star/` is the primary supervised baseline for the `mechanical-jepa/` v11/v12 C-MAPSS work. The other three were scouted as reference methods during the bearing-RUL phase.
 
 ## Convention
 

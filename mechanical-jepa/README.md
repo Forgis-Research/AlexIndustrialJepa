@@ -1,6 +1,18 @@
-# IndustrialJEPA: Self-Supervised Bearing RUL Prediction
+# Mechanical-JEPA: Trajectory JEPA for industrial RUL
 
-Self-supervised learning for predicting Remaining Useful Life (RUL) from bearing vibration signals. Uses JEPA (Joint Embedding Predictive Architecture) pretraining on heterogeneous bearing datasets, with temporal contrastive learning for cross-machine transfer.
+Self-supervised representation learning for Remaining Useful Life (RUL) prediction via Joint Embedding Predictive Architectures. The project started on heterogeneous bearing vibration datasets (v1-v10) and pivoted in v11 to C-MAPSS turbofan trajectories, where the current best result is the first SSL method to match the AE-LSTM public reference on FD001 without using failure-time labels at pretraining.
+
+## Iteration history
+
+| Version | Focus | Status | Headline |
+|---------|-------|:------:|----------|
+| v8 | Hybrid JEPA + handcrafted features on bearings (FEMTO, XJTU-SY) | done | Hybrid JEPA+HC +75.5% vs elapsed-time baseline |
+| v9 | Data-first: compatibility analysis + TCN-Transformer | done | Diagnoses why v1-v7 JEPA collapsed; shifts to spectral features |
+| v10 | Trajectory JEPA v1 (bearing trajectories, no HC ablation) | done | Establishes the trajectory-prediction objective used in v11 |
+| v11 | Trajectory JEPA on C-MAPSS FD001-FD004 (current) | primary result | V2 E2E 13.80 RMSE on FD001 last-window; first SSL to match AE-LSTM 13.99 |
+| v12 | Verification gate for v11 (not an improvement run) | planned overnight | Phase 0 reconciles v11 RMSE against prediction-trajectory diagnostic + feature-regressor lower bound |
+
+See `experiments/v{N}/EXPERIMENT_LOG.md` and `experiments/v{N}/RESULTS.md` for per-version details. The current v12 plan (`experiments/v12/OVERNIGHT_PROMPT.md`) is a verification gate, not a polish run — it exists because the v11 prediction-trajectory plot shows the model outputting a near-constant ~92 cycles per engine, and that inconsistency with the 13.80 RMSE needs to be reconciled before any further experiments are meaningful.
 
 ## Architecture
 
@@ -106,5 +118,16 @@ archive/              # Legacy scripts
 
 ## Notebooks
 
-- notebooks/08_rul_jepa.qmd -- V8 complete walkthrough
-- notebooks/09_v9_data_first.qmd -- V9: data analysis + TCN-Transformer
+All walkthroughs are Quarto (`.qmd`). Rendered `.html` outputs are published to GitHub Pages at https://forgis-research.github.io/IndustrialJEPA/ .
+
+- `notebooks/08_rul_jepa.qmd` — v8 complete walkthrough (bearing RUL, JEPA + HC hybrid)
+- `notebooks/09_v9_data_first.qmd` — v9: dataset compatibility analysis + TCN-Transformer
+- `notebooks/10_v10_trajectory_jepa.qmd` — v10: Trajectory JEPA v1 on bearings
+- `notebooks/11_v11_cmapss_trajectory_jepa.qmd` — v11: Trajectory JEPA on C-MAPSS (current primary result)
+
+Old pre-Quarto notebooks (v1-v7) have been moved to `archive/old-notebooks/` for reference. Publish a walkthrough with:
+
+```bash
+cd notebooks
+quarto publish gh-pages <file>.qmd --no-prompt --no-browser
+```
