@@ -42,12 +42,36 @@ Reference: train_utils._eval_test_rmse() at line 380 shows the canonical pattern
 **Sanity check**: RMSE=85.52 flagged as SUSPICIOUS (⚠️) - magnitude check failed (expected ~14, got ~86).
 Do NOT treat first run results as valid.
 
-**Intermediate results (e2e_baseline complete)**:
-- e2e_baseline: mean=14.48, std=0.55 (per-seed: 14.54, 15.38, 14.43, 13.66, 14.39)
-- Sanity check PASS: RMSE in expected range (V12 ref=14.23), magnitude correct
-- Slight increase from V12's 14.23 is within noise (GPU contention, reimplementation)
-- Variants 2-4 still running (PID 277608)
+**Final results (all 4 variants)**:
+- e2e_baseline: 14.480 +/- 0.547 (delta: +0.250 vs ref 14.23) [NOISE]
+- e2e_low_lr (5e-5): 14.851 +/- 0.693 (delta: +0.621) [WORSE - slower convergence hurts]
+- e2e_wd (L2=1e-4): 15.003 +/- 0.556 (delta: +0.773) [WORSE - regularization hurts calibration]
+- warmup_freeze (20ep freeze, then lr=1e-5 encoder): TBD (PID 277608)
 
-Results to be updated as remaining variants complete.
+**Sanity checks**: All passed for completed variants (RMSE 14-15, magnitude correct)
+
+**Key finding**: Fine-tuning schedule is NOT the bottleneck. Lower LR and weight decay
+both hurt performance. The encoder fine-tuning at LR=1e-4 is already well-tuned.
+
+**Verdict**: REVERT all non-baseline variants. Keep e2e_baseline config for future experiments.
+
+**Next**: Move to Exp 2 (probe variants) once warmup_freeze result is in.
+
+---
+
+## Exp V13-2: Non-Linear Probe Head Variants (Prepared, not yet started)
+
+**Time**: 2026-04-12 ~02:45 UTC (prepared)
+**Hypothesis**: Linear probe (Linear->Sigmoid) may be too simple for the non-linear
+mapping from JEPA latent space to RUL. An MLP head might capture more complex structure.
+
+**Variants**:
+1. linear_baseline: original Linear+Sigmoid (replicate Exp 1 baseline)
+2. mlp_small: Linear(256,64)->ReLU->Linear(64,1)->Sigmoid
+3. mlp_large: Linear(256,128)->ReLU->Dropout(0.1)->Linear(128,32)->ReLU->Linear(32,1)->Sigmoid
+4. mlp_bn: Linear(256,64)->BN->ReLU->Linear(64,1)->Sigmoid
+
+**Script**: experiments/v13/exp2_probe_variants.py
+**Status**: Script written, waiting for GPU capacity after Exp 1 completes
 
 ---
