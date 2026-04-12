@@ -1,6 +1,6 @@
 ---
 name: IndustrialJEPA Project Context
-description: V12 COMPLETE except STAR sweep (running); V13 Exp1 running; CRITICAL: AE-LSTM=13.99<JEPA=14.23 (we don't beat SSL SOTA); paper has 8 figures now; V13 gap to STAR=~2 RMSE
+description: V13 active: Exp1 DONE (schedule not bottleneck), Exp2 running (probe), Exp3 ready (data aug - KEY hypothesis: 35x fewer windows); STAR FD004 running; Phase2 STAR sweep running (3h+)
 type: project
 ---
 
@@ -569,14 +569,40 @@ All three occurrences fixed (contributions, key findings, conclusion).
 
 V13 goal: Close ~2 RMSE gap between JEPA E2E (14.23) and STAR (12.19) on FD001.
 
-Exp 1: Fine-tuning schedule variants (PID 277608, started ~02:14 Apr 12)
-- e2e_baseline: 14.48 ± 0.55 (SANITY CHECK PASS, consistent with V12's 14.23)
-- e2e_low_lr (lr=5e-5), e2e_wd (wd=1e-4), warmup_freeze: still running
-- BUG FOUND+FIXED: eval_test_rmse was missing * RUL_CAP, giving 85.52 RMSE
-  (caught by magnitude check: expected ~14, got ~86)
+**Exp 1 COMPLETE: Fine-tuning schedule variants** (BUG FOUND+FIXED: eval_test_rmse missing * RUL_CAP)
+- e2e_baseline: 14.48 ± 0.55 [NOISE vs ref 14.23]
+- e2e_low_lr (5e-5): 14.85 ± 0.69 [WORSE]
+- e2e_wd (L2=1e-4): 15.00 ± 0.56 [WORSE]
+- warmup_freeze (20ep freeze, then lr=1e-5): 15.27 ± 1.87 [WORST+UNSTABLE]
+- CONCLUSION: Fine-tuning schedule NOT the bottleneck. Standard LR=1e-4 E2E is optimal.
 
-STAR FD004 replication: running (PID 245063, started 00:27 Apr 12)
-Output will be at paper-replications/star/results/FD004_results.json
+**Exp 2 RUNNING: Non-linear probe head variants** (PID 289905, started ~03:15 Apr 12)
+- linear_baseline (done): 14.48 ± 0.55 (same as Exp 1)
+- mlp_small / mlp_large / mlp_bn: pending
+- Script: experiments/v13/exp2_probe_variants.py
+
+**Exp 3 PREPARED: More window cuts during fine-tuning**
+- KEY HYPOTHESIS: STAR uses 15,000 train windows (176/engine); JEPA uses 5/engine = 425 total
+- 35x data-quantity difference likely explains most of the 2.3 RMSE gap
+- Variants: n_cuts = 5, 10, 20, 50, 176 (STAR-equivalent)
+- Script: experiments/v13/exp3_more_cuts.py
+- Kill criterion: if n_cuts=176 doesn't reach 13.2 RMSE, data quantity NOT the bottleneck
+
+**Phase 2 STAR label sweep: still running** (PID 243354, started 00:12 Apr 12, estimated ~3 more hours)
+- Kill criterion: if STAR@20% <= 14, label efficiency pitch dead
+- JEPA E2E@20% = 16.54 - if STAR@20% > 14 (e.g., ~17-20), JEPA wins at reduced labels
+
+**STAR FD004 replication: running** (PID 245063, started 00:27 Apr 12)
+- Only seed42.pt done after 3+ hours (FD004 is very slow - 249 engines)
+- Output: paper-replications/star/results/FD004_results.json
+
+### Paper Accuracy Fixes (Apr 12 session)
+- TTS-Net was incorrectly cited as SOTA (11.02); fixed to STAR (10.61) as actual SOTA
+- PC2 |rho| = 0.154, paper had ≤ 0.15, fixed to ≤ 0.16
+- Pretrain best loss: 0.0166 → 0.0168 (verified from pretrain_history_L1_v2.json)
+- Table 9 row: "Supervised LSTM in-domain (FD003)" → "Supervised LSTM (FD001 reference architecture)"
+- STAR FD004 paper value: confirmed 15.87 (not 14.25 which is TMSCNN/different paper)
+- All numbers verified against source JSON files (all correct except above)
 
 ### Files
 - `experiments/v12/` - all V12 code and results
