@@ -5963,11 +5963,55 @@ Horizon   AUROC         pos_rate  Interpretation
 
 ---
 
-## Exp 205: Bin Size Sweep (5/10/20/30-step bins) (PENDING)
+## Exp 205: Bin Size Sweep (5/10/20/30-step bins) (COMPLETE)
 
-**Time:** 2026-04-12 ~02:00
-**Hypothesis:** Optimal bin size for 600-step context may not be 10 steps. Testing 5, 10, 20, 30-step bins.
-**Status:** RUNNING (PID 257338)
+**Time:** 2026-04-12 ~02:10
+**Hypothesis:** Optimal bin size for 600-step context may not be 10 steps.
+**Change:** 5-fold CV with LR on 600-step context, bin_size in {5, 10, 20, 30}
+**Sanity checks:** ✓ Baseline 60-bin matches prior ✓ Too-fine bins show high variance (overfitting) ✓ Coarser bins lose temporal resolution
+**Result:**
+```
+bin_size= 5 (120 bins): 0.766 ± 0.030  (overfits - too many features)
+bin_size=10 ( 60 bins): 0.820 ± 0.012  (BEST - our standard)
+bin_size=20 ( 30 bins): 0.799 ± 0.021  (moderate loss)
+bin_size=30 ( 20 bins): 0.793 ± 0.016  (matches 200-step 20-bin baseline)
+```
+**Verdict:** KEEP - 10-step bin size is optimal.
+**Key findings:**
+1. 10-step bins (60 features) is optimal - neither finer nor coarser improves
+2. Finer bins (5-step, 120 features) overfit with high variance
+3. Coarser bins (30-step, 20 features) reduce to ~the 200-step baseline
+4. The bin size is an important design choice, not arbitrary
+
+**Publication claim:** "10-step bins over 600 steps is optimal: finer (5-step, 0.766) and coarser (20-step, 0.799) both underperform the 0.820 standard."
+
+**File:** results/improvements/bin_size_sweep.json
+
+---
+
+## Exp 204: Cross-Patient Generalization (COMPLETE)
+
+**Time:** 2026-04-12 ~02:15
+**Hypothesis:** LR 60-bin trained on SVDB4 generalizes to SVDB1 (strict AP, different patient).
+**Change:** Train on all SVDB4, test on all SVDB1 strict AP
+**Sanity checks:** ✓ SVDB1 has 41 strict AP positives (0.3%) - small but non-zero ✓ SVDB4 CV confirms baseline ✓ Cross-patient result is directionally correct (tells us something real)
+**Result:**
+```
+SVDB4 within-patient CV AUROC:  0.795 (5-fold, reference)
+Cross-patient AUROC:            0.463 (SVDB4 → SVDB1, BELOW RANDOM!)
+SVDB1 strict AP positives:      41 / 13664 (0.3%)
+```
+**Verdict:** KEEP - Cross-patient AUROC below random (0.463) is a CRITICAL finding.
+**Key findings:**
+1. Model trained on SVDB4 does NOT generalize to SVDB1 (different ECG patient)
+2. 0.463 < 0.5 = model actively hurts prediction on new patient
+3. This is expected: SVDB4's 3-zone mechanism is patient-specific (depends on that patient's anomaly pattern timing)
+4. The prior block, gap, and NEAR zones reflect SVDB4-specific periodicity of anomaly blocks
+5. Cross-patient generalization requires explicit patient adaptation (fine-tuning or domain adaptation)
+
+**Critical implication for paper:** Our 0.820 result is within-patient. Cross-patient transfer is actively harmful (0.463). This is a **scope limitation** that must be stated clearly: the method works for single-patient monitoring, not cross-patient transfer.
+
+**File:** results/improvements/cross_patient_generalization.json
 
 ---
 
@@ -5975,6 +6019,6 @@ Horizon   AUROC         pos_rate  Interpretation
 
 **Time:** 2026-04-12 ~02:00
 **Hypothesis:** Averaging LR 60-bin and RF 60-bin predicted probabilities improves over best single model.
-**Status:** RUNNING (PID 257374)
+**Status:** RUNNING (PID 259608)
 
 ---

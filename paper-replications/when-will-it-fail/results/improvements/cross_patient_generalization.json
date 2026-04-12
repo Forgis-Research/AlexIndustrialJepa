@@ -1,0 +1,9 @@
+{
+  "probe": "204_cross_patient",
+  "result": {
+    "svdb1_pos": 41,
+    "svdb4_pos": 1170,
+    "cross_patient_auroc": 0.46343432824330444,
+    "svdb4_cv_auroc": 0.794930047196664
+  }
+}

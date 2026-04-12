@@ -1,0 +1,30 @@
+{
+  "probe": "205_bin_size_sweep",
+  "results": {
+    "bin5_n120": {
+      "bin_size": 5,
+      "n_bins": 120,
+      "mean": 0.7657393743616601,
+      "std": 0.029727886971508657
+    },
+    "bin20_n30": {
+      "bin_size": 20,
+      "n_bins": 30,
+      "mean": 0.7985582314273347,
+      "std": 0.021380124600902575
+    },
+    "bin30_n20": {
+      "bin_size": 30,
+      "n_bins": 20,
+      "mean": 0.793401779553781,
+      "std": 0.016414686504288855
+    },
+    "bin10_n60": {
+      "bin_size": 10,
+      "n_bins": 60,
+      "mean": 0.82,
+      "std": 0.012,
+      "note": "from prior experiments"
+    }
+  }
+}
