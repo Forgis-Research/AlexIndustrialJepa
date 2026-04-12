@@ -629,3 +629,42 @@ Cross-patient transfer fails completely (0.463 < 0.5). The 3-zone pattern is pat
 | Zone-aggregated 15-feat | - | 0.712 | -0.108 |
 
 Only max per-channel variance adds value (+0.003). Everything else is neutral or harmful.
+
+---
+
+## Session 6 Results (April 12, 2026 - Continuation)
+
+### Negative Results: Extended Context and Structural Features
+
+| Experiment | Description | AUROC | Delta vs 0.828 |
+|-----------|-------------|-------|----------------|
+| Exp 213 | 800-step context (80 bins) | 0.819 ± 0.019 | -0.009 |
+| Exp 213 | 1000-step context (100 bins) | 0.814 ± 0.032 | -0.014 |
+| Exp 213 | 1200-step context (120 bins) | 0.819 ± 0.035 | -0.009 |
+| Exp 211 | SMD Base+MaxVar LR | 0.634 | N/A (diff dataset) |
+| Exp 211 | SMD LR+RF Ensemble | 0.577 | N/A (WORSE than SMD base) |
+
+**Context sweep conclusion:** 600-step context is optimal. Extending FAR zone beyond 200 steps adds noise, not signal.
+
+**SMD cross-dataset conclusion:** Feature augmentation approach is SVDB4-specific. Base 60-bin (0.640) remains best for SMD.
+
+### Convergence Assessment
+
+After 213 experiments on the A2P strict AP task (SVDB4), the performance has converged:
+
+| Result Chain | AUROC | Method |
+|-------------|-------|--------|
+| Standard AP (our LR) | 0.644 ± 0.022 | LR 20-bin 200-step |
+| Strict AP baseline | 0.791 ± 0.020 | LR 20-bin 200-step |
+| Strict AP extended | 0.820 ± 0.012 | LR 60-bin 600-step (global var) |
+| Best feature set | 0.823 ± 0.014 | LR 120-feat (Base+MaxVar) |
+| **Best overall** | **0.828 ± 0.014** | **LR+RF Ensemble 120-feat** |
+| Bootstrap confirm | 0.834 (70/30) | Bootstrap single split |
+
+Statistical significance: the 0.828 ensemble beats baseline 0.820 with p<0.001 (Bootstrap CI=[+0.009,+0.028]).
+
+### Chronos Zero-Shot (Probe 144)
+
+Chronos-Small running since ~Apr 11 23:00. Result expected when Chronos finishes.
+**Reference:** Chronos standard AP AUROC was previously 0.745 (LR 20-bin standard AP: 0.644, +0.101 advantage).
+**Key question:** Does Chronos's advantage persist under the strict AP filter?

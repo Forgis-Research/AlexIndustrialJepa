@@ -1,0 +1,9 @@
+{
+  "probe": "215b_derived_features",
+  "base": 0.8196992434407264,
+  "maxstd": 0.7895837357813658,
+  "asym_ratio": 0.7536979701585658,
+  "base_plus_maxstd": 0.8210035149225678,
+  "base_plus_asym": 0.8156193610534762,
+  "base_maxvar_asym_180": 0.8199433308187285
+}

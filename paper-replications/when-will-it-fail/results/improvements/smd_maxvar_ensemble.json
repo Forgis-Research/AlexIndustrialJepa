@@ -1,0 +1,24 @@
+{
+  "probe": "211_smd_maxvar_ensemble",
+  "results": {
+    "base_60bin": {
+      "mean": 0.6396516291807679,
+      "n_valid_folds": 4
+    },
+    "combined_120feat": {
+      "mean": 0.6343684774708528,
+      "n_valid_folds": 4
+    },
+    "lr_combined": {
+      "mean": 0.6343684774708528
+    },
+    "ensemble_lr_rf": {
+      "mean": 0.5774475845168149
+    },
+    "prior_ref": {
+      "base_200step": 0.485,
+      "base_600step": 0.64,
+      "ref_dataset": "smd_50K_strict"
+    }
+  }
+}

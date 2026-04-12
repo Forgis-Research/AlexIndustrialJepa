@@ -6209,3 +6209,160 @@ Max-chan var      +0.015     +0.221      -0.127
 **File:** results/improvements/coef_profile_120feat.json
 
 ---
+
+## Exp 209: Adaptive Bin Sizes (FAR:20-step, GAP:10-step, NEAR:5-step) (COMPLETE)
+
+**Time:** 2026-04-12 ~03:40
+**Hypothesis:** Finer bins in the NEAR zone (where the key signal is) would improve performance.
+**Change:** FAR [0:200] with 20-step bins (10 bins), GAP [200:400] with 10-step bins (20 bins), NEAR [400:600] with 5-step bins (40 bins) = 70 total bins
+**Sanity checks:** ✓ Baseline matches 0.820 ✓ Adaptive gives near-baseline result ✓ Adding to base doesn't help
+**Result:**
+```
+Feature set                    AUROC (5-fold)   Delta
+Uniform 60-bin (baseline):     0.8197 ± 0.012  (reference)
+Adaptive 70-bin:               0.8203 ± 0.020   +0.0006 (negligible)
+Base + Adaptive:               0.8187 ± 0.018   -0.001
+Combined 120-feat (best):      0.8227 ± 0.014   +0.003
+```
+**Verdict:** NEGATIVE - Adaptive bin sizing provides no meaningful improvement.
+**Insight:** The uniform 10-step bin size is already optimal across all three zones. The additional resolution in NEAR (5-step) doesn't help - the signal is already captured by 10-step bins.
+
+**File:** results/improvements/adaptive_bins.json
+
+---
+
+## Exp 211: SMD Cross-Dataset Generalization (COMPLETE)
+
+**Time:** 2026-04-12 ~04:00
+**Hypothesis:** Base+MaxVar ensemble approach (which works on SVDB4) should transfer to SMD (38-channel multi-variate server metrics).
+**Change:** Apply 60-bin global_var + 60-bin max_per_channel_var (120-feat), LR+RF ensemble, strict AP filter on SMD dataset.
+**Sanity checks:** ✓ SMD base 0.640 matches prior result (0.640 from Exp 174) ✓ LR runs correctly ✓ RF runs correctly ✓ No NaN
+**Result:**
+```
+Feature set                    AUROC (4-fold)    Delta vs 0.640 baseline
+Base 60-bin (global_var):      0.640 ± (na)     (reference - matches prior)
+Combined 120-feat (LR):        0.634             -0.006
+LR+RF Ensemble 120-feat:       0.577             -0.063  WORSE!
+
+Prior references:
+  SMD 200-step:                0.485
+  SMD 600-step:                0.640
+```
+**Verdict:** NEGATIVE - The feature augmentation approach WORSENS SMD performance significantly.
+**Key findings:**
+1. Base 60-bin matches prior (0.640) - good sanity check
+2. Adding MaxVar HURTS on SMD (-0.006 for LR, -0.063 for ensemble)
+3. RF ensemble is catastrophically bad (0.577 vs 0.640) on SMD
+4. The approach is SVDB4-specific; does NOT transfer
+
+**Why does it fail on SMD?**
+- SVDB4: 2 ECG channels, anomalies are physiological events with specific channel asymmetry patterns
+- SMD: 38 server metrics (CPU, network, memory, etc.) with completely different anomaly structure
+- Max per-channel variance may be capturing ECG-specific channel imbalance signatures that don't exist in server metrics
+- The RF in ensemble likely overfits to SVDB4 channel patterns
+
+**Critical implication:** Our 0.828 best result is SVDB4-only. For SMD, the baseline 60-bin global_var (0.640) remains the best approach. The cross-dataset AP study shows the mechanism is domain-specific.
+
+**File:** results/improvements/smd_maxvar_ensemble.json
+
+---
+
+## Exp 213: Extended Context Window Sweep (COMPLETE)
+
+**Time:** 2026-04-12 ~04:15
+**Hypothesis:** Longer FAR zone (800-1200 steps total context) contains additional periodicity information about when anomaly blocks typically occur.
+**Change:** Sweep seq_len from 400 to 1200 in steps, with fixed 10-step bins. More FAR history = more periodicity signal.
+**Sanity checks:** ✓ 600-step matches expected 0.820 ✓ Diminishing returns visible ✓ 400-step < 600-step (more context is better up to a point)
+**Result:**
+```
+Context    Bins   AUROC (5-fold)    Delta vs 600
+400-step    40     0.8043 ± 0.0180  -0.013
+600-step    60     0.8170 ± 0.0136  (reference)
+800-step    80     0.8194 ± 0.0189  +0.002 (marginal)
+1000-step  100     0.8144 ± 0.0318  -0.003 (higher variance)
+1200-step  120     0.8186 ± 0.0351  +0.002 (high variance)
+```
+**Verdict:** NEGATIVE - Extended context provides no reliable improvement. 600-step is optimal.
+**Key findings:**
+1. 800-step is +0.002 but variance ALSO increases (0.019 vs 0.014) - less reliable
+2. 1000-step and 1200-step show HIGH variance (±0.032, ±0.035) - unstable CV results
+3. The anomaly prediction pattern is contained in the 600-step window; more history adds noise
+4. Pattern operates on a ~300-step (3-zone × 200-step) timescale; beyond 600 steps is irrelevant noise
+
+**Implication for paper:** The 600-step context window is optimal for SVDB4. This is consistent with the 3-zone mechanism: FAR[0:200]+GAP[200:400]+NEAR[400:600] exactly covers the informative temporal range.
+
+**File:** results/improvements/context_length_sweep.json
+
+---
+
+## Exp 215b: Derived Channel Asymmetry Features (COMPLETE)
+
+**Time:** 2026-04-12 ~04:25
+**Hypothesis:** MaxStd (sqrt of max-var) and asymmetry ratio (maxvar/globalvar) may encode signal differently than raw max-var.
+**Change:** Lightweight: compute MaxStd and AsymRatio from pre-built Base+MaxVar features (no raw data access).
+**Sanity checks:** ✓ Base matches 0.820 ✓ Derived features show some signal individually ✓ Adding to base is marginal
+**Result:**
+```
+Feature set              AUROC (5-fold)    Delta
+Base (60):               0.8197 ± 0.0122  (ref)
+MaxStd only (60):        0.7896 ± 0.0271  standalone only
+AsymRatio only (60):     0.7537 ± 0.0203  standalone only
+Base+MaxStd (120):       0.8210 ± 0.0104  +0.001
+Base+Asym (120):         0.8156 ± 0.0105  -0.004
+Base+MaxVar+Asym (180):  0.8199 ± 0.0101  +0.000
+```
+**Verdict:** NEGATIVE - derived asymmetry features add no value beyond raw MaxVar.
+**Insight:** MaxStd = sqrt(MaxVar) is a monotone transform; LR already handles this through the weight. Adding it as a separate feature is redundant. AsymRatio (maxvar/globalvar) actually HURTS slightly - the ratio introduces noise when globalvar is near zero.
+
+**File:** results/improvements/derived_features.json
+
+---
+
+## Exp 216: Small MLP on Binned Features (COMPLETE)
+
+**Time:** 2026-04-12 ~04:30
+**Hypothesis:** A 2-layer MLP on 120-feature (Base+MaxVar) space may capture non-linear zone interactions that LR misses.
+**Change:** MLP(64, 32) and MLP(128, 32) with class-weighted BCE, 30/50 epochs, 5-fold CV, CPU only.
+**Sanity checks:** ✓ Loss decreases ✓ GPU not used (Chronos running) ✓ Results consistent across folds
+**Result:**
+```
+Model                  AUROC (5-fold)    Delta vs 0.820
+MLP(64,32) 30ep:       0.8256 ± 0.0131  +0.006
+MLP(128,32) 50ep:      0.8217 ± 0.0136  +0.002
+LR (ref):              0.8227 ± 0.0136  +0.003
+LR+RF Ensemble (ref):  0.8276 ± 0.0143  +0.008
+```
+**Verdict:** INFORMATIVE - MLP(64,32) achieves 0.826, close to LR+RF ensemble (0.828). The task has non-linear structure that a small neural net can exploit.
+**Key findings:**
+1. MLP matches LR+RF ensemble performance (0.826 vs 0.828)
+2. Bigger MLP (128) is WORSE than smaller (64) - slight overfitting with more parameters
+3. This confirms mild non-linearity: the 3-zone signal is mostly linear, but a small MLP captures residual non-linearity
+4. Suggests triple ensemble (LR+RF+MLP) could push marginally above 0.828
+
+**File:** results/improvements/mlp_binned.json
+
+---
+
+## Exp 217: Zone Interaction Features (COMPLETE)
+
+**Time:** 2026-04-12 ~04:35
+**Hypothesis:** Explicit interaction terms (FAR_var/NEAR_var ratio, FAR-NEAR difference) may help LR capture what MLP learns implicitly.
+**Change:** Compute 3-zone mean variances (FAR, GAP, NEAR), then interactions (differences, ratios). Add to base features.
+**Sanity checks:** ✓ Base matches 0.820 ✓ Ratios have some signal independently ✓ Combinations tested
+**Result:**
+```
+Feature set                    AUROC (5-fold)    Delta
+Base 60-bin:                   0.8197 ± 0.0122  (ref)
+3-zone summary (3-feat):       0.6010 ± 0.0654  standalone poor
+Interaction terms (3-feat):    0.6054 ± 0.0669  standalone poor
+Base+Interactions (63):        0.8213 ± 0.0130  +0.002
+Base+3zone (63):               0.8199 ± 0.0122  +0.000
+Base+MaxVar (120, ref):        0.8225 ± 0.0137  +0.003
+Base+MaxVar+Interact (123):    0.8243 ± 0.0133  +0.005
+```
+**Verdict:** MARGINAL - Adding interaction terms gives +0.002-0.005 over Base alone, but less than MaxVar alone (+0.003) and less than ensemble (0.828).
+**Key insight:** Zone interactions (FAR/NEAR ratio) are captured implicitly by LR on the full 60-bin vector (the coefficients already encode "high FAR, low NEAR"). Explicit interaction terms are redundant when the base features are already available.
+
+**File:** results/improvements/zone_interactions.json
+
+---
