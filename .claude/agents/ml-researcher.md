@@ -300,28 +300,26 @@ because they were running when the VM crashed and results hadn't been
 committed. Never let this happen again.
 
 **Rules:**
-1. **Commit after every completed experiment** — not after 5, after EVERY
-   one. Each commit should contain the result JSON, any new/modified
-   scripts, and the EXPERIMENT_LOG.md update. Use a descriptive message:
-   `v13 exp 0a: STAR label sweep FD001 100% = 12.19, 50% = X.XX (5 seeds)`.
-2. **Push to remote after every 2 commits** — or immediately after any
-   result that took >30 min of compute. If a run took an hour and the
-   result is only in a local JSON file, push NOW before starting the
-   next experiment.
+1. **Target ~10 commits per overnight session** — commit after each
+   phase or logical group of experiments completes, not after every
+   single run. Each commit should contain result JSONs, scripts, and
+   EXPERIMENT_LOG.md updates. Use descriptive messages:
+   `v13 phase 0c: from-scratch ablation (delta=X.X RMSE at 100%)`.
+2. **Push after every 1-2 commits** — or immediately after any result
+   that took >30 min of compute. Never let >2 unpushed commits
+   accumulate. If the VM crashes, only unpushed work is lost.
 3. **Push before launching any long-running background job** — commit
    and push all current work before starting a job that will take >1h.
-   If the VM crashes during that job, at least everything before it is
-   safe.
-4. **Never batch commits at the end of a session** — if the session
-   ends unexpectedly (crash, timeout, context limit), batched work is
-   lost. Commit incrementally.
+4. **Never batch all commits to the end of a session** — if the session
+   ends unexpectedly, batched work is lost. Spread commits across the
+   session at natural phase boundaries.
 
 ### Time Management Protocol
 
 | Interval | Action |
 |----------|--------|
-| Every experiment (5-10 min) | Log result, commit immediately |
-| Every 2 commits | `git push origin main` |
+| Every phase completion | Log result, commit |
+| Every 1-2 commits | `git push origin main` |
 | Every 30 min | Self-check: Am I making progress? Is everything pushed? |
 | Every 2 hours | Major checkpoint: what's working, what's not |
 | Every 5 hours | Sleep opportunity: stable state, can be interrupted |
