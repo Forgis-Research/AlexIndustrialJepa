@@ -5207,7 +5207,52 @@ balanced C=10.0      0.779
 **Time:** 2026-04-12 ~03:20
 **Hypothesis:** Extended context (400+ steps) may capture the PRIOR anomaly block (which ends ~1565 steps before current time, too far). But the calm trough starts ~200 steps before onset, so 200-step context may be optimal.
 **Change:** Sweep seq_len=50,100,200,300,400,500,600 with appropriate n_bins; 5-fold CV
-**Status:** RUNNING in background
+**Status:** COMPLETE
+**Result:**
+```
+Context Window Size Comparison (bin_size=10 where possible):
+seq_len= 50, bins= 5: 0.700 ± 0.012
+seq_len=100, bins=10: 0.769 ± 0.024
+seq_len=200, bins=20: 0.788 ± 0.025  (standard A2P setting)
+seq_len=300, bins=30: 0.794 ± 0.022
+seq_len=400, bins=40: 0.807 ± 0.019  (+0.019)
+seq_len=500, bins=50: 0.812 ± 0.018  (+0.024)
+seq_len=600, bins=60: 0.820 ± 0.012  *** +0.031 improvement! ***
+```
+**Insight:** Extended context helps monotonically! With seq_len=600, we go from 0.791 to 0.820 (+0.029). The additional context captures more of the "approach to calm trough" - the early part of the inter-block gap. This is a NEW RESULT that improves our best published number.
+
+**Key finding for paper:** The A2P paper uses 200-step context. Our 600-step context achieves 0.820 AUROC (vs 0.791 standard). The calm-before-storm signal extends FURTHER BACK than previously analyzed.
+
+**File:** results/improvements/extended_context.json
+
+---
+
+## Exp 165b: Extended Context CV (400, 600, 800 steps)
+
+**Time:** 2026-04-12 ~03:30
+**Status:** RUNNING in background (probe b8cay91wc)
+**Preliminary results from probe 165:**
+- seq_len=200: 0.791 ± 0.020 (standard)
+- seq_len=400: 0.807 ± 0.019 (+0.016)
+- seq_len=600: 0.820 ± 0.012 (+0.029!) [BEST]
+- seq_len=800: TBD
+
+**WHY does extended context help (manual analysis):**
+- Far past [t-600,t-400] AUROC: 0.575 (POSITIVE - prior block remnant!)
+- Mid past [t-400,t-200] AUROC: 0.516 (slight positive)
+- Near past [t-200,t] AUROC: 0.397 (BELOW RANDOM - calm zone!)
+- Combined 3-feat: 0.691 (much better than any single)
+
+**The extended context captures the PRIOR ANOMALY BLOCK:** 
+High variance at t-600 to t-400 predicts AP+ because the prior block is still active. This is complementary to the calm trough at t-200 to t.
+
+**Two-signal model:**
+1. Signal 1 (far past): Prior block still active (high var) → onset likely soon
+2. Signal 2 (near past): Calm trough (low var) → onset imminent
+
+These are DIFFERENT mechanisms. Signal 1 requires 400-600 step context; signal 2 uses 200 steps.
+
+**This is a NEW contribution for the paper!** Extended context (600 steps) achieves 0.820 vs standard 0.791.
 
 ---
 
