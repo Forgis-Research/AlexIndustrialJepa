@@ -593,6 +593,13 @@ SSL (ours) & \textbf{Traj JEPA E2E} & \textbf{14.23}$_{\pm0.4}$ & \textbf{14.93}
 \end{tabular}
 \end{table}
 
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/v12_label_efficiency.pdf}
+\caption{C-MAPSS FD001 label efficiency comparison. JEPA E2E (solid blue) outperforms the supervised LSTM at all five label budgets. JEPA Frozen (dashed) outperforms LSTM at very low budgets ($\leq$10\% labels, 8 engines), demonstrating critical advantages for the grey swan regime where failure trajectories are scarce. LSTM variance explodes below 20\% labels (large error bars); JEPA frozen std remains $\leq$2.0 cycles across all budgets (5--30$\times$ more stable). Dashed horizontal lines show the AE-LSTM SSL baseline (13.99) and STAR supervised replication (12.19), both at 100\% labels only.}
+\label{fig:label_efficiency}
+\end{figure}
+
 \paragraph{Key findings.}
 \begin{enumerate}[nosep]
   \item \textbf{Competitive with prior SSL on C-MAPSS}: Traj JEPA E2E ($14.23 \pm 0.39$ across 5 seeds) matches AE-LSTM SSL (13.99) within 1.7\% - the only published SSL result on C-MAPSS FD001 - without using failure-time labels during pretraining. Unlike AE-LSTM, we evaluate at five label budgets, demonstrating consistent advantage over a supervised LSTM from 10\% to 100\% labels.
