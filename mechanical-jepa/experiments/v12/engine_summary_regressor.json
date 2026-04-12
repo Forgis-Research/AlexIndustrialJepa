@@ -1,0 +1,60 @@
+{
+  "mean_rmse": 19.211935832079483,
+  "std_rmse": 0.21633134995821432,
+  "per_seed_rmse": [
+    19.270753614865427,
+    19.06996569805337,
+    19.487916232748574,
+    18.875079813872084,
+    19.35596380085796
+  ],
+  "v11_e2e_rmse": 13.8,
+  "v11_frozen_rmse": 17.81,
+  "delta_vs_v11_e2e": 5.411935832079482,
+  "delta_vs_v11_frozen": 1.4019358320794844,
+  "top_10_feature_weights": [
+    {
+      "feature": "last30_mean_s8",
+      "weight": -9.593694686889648
+    },
+    {
+      "feature": "last30_mean_s12",
+      "weight": -8.426650047302246
+    },
+    {
+      "feature": "delta_s2",
+      "weight": 7.7007598876953125
+    },
+    {
+      "feature": "last30_mean_s2",
+      "weight": -6.948946952819824
+    },
+    {
+      "feature": "last30_slope_s10",
+      "weight": -6.708143711090088
+    },
+    {
+      "feature": "last30_slope_s3",
+      "weight": -6.399298667907715
+    },
+    {
+      "feature": "last30_slope_s13",
+      "weight": 5.941883563995361
+    },
+    {
+      "feature": "last30_mean_s4",
+      "weight": 5.859908103942871
+    },
+    {
+      "feature": "last30_slope_s4",
+      "weight": 5.69744873046875
+    },
+    {
+      "feature": "last30_slope_s11",
+      "weight": -5.154696941375732
+    }
+  ],
+  "n_features": 58,
+  "verdict": "V11 E2E beats regressor by 5.41 RMSE - benchmark requires something beyond simple summary statistics",
+  "wall_time_s": 5.14704704284668
+}
