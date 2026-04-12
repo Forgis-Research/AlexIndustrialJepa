@@ -69,12 +69,12 @@
 % ============================================================
 \begin{abstract}
 Mechanical failures---bearing seizures, turbine blade cracks, pump seal ruptures---are \emph{grey swans}: rare enough that labeled failure data is scarce, yet physically grounded enough that their signatures hide in abundant unlabeled operational sensor streams.
-We ask whether self-supervised learning can extract these degradation signatures without ever seeing a failure label, producing representations that transfer across machines, sensor modalities, and fault types.
-We introduce a framework based on Joint Embedding Predictive Architectures (JEPA) that learns by predicting future sensor trajectories in latent space.
+We ask whether self-supervised learning can extract these degradation signatures without failure labels, producing representations that generalize across fault types, operating conditions, and label budgets.
+We introduce Trajectory JEPA, a Joint Embedding Predictive Architecture that learns by predicting future multivariate sensor trajectories in latent space.
 The central finding is that trajectory prediction alone causes the encoder to internalize a latent health variable: on NASA C-MAPSS turbofan data, a linear probe on frozen, label-free representations recovers the simulator's health index with $R^2 = 0.926$---no failure labels, no fine-tuning, and the degradation axis is linearly readable.
 The same encoder achieves $\rmse = 14.23 \pm 0.39$ on the canonical FD001 benchmark (5 seeds), with genuine within-engine tracking confirmed by Spearman $\rho = 0.830 \pm 0.023$ and a $+41.5$ RMSE penalty when context vectors are shuffled across engines.
-On single-channel bearing vibration, fusing JEPA with spectral features yields $\rmse = 0.055 \pm 0.004$ ($75.5\%$ reduction vs.\ time-only baselines), and temporal contrastive pretraining enables cross-dataset transfer at $+38\%$ ($p < 0.001$).
-\plannedc{Ongoing work targets cross-domain transfer (bearings $\leftrightarrow$ turbofan), disentanglement of temporal structure from sequence length in the learned representations, and closing the remaining gap to fully supervised methods.}
+At low label budgets ($\leq$10\% of training engines), the frozen encoder outperforms a supervised LSTM by $36$--$55\%$ in RMSE with $5$--$30\times$ lower variance.
+\plannedc{Ongoing work targets disentangling learned degradation structure from sequence-length encoding, quantifying the pretraining contribution via from-scratch ablation, and extending to cross-domain transfer (turbofan $\leftrightarrow$ bearings).}
 \end{abstract}
 
 % ============================================================
@@ -83,34 +83,32 @@ On single-channel bearing vibration, fusing JEPA with spectral features yields $
 \section{Introduction}
 \label{sec:intro}
 
-A turbine blade cracks after 12,000 flight hours. A bearing seizes in a wind turbine gearbox during peak generation. A pump seal fails in a chemical plant, triggering an emergency shutdown. These are \emph{grey swans} - events that are rare in operational data but follow known degradation physics and are, in principle, predictable~\citep{greyswan_supplychain2025}. Unlike black swans, which are fundamentally unforeseeable~\citep{taleb2007blackswan}, grey swans are physically plausible failures that sit in the long tail of operating experience. They present a data paradox for prognostics: \emph{the events most critical to predict are precisely the ones with the least training data}. A bearing that runs for 10,000 hours before failing provides abundant healthy-state data but perhaps a single failure trajectory.
+A turbine blade cracks after 12,000 flight hours. A bearing seizes in a wind turbine gearbox during peak generation. A pump seal fails in a chemical plant, triggering an emergency shutdown. These are \emph{grey swans}---events that are rare in operational data but follow known degradation physics and are, in principle, predictable~\citep{greyswan_supplychain2025}. Unlike black swans, which are fundamentally unforeseeable~\citep{taleb2007blackswan}, grey swans are physically plausible failures that sit in the long tail of operating experience. They present a data paradox for prognostics: \emph{the events most critical to predict are precisely the ones with the least training data}.
 
-Modern predictive maintenance promises to catch these failures before they cascade into catastrophic downtime. Deep learning approaches for remaining useful life (RUL) prediction have shown strong results on benchmark datasets~\citep{lei2018machinery, zhao2019deeplearningphm}, with architectures ranging from CNN-LSTMs to Transformer-based models achieving impressive in-domain accuracy. However, these methods share two critical limitations. First, they require extensive labeled failure data - run-to-failure trajectories where degradation is observed from inception to failure - which is expensive, dangerous, and scarce by definition. Second, they rely on handcrafted spectral features (spectral centroid, kurtosis, envelope analysis) designed by domain experts, limiting applicability to well-studied component types.
+Deep learning approaches for remaining useful life (RUL) prediction have shown strong results on benchmark datasets~\citep{lei2018machinery, zhao2019deeplearningphm}, with architectures ranging from CNN-LSTMs~\citep{zheng2017lstm} to Transformer-based models~\citep{fan2024star, ttsnet2025} achieving impressive in-domain accuracy. However, these methods require extensive labeled failure trajectories---run-to-failure sequences where degradation is observed from inception to failure---which are expensive, dangerous, and scarce by definition. Time series foundation models~\citep{das2024timesfm, ansari2024chronos, goswami2024moment} address data scarcity through massive pretraining, but optimize for next-value forecasting---a fundamentally different objective from encoding degradation state. A perfect one-step-ahead predictor of raw sensor amplitude tells us nothing about remaining useful life.
 
-Meanwhile, time series foundation models have emerged as a paradigm for general-purpose temporal representation learning. Models such as TimesFM~\citep{das2024timesfm}, Chronos~\citep{ansari2024chronos}, and MOMENT~\citep{goswami2024moment} demonstrate strong zero-shot forecasting by pretraining on massive time series corpora. Yet these models solve a different problem: they forecast the \emph{next value} in a sequence. For mechanical prognostics, predicting the next vibration sample is neither necessary nor sufficient - a perfect one-step-ahead predictor of raw waveform amplitude tells us nothing about remaining useful life. What matters is detecting the \emph{spectral signature changes} that track degradation: the shift in spectral centroid as surface roughness increases, the redistribution of vibrational energy across frequency bands as fatigue cracks propagate. This distinction - \emph{representing what matters for degradation} rather than reconstructing everything - motivates a targeted self-supervised approach designed for the structure of mechanical failure data.
+We take a different approach: rather than forecasting individual sensor values, we train an encoder to predict \emph{future sensor trajectories in latent space}. The key insight is that degradation affects what a sensor trajectory will look like in the near future---bearing frequencies shift, turbofan efficiency declines, vibration patterns change. An encoder forced to predict these trajectories must internalize the state variables that govern degradation dynamics, even without any labels.
 
-We propose a self-supervised framework that addresses this data paradox by pretraining on abundant unlabeled operational data and requiring only a small number of failure trajectories for fine-tuning. The framework has three components:
+Concretely, we introduce Trajectory JEPA: a causal Transformer encoder that, given sensor observations $\x_{1:t}$, predicts the latent representation of future observations $\x_{t+1:t+k}$ produced by an exponential moving average (EMA) target encoder~\citep{grill2020byol, assran2023ijepa}. The prediction is in latent space, not sensor space, avoiding the reconstruction bias of masked autoencoders~\citep{he2022mae} that favors low-level statistics over slow-varying degradation structure.
 
-\begin{enumerate}[nosep]
-  \item \textbf{JEPA pretraining} learns waveform texture and periodicity from unlabeled vibration data across multiple bearing datasets, using masked patch prediction in a joint embedding predictive architecture~\citep{assran2023ijepa}. The encoder learns to represent vibration signals without any degradation labels.
-
-  \item \textbf{Temporal contrastive learning} exploits the natural ordering of run-to-failure episodes to learn what \emph{changes} over a component's life. By training the encoder to distinguish early-life from late-life snapshots, it captures the spectral centroid shift that is the dominant degradation indicator for bearings.
-
-  \item \textbf{Hybrid fusion} combines self-supervised embeddings with domain-informed spectral features. Rather than treating self-supervised and handcrafted approaches as competing, we show they capture complementary information - JEPA learns fine-grained waveform features while spectral statistics capture the monotonic degradation trend.
-\end{enumerate}
-
-A key finding is that different self-supervised objectives learn fundamentally different representations. JEPA's masked prediction objective captures waveform texture (PC1 correlation with spectral centroid: $0.071$), while temporal contrastive learning captures spectral centroid shift (PC1 correlation: $0.856$). This mechanistic understanding explains a practical trade-off: JEPA excels within-dataset where fine-grained waveform features transfer, while contrastive learning dominates cross-dataset transfer where only invariant degradation dynamics generalize.
+\todo{Honesty note: all C-MAPSS training engines are run-to-failure, so the temporal structure of the data implicitly reveals degradation progression. The encoder sees complete degradation trajectories during pretraining, even though no explicit RUL labels are used. This is weaker supervision than labeled RUL, but it IS structural supervision by dataset design. The length-vs-content ablation (planned) will quantify how much of the learned signal comes from sensor content vs. sequence-length encoding. See \cref{sec:limitations}.}
 
 \paragraph{Contributions.}
 
 \begin{enumerate}[nosep]
-  \item A self-supervised framework for mechanical prognostics that learns degradation-aware representations from unlabeled vibration data across 8 bearing datasets (33,939 pretraining windows). JEPA pretraining alone matches expert-designed handcrafted features ($p = 0.40$); their fusion achieves RMSE $0.055 \pm 0.004$ - a $21.4\%$ improvement over the best handcrafted-only method (\cref{sec:indomain}).
+  \item \textbf{Health index recovery without labels.} A linear Ridge probe on frozen Trajectory JEPA representations recovers the C-MAPSS simulator's latent health index with validation $R^2 = 0.926$, robust across three health index parameterizations ($R^2 \in [0.917, 0.926]$). This is the first demonstration that self-supervised trajectory prediction alone produces representations where a latent degradation variable is linearly decodable (\cref{sec:hi_recovery}).
 
-  \item Cross-dataset RUL transfer via temporal contrastive learning without target-domain labels, achieving $+38\%$ over time-only baselines ($p < 0.001$) on FEMTO$\to$XJTU-SY - the first SSL-based cross-dataset result for bearing RUL prognostics (\cref{sec:transfer}).
+  \item \textbf{Verified degradation tracking.} We rigorously verify that the benchmark RMSE ($14.23 \pm 0.39$ on FD001, 5 seeds) reflects genuine within-engine tracking, not population-mean regression: median within-engine Spearman $\rho = 0.830 \pm 0.023$, a $+41.5$ RMSE penalty under representation shuffling, and a 5.4 RMSE margin over a tight 58-feature hand-engineered baseline (\cref{sec:verification}).
 
-  \item A mechanistic analysis showing that JEPA captures waveform texture while contrastive learning captures spectral centroid shift, explaining when and why each objective excels (\cref{sec:encoder_analysis}).
+  \item \textbf{Label efficiency and stability.} At 10\% labels (8 training engines), frozen JEPA achieves RMSE $19.93$ vs.\ supervised LSTM $31.22$ ($36\%$ reduction) with $5$--$30\times$ lower variance across seeds---critical for industrial deployment where consistency matters more than peak performance (\cref{sec:label_efficiency}).
 
-  \item Generalization to multivariate sensor streams (Appendix~\ref{app:turbofan}): a trajectory variant of JEPA applied to NASA C-MAPSS turbofan data achieves RMSE $= 14.23 \pm 0.39$ on FD001, within 1.7\% of the best published SSL result (AE-LSTM: 13.99) while substantially outperforming a supervised LSTM at all five label budgets. Critically, we verify the result reflects genuine degradation tracking, not population-mean regression: the frozen encoder recovers the simulator's health index with $R^2 = 0.926$ without labels, and within-engine degradation correlation is $\rho = 0.830 \pm 0.023$ (5 seeds), with a $+41.5$ RMSE penalty when context vectors are shuffled across engines.
+  \item \textbf{Multi-subset generalization.} The approach generalizes across C-MAPSS subsets: FD003 (mixed fault modes, RMSE $15.37$), FD004 (6 operating conditions + 2 fault modes, RMSE $25.62$), and cross-fault transfer FD001$\to$FD003 at low labels outperforms a supervised LSTM (\cref{sec:multisubset}).
+
+  \plannedc{\item \textbf{Planned: from-scratch ablation.} Same architecture and E2E fine-tuning protocol, random init vs.\ pretrained. Quantifies the pretraining contribution at each label budget. If the delta is $<$1 RMSE, the E2E result is not an SSL finding and the paper leads exclusively with frozen/H.I.\ claims.}
+
+  \plannedc{\item \textbf{Planned: length-vs-content disentanglement.} Three inference-only tests (constant input, length-matched cross-engine swap, temporal shuffle) that separate whether the encoder reads sensor degradation patterns or primarily encodes sequence length via positional encoding.}
+
+  \plannedc{\item \textbf{Planned: STAR label-efficiency comparison.} Evaluate the supervised STAR baseline~\citep{fan2024star} at 50\%, 20\%, 10\%, 5\% labels. If STAR at 20\% $\leq$ 14 RMSE, the label-efficiency pitch requires revision.}
 \end{enumerate}
 
 % ============================================================
@@ -122,44 +120,31 @@ A key finding is that different self-supervised objectives learn fundamentally d
 \subsection{Self-Supervised Learning for Time Series}
 \label{sec:related_ssl}
 
-Self-supervised pretraining for time series has followed two paradigms: contrastive and generative. Both have matured rapidly, yet neither has been adapted for mechanical prognostics.
+Self-supervised pretraining for time series has followed two paradigms: contrastive and generative.
 
-\paragraph{Contrastive methods.} \citet{chen2020simclr} established the contrastive learning paradigm with SimCLR; subsequent work adapted it to time series. \citet{yue2022ts2vec} learn representations via hierarchical contrastive learning across temporal and instance dimensions. \citet{tonekaboni2021tnc} exploit the stationarity of temporal neighborhoods, defining positive pairs within stationary windows---an assumption violated by bearing degradation, which is fundamentally non-stationary. \citet{eldele2021tstcc} combine temporal and contextual contrasting, while \citet{zhang2022tfc} align time-domain and frequency-domain representations, demonstrating cross-domain transfer on medical and mechanical datasets. Of these, TF-C is closest to our setting, but evaluates on fault \emph{classification}, not RUL regression.
+\paragraph{Contrastive methods.} \citet{chen2020simclr} established the contrastive learning paradigm with SimCLR; subsequent work adapted it to time series. \citet{yue2022ts2vec} learn representations via hierarchical contrastive learning across temporal and instance dimensions. \citet{tonekaboni2021tnc} exploit the stationarity of temporal neighborhoods, defining positive pairs within stationary windows---an assumption violated by degradation data, which is fundamentally non-stationary. \citet{eldele2021tstcc} combine temporal and contextual contrasting, while \citet{zhang2022tfc} align time-domain and frequency-domain representations, demonstrating cross-domain transfer on medical and mechanical datasets. Of these, TF-C is closest to our setting, but evaluates on fault \emph{classification}, not RUL regression.
 
-\paragraph{Masked reconstruction.} Masked autoencoders~\citep{he2022mae} established that high masking ratios (75\%) force encoders to learn semantic structure rather than local interpolation; this insight carries over to time series. \citet{nie2023patchtst} adapt the Vision Transformer to time series via channel-independent patching and masked pretraining, achieving state-of-the-art long-term forecasting. \citet{dong2023simmtm} reconstruct masked time points from multiple masked versions to recover manifold structure, and \citet{cheng2023timemae} combine masked autoencoders with decoupled representation learning. These methods optimize for reconstruction fidelity, which biases representations toward low-level waveform statistics rather than degradation-relevant spectral features. Our JEPA objective avoids this bias by predicting in latent space rather than pixel/signal space~\citep{assran2023ijepa}.
+\paragraph{Masked reconstruction.} Masked autoencoders~\citep{he2022mae} established that high masking ratios (75\%) force encoders to learn semantic structure rather than local interpolation. \citet{nie2023patchtst} adapt the Vision Transformer to time series via channel-independent patching and masked pretraining. \citet{dong2023simmtm} reconstruct masked time points from multiple masked versions, and \citet{cheng2023timemae} combine masked autoencoders with decoupled representation learning. These methods optimize for reconstruction fidelity, which biases representations toward low-level signal statistics rather than degradation-relevant features. Our JEPA objective avoids this bias by predicting in latent space rather than signal space~\citep{assran2023ijepa}.
 
-\paragraph{EMA-based methods.} Our JEPA architecture uses an exponential moving average (EMA) target encoder to prevent representation collapse. This mechanism originates in MoCo~\citep{he2020moco} and DINO~\citep{caron2021dino}, and was shown by \citet{grill2020byol} (BYOL) to remove the need for negative pairs entirely. \citet{bardes2022vicreg} formalize this through variance-invariance-covariance regularization, proving that explicit variance preservation in the embedding space is sufficient to prevent collapse. Our variance regularization term (\cref{eq:jepa_loss}) follows this principle. \citet{balestriero2025lejepa} further ground JEPA training theoretically, replacing heuristic collapse prevention with the provably optimal SIGReg regularizer.
+\paragraph{EMA-based methods.} Our architecture uses an EMA target encoder to prevent representation collapse. This mechanism originates in MoCo~\citep{he2020moco} and DINO~\citep{caron2021dino}, and was shown by \citet{grill2020byol} (BYOL) to remove the need for negative pairs. \citet{bardes2022vicreg} formalize this through variance-invariance-covariance regularization. \citet{balestriero2025lejepa} further ground JEPA training theoretically with the provably optimal SIGReg regularizer.
 
-\paragraph{Predictive coding.} Our trajectory JEPA objective---predicting future latent representations from past context---is conceptually related to Contrastive Predictive Coding~\citep{oord2018cpc}, which learns representations by predicting future observations in latent space using autoregressive models. The key distinction is architectural: CPC uses a contrastive loss (InfoNCE) requiring negative samples, while JEPA uses a direct regression loss in the target encoder's representation space with EMA stabilization. Both share the insight that predicting the future in latent space forces the encoder to capture slow-varying structure---in our case, degradation dynamics---rather than high-frequency noise.
-
-\paragraph{Foundation models.} \citet{das2024timesfm}, \citet{ansari2024chronos}, \citet{goswami2024moment}, and \citet{gao2024units} pretrain large models on diverse time series corpora for zero-shot or multi-task forecasting. These foundation models predict the \emph{next value} - a fundamentally different objective from encoding degradation state. Our work targets this gap: rather than general-purpose time series modeling, we learn representations aligned with mechanical degradation indicators such as spectral centroid shift.
+\paragraph{Predictive coding.} Our trajectory prediction objective---predicting future latent representations from past context---is conceptually related to Contrastive Predictive Coding~\citep{oord2018cpc}. The key distinction is architectural: CPC uses a contrastive InfoNCE loss requiring negative samples, while JEPA uses direct regression in the target encoder's space with EMA stabilization. Both share the insight that predicting the future in latent space forces the encoder to capture slow-varying structure---in our case, degradation dynamics.
 
 \subsection{Remaining Useful Life Prediction}
 \label{sec:related_rul}
 
-RUL prediction has progressed from physics-based models to deep learning. Early work applied CNNs~\citep{li2018dcnn} and LSTMs~\citep{zheng2017lstm} to sensor data; modern architectures combine these with attention mechanisms. On C-MAPSS~\citep{saxena2008cmapss}, the current state of the art is STAR~\citep{fan2024star}, a two-stage attention Transformer with hierarchical patch merging (FD001 RMSE: 10.61). Architectures fusing Transformer, TCN, and self-attention branches such as TTS-Net~\citep{ttsnet2025} achieve FD001 RMSE: 11.02.
+RUL prediction has progressed from physics-based models to deep learning. Early work applied CNNs~\citep{li2018dcnn} and LSTMs~\citep{zheng2017lstm} to sensor data; modern architectures combine these with attention. On C-MAPSS~\citep{saxena2008cmapss}, the current supervised state of the art is STAR~\citep{fan2024star} (FD001 RMSE: 10.61). TTS-Net~\citep{ttsnet2025} fuses Transformer, TCN, and self-attention branches (FD001 RMSE: 11.02). Nearly all methods are fully supervised.
 
-For bearing prognostics, FEMTO/PRONOSTIA~\citep{nectoux2012pronostia} and XJTU-SY~\citep{wang2020xjtusybearing} are the primary benchmarks. Multi-scale separable convolution Transformers achieve RMSE 0.124 on FEMTO and 0.160 on XJTU-SY~\citep{mdsct2024}. \citet{nomi2024} exploit time-invariant Neural ODE dynamics for cross-domain bearing transfer. However, nearly all methods share two limitations: (1)~they require full temporal trajectory context (ordered sequences of windows), and (2)~they are fully supervised or use domain adaptation with labeled target data. \citet{shen2026dcssl} present DCSSL, the only published SSL method for bearing RUL on FEMTO, using dual-dimensional contrastive pretraining with trajectory context. Our work differs in three respects: we use JEPA (not contrastive) pretraining, operate on single windows without trajectory context, and demonstrate cross-dataset transfer without explicit domain adaptation.
+\paragraph{Self-supervised pretraining for RUL.} \citet{lecam2025aelstm} train an autoencoder LSTM to reconstruct sensor sequences on C-MAPSS, achieving FD001 RMSE 13.99---the only published SSL result prior to our work. \citet{ding2022ssl_rul} propose multi-modal augmentation-based pretraining for rotating machinery, while \citet{wang2024masked_rul} apply masked autoencoders to turbofan sensors. None evaluate representation quality independently of the downstream metric (e.g., via health index recovery or within-engine tracking correlation); our work provides this analysis.
 
-\paragraph{Self-supervised pretraining for RUL.} Beyond bearing-specific work, self-supervised pretraining for RUL has gained traction on the C-MAPSS turbofan benchmark. \citet{lecam2025aelstm} train an autoencoder LSTM to reconstruct sensor sequences, then fine-tune for RUL, achieving 13.99 RMSE on FD001---the only published SSL result on C-MAPSS prior to our work. \citet{ding2022ssl_rul} propose multi-modal augmentation-based pretraining for RUL on rotating machinery, while \citet{wang2024masked_rul} apply masked autoencoders to turbofan sensors. None of these methods evaluate representation quality independently of the downstream metric (e.g., via health index recovery or within-engine tracking correlation); our work provides this analysis.
-
-\paragraph{Health index construction.} Learning a health indicator from sensor data is closely related to our health index recovery result. \citet{guo2017healthindex} construct bearing health indicators via recurrent neural networks for RUL prediction. \citet{wang2022healthindex} propose unsupervised multi-criteria methods for health index construction from raw vibration signals. \citet{li2024hi_ssl} apply contrastive learning to construct health indices for bearing degradation monitoring. These methods are supervised or semi-supervised, requiring degradation labels or expert thresholds to define the health index target. Our result is distinct: the health index emerges as a linear readout of frozen self-supervised representations ($R^2 = 0.926$) without any health labels or degradation-aware training objective---the trajectory prediction task alone is sufficient.
-
-\paragraph{Linear probing as evaluation.} We evaluate representation quality using linear probes~\citep{alain2017probes}, which have become the standard diagnostic in self-supervised learning~\citep{chen2020simclr, grill2020byol}. A frozen encoder whose representations support strong linear readout has genuinely internalized task-relevant structure during pretraining, rather than relying on nonlinear adaptation during fine-tuning. Our health index probe ($R^2 = 0.926$) and frozen RUL probe (RMSE $17.81$) both use this methodology.
+\paragraph{Health index construction.} Learning a health indicator from sensor data is related to our health index recovery result. \citet{guo2017healthindex} construct bearing health indicators via RNNs. \citet{wang2022healthindex} propose unsupervised multi-criteria methods. \citet{li2024hi_ssl} apply contrastive learning for health index construction. These methods require degradation labels or expert thresholds. Our result is distinct: the health index emerges as a linear readout of frozen SSL representations ($R^2 = 0.926$) without any health labels---the trajectory prediction task alone is sufficient.
 
 \subsection{Joint Embedding Predictive Architectures}
 \label{sec:related_jepa}
 
-Joint Embedding Predictive Architectures (JEPA) learn by predicting representations of masked inputs from visible context in a shared latent space~\citep{lecun2022path}. \citet{assran2023ijepa} demonstrate with I-JEPA that predicting in representation space avoids the low-level reconstruction bias of masked autoencoders. \citet{bardes2024vjepa} extend to video with 90\% spatiotemporal masking, learning motion and dynamics representations. \citet{wang2024brainjepa} apply JEPA to fMRI brain dynamics with domain-specific positioning and masking (NeurIPS 2024 Spotlight), the closest analogue to our work in adapting JEPA to a non-vision domain with physics-informed structure.
+JEPA learns by predicting representations of masked inputs from visible context in a shared latent space~\citep{lecun2022path}. \citet{assran2023ijepa} demonstrate that predicting in representation space avoids the reconstruction bias of MAEs. \citet{bardes2024vjepa} extend to video with 90\% spatiotemporal masking. \citet{wang2024brainjepa} apply JEPA to fMRI brain dynamics with domain-specific positioning (NeurIPS 2024 Spotlight)---the closest analogue to our work in adapting JEPA to a non-vision domain. For time series, \citet{tsjepa2024} adapt JEPA with temporal masking for classification, while \citet{mtsjepa2026} introduce codebook regularization for multivariate series. \emph{None of these evaluate on prognostics or RUL tasks.} Our work is the first to apply JEPA to RUL prediction and to show that the learned representations linearly decode a latent health variable.
 
-For time series, \citet{tsjepa2024} adapt JEPA with temporal masking for classification benchmarks, while \citet{mtsjepa2026} introduce codebook regularization for multivariate series, preventing representation collapse through discrete bottlenecks. \citet{balestriero2025lejepa} replace heuristic collapse prevention (EMA, stop-gradient) with the theoretically grounded SIGReg regularizer, proving that the optimal embedding distribution is isotropic Gaussian. None of these time series JEPA variants evaluate on prognostics or RUL tasks.
-
-Two recent works apply self-supervised pretraining to vibration data. \citet{wang2025rmgpt} use GPT-style generative pretraining on rotating machinery signals (68.5M parameters), achieving 92\% one-shot fault classification but predicting raw signal tokens rather than latent representations. \citet{openMAE2025} apply masked autoencoders to 5M vibration samples from seismic sensors, showing that large-scale vibration pretraining transfers to downstream sensing tasks. However, \emph{neither applies JEPA to mechanical systems, and neither evaluates on RUL prediction}. Our work is the first to evaluate JEPA for mechanical RUL prediction, diagnose why standard JEPA representations have low correlation with degradation indicators (spectral centroid shift), and demonstrate that hybrid architectures overcome this limitation.
-
-\subsection{Learning with Limited Failure Data}
-\label{sec:related_rare}
-
-The scarcity of failure data is a central challenge in prognostics~\citep{weak_supervision_phm2025}. Grey swan events - rare but physically plausible failures - are well-studied in weather prediction, where AI models consistently fail on out-of-distribution extremes~\citep{greyswan_weather2024}, and in supply chain risk, where formal frameworks distinguish grey swans (structurally predictable) from black swans (epistemically unknowable)~\citep{greyswan_supplychain2025}. \citet{greyswan_factory2026} generate synthetic grey swans via gradient-based optimization through differentiable physics models. In mechanical prognostics, \citet{physics_augment_rul2024} demonstrate competitive RUL prediction with zero real failure data using physics-informed augmentation, while \citet{deng2025gan_pinn} combine GANs with inverse PINNs to generate physically valid rare fault signals. \citet{digitaltwin_bearing2025} achieve $>94\%$ fault classification with only 5 labeled real samples by pretraining on physics-simulated data. Reviews of physics-informed RUL methods~\citep{physics_rul_review2024} consistently find that physics constraints provide the largest benefit in low-data regimes - precisely the grey swan scenario. Our self-supervised pretraining approach is complementary: by learning general vibration representations from abundant unlabeled data (including healthy operation), we reduce the labeled data requirement to 18 failure trajectories, without requiring a physics simulator or handcrafted augmentation strategies.
+\paragraph{Linear probing as evaluation.} We evaluate representation quality using linear probes~\citep{alain2017probes}, the standard diagnostic in SSL~\citep{chen2020simclr, grill2020byol}. A frozen encoder whose representations support strong linear readout has genuinely internalized task-relevant structure during pretraining, rather than relying on nonlinear adaptation during fine-tuning.
 
 % ============================================================
 % 3. METHOD
@@ -167,77 +152,67 @@ The scarcity of failure data is a central challenge in prognostics~\citep{weak_s
 \section{Method}
 \label{sec:method}
 
-We present a self-supervised framework for mechanical RUL prediction comprising three stages: JEPA pretraining on unlabeled vibration data (\cref{sec:jepa}), temporal contrastive learning using run-to-failure episode structure (\cref{sec:contrastive}), and hybrid fusion with domain-informed spectral features (\cref{sec:hybrid}).
-
 \subsection{Problem Formulation}
 \label{sec:problem}
 
-Consider a set of run-to-failure episodes $\{(\x_i^{(1)}, \ldots, \x_i^{(T_i)})\}_{i=1}^N$, where $\x_i^{(t)} \in \R^{L}$ is a vibration window of $L = 1024$ samples at time step $t$, and $T_i$ is the total lifetime of episode $i$. We define the normalized remaining useful life as:
+Consider a set of run-to-failure episodes $\{(\x_i^{(1)}, \ldots, \x_i^{(T_i)})\}_{i=1}^N$, where $\x_i^{(t)} \in \R^{S}$ is a vector of $S$ sensor readings at cycle $t$ (e.g., $S = 14$ selected sensors for C-MAPSS), and $T_i$ is the total lifetime of engine $i$. We define the piecewise-linear capped remaining useful life:
 \begin{equation}
-  \rul(t) = 1 - \frac{t}{T_i},
+  \rul(t) = \min(T_i - t, \; R_{\max}),
   \label{eq:rul}
 \end{equation}
-so $\rul = 1$ at the start of operation and $\rul = 0$ at failure. This normalization is essential because bearing lifetimes vary by up to $5\times$ across episodes and datasets.
+where $R_{\max} = 125$ cycles reflects the ``healthy plateau'' convention: early-life cycles where the engine is far from failure are assigned a constant RUL, preventing the model from wasting capacity on a regime where degradation has not yet begun~\citep{zheng2017lstm}.
 
-The grey swan challenge is that failure episodes are scarce (we have $N = 23$ across two datasets), while unlabeled healthy operation data is abundant. Our framework addresses this asymmetry through self-supervised pretraining.
+\todo{Key assumption: all training engines are run-to-failure. This means the temporal structure of the data implicitly reveals degradation progression---the encoder sees complete trajectories ending at failure, even though no RUL labels are used during pretraining. This is weaker than fully labeled supervision, but stronger than truly unlabeled data where engines might be censored (removed from service before failure). We discuss this limitation in \cref{sec:limitations} and plan ablations to quantify its effect.}
 
-\subsection{JEPA Pretraining}
+\subsection{Trajectory JEPA Pretraining}
 \label{sec:jepa}
 
-Our JEPA encoder follows the architecture of I-JEPA~\citep{assran2023ijepa} adapted for 1D vibration signals.
+Trajectory JEPA learns by predicting future sensor trajectories in latent space, without failure labels. Given the past sensor observations $\x_{1:t}$, the model predicts the latent representation of future observations $\x_{t+1:t+k}$.
 
-\paragraph{Patch embedding.} Each window $\x \in \R^L$ is divided into $P = 16$ non-overlapping patches of length $L/P = 64$ samples. Each patch is projected to a $d$-dimensional embedding via a linear layer, yielding patch tokens $\{p_1, \ldots, p_P\} \in \R^d$ with $d = 256$.
+\paragraph{Context encoder.} The context encoder $\encoder$ is a causal Transformer ($d_\text{model} = 256$, 2 layers, 4 heads, 1.26M parameters). Each sensor vector $\x^{(t)} \in \R^S$ is projected to a $d$-dimensional token via a linear layer, with sinusoidal positional encoding indexed by cycle number. The encoder uses a causal attention mask, processing the sequence autoregressively:
+\begin{equation}
+  \h_\text{past} = \encoder(\x_{1:t}) \in \R^d,
+  \label{eq:context}
+\end{equation}
+where $\h_\text{past}$ is the hidden state at the last observed cycle---a $d$-dimensional summary of the engine's history up to time $t$.
 
-\paragraph{Encoder.} The context encoder $\encoder$ is a Vision Transformer (ViT) with 4 layers, 4 attention heads, and hidden dimension $d = 256$ (3.2M parameters). Sinusoidal positional encodings are added to all patch tokens.
-
-\paragraph{Masking.} We randomly mask $62.5\%$ of patches (10 out of 16), providing only 6 context patches to the encoder. This high mask ratio is critical: at lower ratios ($\leq 50\%$), the predictor can exploit a context-average shortcut, leading to representation collapse~\citep{assran2023ijepa, bardes2024vjepa}.
-
-\paragraph{Target encoder.} The target encoder $\target$ is an exponential moving average (EMA) copy of $\encoder$ with momentum $\tau = 0.996$:
+\paragraph{Target encoder.} The target encoder $\target$ is an EMA copy of $\encoder$ with momentum $\tau = 0.99$:
 \begin{equation}
   \xi \leftarrow \tau \xi + (1 - \tau) \theta.
   \label{eq:ema}
 \end{equation}
+It encodes the future sensor window $\x_{t+1:t+k}$ bidirectionally (no causal mask) with attention pooling to produce $\h_\text{future} \in \R^d$.
 
-\paragraph{Predictor.} The predictor $\predictor$ is a 4-layer Transformer ($d_{\text{pred}} = 128$, 0.9M parameters) that takes context encoder outputs and sinusoidal positional queries for masked positions, predicting the target encoder's representations.
+\paragraph{Horizon-aware predictor.} The predictor $\predictor$ takes $\h_\text{past}$ and the prediction horizon $k$ to produce $\hat{\h}_\text{future}$. The horizon $k$ is sampled uniformly from $[5, 30]$ during training, so the predictor must learn how degradation evolves across multiple timescales.
 
-\paragraph{Training objective.} We minimize the L1 distance between predicted and target representations, with variance regularization to prevent collapse:
+\paragraph{Training objective.} We minimize the L1 distance between predicted and target future representations:
 \begin{equation}
-  \loss_{\text{JEPA}} = \frac{1}{|M|} \sum_{j \in M} \| \predictor(\encoder(\x_{\bar{M}}))_j - \text{sg}[\target(\x)_j] \|_1 + \lambda \cdot \loss_{\text{var}},
+  \loss_{\text{JEPA}} = \| \predictor(\h_\text{past}, k) - \text{sg}[\target(\x_{t+1:t+k})] \|_1,
   \label{eq:jepa_loss}
 \end{equation}
-where $M$ is the set of masked indices, $\bar{M}$ the context indices, and $\text{sg}[\cdot]$ is stop-gradient. The variance regularization $\loss_{\text{var}} = \max(0, 1 - \sqrt{\Var(\z) + \epsilon})$ with $\lambda = 0.1$ prevents representation collapse by penalizing the encoder when embedding variance drops below a threshold - without this term, the encoder can minimize L1 loss by mapping all inputs to the same constant representation.
+where $\text{sg}[\cdot]$ is stop-gradient. The EMA target encoder and the L1 loss together prevent representation collapse without requiring an explicit regularization term~\citep{grill2020byol, bardes2022vicreg}. Pretraining runs for 200 epochs with probe-based early stopping (best probe RMSE at epoch 50).
 
-\paragraph{Pretraining data.} We pretrain on 33{,}939 vibration windows from 8 bearing datasets (CWRU~\citep{smith2021cwruleakage}, MFPT, IMS~\citep{ims_bearing}, FEMTO~\citep{nectoux2012pronostia}, XJTU-SY~\citep{wang2020xjtusybearing}, Paderborn, Ottawa, MAFAULDA), spanning diverse operating conditions, fault types, and sampling rates (all resampled to 12{,}800\,Hz).
+\paragraph{Pretraining data.} We pretrain on the C-MAPSS training engines (85 engines after an 85\%/15\% train/val split). For each engine, we sample 20 random cut points, yielding $\sim$1,700 (past, future) pairs per epoch. \emph{No RUL labels or failure indicators are used during pretraining.}
 
-\subsection{Temporal Contrastive Learning}
-\label{sec:contrastive}
+\subsection{Downstream Fine-Tuning}
+\label{sec:finetune}
 
-While JEPA learns waveform texture through reconstruction, it does not capture the spectral changes that indicate degradation (see \cref{sec:encoder_analysis}). We address this with temporal contrastive learning that exploits the natural ordering of run-to-failure episodes.
+After pretraining, a linear RUL probe maps $\h_\text{past} \to \hat{\rul}$. We evaluate two modes:
 
-\paragraph{Triplet objective.} For each anchor window $\x_i^{(t)}$, we sample a positive from a nearby time step $\x_i^{(t')}$ with $|t - t'| < \delta_{\text{pos}}$ and a negative from a distant time step $\x_i^{(t'')}$ with $|t - t''| > \delta_{\text{neg}}$:
-\begin{equation}
-  \loss_{\text{contrastive}} = \max(0, \| \encoder(\x^{(t)}) - \encoder(\x^{(t')}) \|_2 - \| \encoder(\x^{(t)}) - \encoder(\x^{(t'')}) \|_2 + \alpha),
-  \label{eq:contrastive}
-\end{equation}
-where $\alpha = 1.0$ is the margin. Intuitively, the triplet loss pulls together representations of temporally nearby windows (within $\delta_{\text{pos}}$ steps) and pushes apart representations of temporally distant windows (beyond $\delta_{\text{neg}}$ steps). This forces the encoder to learn what \emph{changes} over the bearing's life - primarily the spectral centroid shift as surface roughness increases with degradation.
-
-\paragraph{Training.} We train on 18 run-to-failure episodes (75\% training split) for 100 epochs using the temporal labels (not RUL targets). The encoder converges to positive-pair similarity 0.89 and negative-pair similarity 0.47, indicating strong temporal structure in the learned representation.
-
-\subsection{Hybrid Architecture}
-\label{sec:hybrid}
-
-Our key finding is that JEPA and handcrafted features capture complementary information (\cref{sec:encoder_analysis}). The hybrid architecture combines both:
-
-\paragraph{Feature extraction.} For each vibration window, we extract:
 \begin{itemize}[nosep]
-  \item \textbf{JEPA embeddings}: the mean-pooled output of the frozen pretrained encoder, $\h_{\text{JEPA}} \in \R^{256}$.
-  \item \textbf{Handcrafted features}: 8 time-domain statistics (RMS, peak, crest factor, kurtosis, skewness, shape factor, impulse factor, clearance factor), 7 frequency-domain features (spectral centroid, spread, entropy, and 4 band energies), and 3 envelope features (Hilbert-transform RMS, kurtosis, peak), yielding $\h_{\text{HC}} \in \R^{18}$.
+  \item \textbf{Frozen:} encoder weights are locked; only the linear probe trains. This measures representation quality directly---the probe is deliberately simple~\citep{alain2017probes}.
+  \item \textbf{E2E (end-to-end):} encoder and probe train jointly with a lower encoder learning rate ($10^{-4}$ vs.\ $10^{-3}$ for the probe) to preserve pretrained structure while allowing task-specific adaptation.
 \end{itemize}
 
-\paragraph{Fusion.} For each time step in the episode, the concatenated input $[\h_{\text{JEPA}}; \h_{\text{HC}}; \Delta t] \in \R^{275}$ is projected to $d_{\text{model}} = 128$ and processed by a Transformer encoder (4 layers, 4 heads) with sinusoidal positional encoding over the temporal sequence. A linear head maps the final representation (concatenated with normalized elapsed time) to a scalar $\rul$ prediction.
+\subsection{Health Index Probing}
+\label{sec:hi_method}
 
-\paragraph{Training.} The fusion model is trained end-to-end with MSE loss on 75\% of episodes, with JEPA encoder weights frozen. We report mean $\pm$ std over 5 seeds on held-out episodes.
-
+To evaluate whether the encoder has learned degradation structure \emph{independent of any labeled objective}, we define an approximate health index (H.I.) for each training engine:
+\begin{equation}
+  \text{H.I.}(t) = \begin{cases} 1.0 & \text{if } t \leq T_i - R_{\max} \\ 1 - \frac{t - (T_i - R_{\max})}{R_{\max}} & \text{otherwise} \end{cases}
+  \label{eq:hi}
+\end{equation}
+This piecewise-linear function is 1.0 during the healthy phase and declines linearly to 0 at failure, matching the RUL-cap convention. We fit a Ridge regression ($\alpha = 1.0$) from frozen $\h_\text{past}$ embeddings to H.I.\ targets on training engines, and evaluate $R^2$ on held-out validation engines. A high $R^2$ means the encoder's frozen representations already contain degradation state in a linearly accessible form---the strongest possible evidence for self-supervised representation quality.
 
 % ============================================================
 % 4. EXPERIMENTS
@@ -245,210 +220,215 @@ Our key finding is that JEPA and handcrafted features capture complementary info
 \section{Experiments}
 \label{sec:experiments}
 
-\subsection{Experimental Setup}
+\subsection{Dataset and Setup}
 \label{sec:setup}
 
-\paragraph{Datasets.} We evaluate on two bearing run-to-failure datasets with complementary characteristics (\cref{tab:datasets}):
+We evaluate primarily on NASA C-MAPSS~\citep{saxena2008cmapss}, a turbofan engine degradation simulation with four subsets of increasing difficulty (\cref{tab:cmapss_datasets}). Each training engine runs to failure; each test engine is truncated at a random point before failure, with ground-truth RUL provided separately.
 
 \begin{table}[t]
 \centering
-\caption{Dataset summary. Episodes are complete run-to-failure sequences from initial operation to bearing failure.}
-\label{tab:datasets}
+\caption{C-MAPSS dataset summary. All training engines are run-to-failure; test engines are truncated before failure.}
+\label{tab:cmapss_datasets}
 \small
-\begin{tabular}{@{}lcccccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
-Dataset & Episodes & Sampling Rate & Channels & Lifetime Range & Operating Conditions \\
+Subset & Train Engines & Test Engines & Op.\ Conditions & Fault Modes & Mean Lifetime \\
 \midrule
-FEMTO (PRONOSTIA) & 16 & 25.6\,kHz & 1 (vibration) & 1--7\,h & 3 load/speed settings \\
-XJTU-SY & 7 & 25.6\,kHz & 2 (H+V vib.) & 0.5--2.6\,h & 3 load/speed settings \\
-\midrule
-\textbf{Combined} & \textbf{23} &  -  &  -  & \textbf{CV=0.635} & \textbf{6 conditions} \\
+FD001 & 100 & 100 & 1 & 1 (fan) & 206 cycles \\
+FD002 & 260 & 259 & 6 & 1 (fan) & 207 cycles \\
+FD003 & 100 & 100 & 1 & 2 (fan + HPC) & 247 cycles \\
+FD004 & 249 & 248 & 6 & 2 (fan + HPC) & 246 cycles \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Evaluation protocol.} All methods are evaluated with 75\%/25\% episode-based train/test splits, fixed across methods. We report RMSE on normalized RUL ($\in [0, 1]$) averaged over 5 seeds (10 seeds for cross-dataset experiments) with standard deviations. Statistical significance is assessed via paired $t$-tests.
+\paragraph{Preprocessing.} We select 14 informative sensors (dropping 7 near-constant channels), normalize per-sensor using training-set statistics (global min-max for single-condition subsets; per-operating-condition KMeans-based normalization for multi-condition subsets), and cap RUL at 125 cycles. Train/val split: 85\%/15\% by engine (seed 42). All results: canonical test set (last-window-per-engine, raw-cycle RMSE).
 
-\paragraph{Baselines.} We compare 11 methods spanning naive baselines, end-to-end deep learning, handcrafted features, and self-supervised approaches:
-\begin{itemize}[nosep]
-  \item \textbf{Naive}: Constant mean predictor, elapsed-time-only baseline.
-  \item \textbf{Signal processing}: Envelope RMS + LSTM.
-  \item \textbf{End-to-end}: CNN-LSTM, CNN-GRU-MHA.
-  \item \textbf{Handcrafted}: HC+LSTM, HC+MLP, Transformer+HC.
-  \item \textbf{Self-supervised}: Random JEPA+LSTM (untrained encoder), JEPA+LSTM (pretrained).
-  \item \textbf{Hybrid}: JEPA+HC Transformer (our best).
-\end{itemize}
+\paragraph{Baselines.} We compare against: (1)~a constant predictor (mean training RUL, RMSE 43.3); (2)~a hand-engineered 58-feature Ridge regressor (per-engine sensor summaries: length, per-sensor last-30 mean/std/slope/delta; RMSE 19.2); (3)~a supervised LSTM with the same hidden dimension; (4)~STAR~\citep{fan2024star}, the supervised state-of-the-art (our 5-seed replication: 12.19); (5)~AE-LSTM~\citep{lecam2025aelstm}, the only prior SSL result on C-MAPSS (13.99).
 
-\subsection{In-Domain RUL Prediction}
-\label{sec:indomain}
+\subsection{Main Results: FD001}
+\label{sec:main_results}
 
 \begin{table}[t]
 \centering
-\caption{In-domain RUL prediction results (mixed FEMTO+XJTU-SY, 5-seed average). Improvement is relative reduction in RMSE vs.\ elapsed-time-only baseline (RMSE=0.224).}
+\caption{C-MAPSS FD001 RUL prediction. RMSE in cycles (RUL cap = 125). Mean $\pm$ std over 5 seeds.}
 \label{tab:main_results}
 \small
-\begin{tabular}{@{}llccc@{}}
+\begin{tabular}{@{}llccccc@{}}
 \toprule
-Category & Method & RMSE & $\pm$std & vs.\ Time-Only \\
+Type & Method & 100\% & 50\% & 20\% & 10\% & 5\% \\
 \midrule
-\multirow{2}{*}{Naive} & Constant mean & 0.290 &  -  & $-29.4\%$ \\
-& Elapsed time only & 0.224 &  -  & 0\% \\
+Trivial & Constant (mean RUL) & 43.29 & --- & --- & --- & --- \\
+Feature eng. & 58-feat Ridge regressor & 19.21$_{\pm0.2}$ & --- & --- & --- & --- \\
 \midrule
-Signal proc. & Envelope RMS + LSTM & 0.287 & 0.001 & $-28.1\%$ \\
+Supervised & LSTM (ours) & 17.36$_{\pm1.2}$ & 18.30$_{\pm0.8}$ & 18.55$_{\pm0.8}$ & 31.22$_{\pm10.9}$ & 33.08$_{\pm9.6}$ \\
+Supervised & STAR (paper) & 10.61 & --- & --- & --- & --- \\
+Supervised & STAR (replic.) & 12.19$_{\pm0.6}$ & \plannedc{---} & \plannedc{---} & \plannedc{---} & \plannedc{---} \\
+SSL (paper) & AE-LSTM & 13.99 & --- & --- & --- & --- \\
 \midrule
-\multirow{2}{*}{End-to-end} & CNN-LSTM & 0.195 & 0.005 & $+13.0\%$ \\
-& CNN-GRU-MHA & 0.185 & 0.005 & $+17.4\%$ \\
-\midrule
-\multirow{3}{*}{Handcrafted} & HC + LSTM & 0.177 & 0.016 & $+21.2\%$ \\
-& HC + MLP & 0.085 & 0.004 & $+62.0\%$ \\
-& Transformer + HC & 0.070 & 0.006 & $+68.9\%$ \\
-\midrule
-\multirow{2}{*}{Self-supervised} & Random JEPA + LSTM & 0.221 & 0.008 & $+1.5\%$ \\
-& JEPA + LSTM & 0.189 & 0.015 & $+15.8\%$ \\
-\midrule
-\textbf{Hybrid} & \textbf{JEPA + HC Transformer} & \textbf{0.055} & \textbf{0.004} & $\mathbf{+75.5\%}$ \\
+SSL (ours) & Traj JEPA Frozen & 17.81$_{\pm1.7}$ & 18.71$_{\pm1.1}$ & 19.83$_{\pm0.3}$ & \textbf{19.93}$_{\pm0.9}$ & \textbf{21.53}$_{\pm2.0}$ \\
+SSL (ours) & \textbf{Traj JEPA E2E} & \textbf{14.23}$_{\pm0.4}$ & \textbf{14.93}$_{\pm0.4}$ & \textbf{16.54}$_{\pm0.8}$ & \textbf{18.66}$_{\pm0.8}$ & 25.33$_{\pm5.1}$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/v8_rul_comparison.pdf}
-\caption{In-domain RUL prediction comparison across all methods. The hybrid architecture (JEPA + HC Transformer) achieves RMSE $0.055 \pm 0.004$, a $75.5\%$ improvement over the elapsed-time baseline. Error bars show $\pm$1 std over 5 seeds.}
-\label{fig:main_results}
+\includegraphics[width=0.85\textwidth]{figures/v12_label_efficiency.png}
+\caption{FD001 label efficiency. JEPA E2E (solid) outperforms the supervised LSTM at all budgets. JEPA Frozen (dashed) outperforms LSTM at $\leq$10\% labels with $5$--$30\times$ lower variance, demonstrating critical advantages for the grey swan regime. \plannedc{STAR label-efficiency sweep pending.}}
+\label{fig:label_efficiency}
 \end{figure}
 
-\Cref{tab:main_results,fig:main_results} present the complete comparison. Several findings emerge:
+\Cref{tab:main_results,fig:label_efficiency} present the main results.
 
-\paragraph{JEPA pretraining is effective.} JEPA+LSTM (RMSE 0.189) significantly outperforms both the elapsed-time baseline ($+15.8\%$, $p = 0.010$) and random encoder initialization ($p = 0.010$). The pretrained encoder learns meaningful vibration representations without any RUL labels.
+\paragraph{Competitive at 100\% labels.} Traj JEPA E2E achieves RMSE $14.23 \pm 0.39$, within 1.7\% of the only prior SSL baseline (AE-LSTM, 13.99) and substantially outperforming a supervised LSTM ($17.36$, same architecture capacity). A gap of $\sim$2 RMSE to supervised STAR ($12.19$) remains.
 
-\paragraph{JEPA matches handcrafted features.} The difference between JEPA+LSTM (0.189) and HC+LSTM (0.177) is not statistically significant ($p = 0.40$), demonstrating that self-supervised pretraining can match decades of domain expertise in feature engineering - without requiring that expertise.
+\paragraph{Label efficiency.} At 10\% labels (8 training engines), JEPA E2E achieves $18.66$ vs.\ LSTM $31.22$---a 40\% reduction. Frozen JEPA ($19.93$) also substantially outperforms LSTM ($31.22$). Below 10\%, LSTM variance explodes (std $9$--$11$ cycles) while JEPA frozen remains stable (std $\leq 2.0$).
 
-\paragraph{The hybrid wins decisively.} Combining JEPA embeddings with handcrafted features in a Transformer architecture achieves the best result: RMSE $0.055 \pm 0.004$, a $75.5\%$ improvement over elapsed-time and $21.4\%$ over the best handcrafted-only method (Transformer+HC at 0.070). This confirms that JEPA captures complementary information to spectral statistics.
+\paragraph{Beating the hand-engineered baseline.} The 58-feature Ridge regressor (RMSE $19.21$) is the tightest ``non-learning'' lower bound: it uses per-engine summary statistics (sensor means, slopes, length) but is flat within each engine. JEPA E2E outperforms it by $5.0$ RMSE, confirming the learned representation captures information beyond cross-engine summary statistics.
 
-\subsection{Cross-Dataset Transfer}
-\label{sec:transfer}
-
-Cross-dataset transfer - training on one bearing test rig and evaluating on another - is the critical test of learned representations. Different test rigs have different operating conditions, bearing types, and lifetime distributions (coefficient of variation = 0.635).
-
-\begin{table}[t]
-\centering
-\caption{Cross-dataset transfer results (10-seed average). Elapsed time baseline degrades sharply cross-dataset due to lifetime distribution mismatch.}
-\label{tab:transfer}
-\small
-\begin{tabular}{@{}lcccc@{}}
-\toprule
-Configuration & Elapsed Time & JEPA+LSTM & Contrastive+LSTM & Contrastive vs.\ JEPA \\
-\midrule
-FEMTO$\to$FEMTO (within) & 0.027 & $0.113 \pm 0.011$ & $0.142 \pm 0.012$ & $-20.4\%$ \\
-XJTU$\to$XJTU (within) & 0.159 & 0.195 & 0.214 & $-9.7\%$ \\
-\midrule
-\textbf{FEMTO$\to$XJTU (cross)} & \textbf{0.367} & $0.280 \pm 0.007$ & $\mathbf{0.227 \pm 0.015}$ & $+18.8\%$ ($p < 0.001$) \\
-\textbf{XJTU$\to$FEMTO (cross)} & \textbf{0.336} & 0.403 & $\mathbf{0.309 \pm 0.007}$ & $+23.2\%$ \\
-\bottomrule
-\end{tabular}
-\end{table}
+\subsection{Health Index Recovery (Strongest SSL Evidence)}
+\label{sec:hi_recovery}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/v8_cross_dataset.pdf}
-\caption{Cross-dataset transfer results. Contrastive pretraining consistently outperforms JEPA for cross-dataset generalization ($+18.8\%$ on FEMTO$\to$XJTU-SY, $p<0.001$), while JEPA excels within-dataset. Both methods substantially outperform the elapsed-time baseline in the cross-dataset setting.}
-\label{fig:transfer}
+\includegraphics[width=\textwidth]{figures/v12_cmapss_main_results.pdf}
+\caption{\textbf{(a)} Baseline hierarchy: each step from constant predictor ($43.3$) through Ridge regressor ($19.2$) to JEPA frozen ($17.8$) to JEPA E2E ($14.2$) represents genuine capability, not protocol artifacts. \textbf{(b)} Health index recovery validation $R^2$ across three H.I.\ parameterizations; all exceed $0.9$. \textbf{(c)} Sliding-cut vs.\ last-window evaluation: the model performs 15\% better across all cut points ($11.8$ vs.\ $14.0$ RMSE).}
+\label{fig:cmapss_main}
 \end{figure}
-
-\Cref{tab:transfer,fig:transfer} show the cross-dataset results.
-
-\paragraph{Contrastive dominates cross-dataset.} Temporal contrastive learning significantly outperforms JEPA for cross-dataset transfer ($+18.8\%$ on FEMTO$\to$XJTU, $p < 0.001$). This is because the contrastive objective forces the encoder to learn what \emph{changes} over a bearing's life - the spectral centroid shift - which is the invariant degradation signature across datasets.
-
-\paragraph{JEPA wins within-dataset.} Conversely, JEPA achieves lower RMSE within datasets, especially on FEMTO (0.113 vs 0.142). JEPA's patch prediction objective preserves fine-grained waveform details that are useful when train and test distributions match.
-
-\paragraph{Both beat elapsed time.} In the cross-dataset setting, where elapsed time baselines degrade sharply (RMSE 0.336--0.367), both learned representations provide substantial improvement ($+24\%$ for JEPA, $+38\%$ for contrastive vs time-only).
-
-
-% ============================================================
-% 5. ANALYSIS AND DISCUSSION
-% ============================================================
-\section{Analysis and Discussion}
-\label{sec:analysis}
-
-\subsection{What Do Self-Supervised Encoders Learn?}
-\label{sec:encoder_analysis}
-
-A central question is \emph{why} different self-supervised objectives learn different representations, and how this explains their downstream performance (\cref{tab:encoder}).
 
 \begin{table}[t]
 \centering
-\caption{Encoder representation quality. PC1 correlation measures how well the first principal component of the encoder's output aligns with RUL and the dominant degradation indicator (spectral centroid).}
-\label{tab:encoder}
+\caption{Health index recovery. Ridge regression from frozen $\h_\text{past}$ to approximate H.I. Trained on 85 engines, evaluated on 15 held-out engines. No failure labels used during encoder pretraining.}
+\label{tab:hi_recovery}
 \small
 \begin{tabular}{@{}lccc@{}}
 \toprule
-Metric & JEPA & Contrastive & Handcrafted \\
+H.I.\ Definition & Train $R^2$ & Val $R^2$ & Target \\
 \midrule
-PC1 correlation w/ RUL & 0.186 & \textbf{0.648} & 0.585 \\
-PC1 correlation w/ spectral centroid & 0.071 & \textbf{0.856} & 1.000 \\
-Max per-dim correlation w/ RUL & 0.144 & \textbf{0.648} & 0.585 \\
+Piecewise linear (default) & 0.964 & \textbf{0.926} & $> 0.7$ \\
+Sigmoid & 0.953 & 0.917 & $> 0.7$ \\
+Raw RUL normalized & 0.964 & 0.926 & $> 0.7$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{JEPA learns waveform texture.} The JEPA objective - predicting masked patches from context - optimizes for local waveform reconstruction. The encoder must capture periodicity, amplitude modulation, and patch-level temporal structure. However, these features have low correlation with the spectral centroid (0.071), which is the primary degradation indicator for bearings. This explains why JEPA alone underperforms handcrafted spectral features for RUL prediction. \Cref{fig:latent_trajectories} shows JEPA latent trajectories for six FEMTO bearing episodes: while individual bearing episodes show directional drift (arrows), the scatter in PC space (PC1 explains only 9.7\% of variance) reflects the waveform-texture nature of the representations rather than a clean degradation axis.
+The frozen V2 encoder's $\h_\text{past}$ linearly predicts the approximate health index with validation $R^2 = 0.926$ (\cref{tab:hi_recovery}). This was computed from 256-dimensional embeddings at every training cycle, with no labels used during pretraining. The result is robust across three H.I.\ parameterizations (\cref{fig:cmapss_main}b).
 
-\paragraph{Contrastive learning captures degradation dynamics.} The temporal contrastive objective - distinguishing early from late snapshots - forces the encoder to learn what \emph{changes} over a bearing's life. The dominant change is spectral centroid shift (correlation 0.856 with PC1), which occurs as surface roughness increases and distributes vibrational energy across frequencies (\cref{fig:encoder_analysis}). This alignment with the degradation indicator explains the strong cross-dataset transfer: spectral centroid shift is a physics-invariant degradation signature.
+The embedding space is dominated by a single degradation direction: PC1 explains 47.6\% of variance and correlates with the health index at $|\rho| = 0.797$, while PC2 and PC3 have $|\rho| \leq 0.16$.
 
-\paragraph{Hybrid complementarity.} JEPA and contrastive representations are nearly orthogonal in their information content. JEPA captures fine-grained waveform features that are dataset-specific but informative within domain. Contrastive captures the slow, monotonic degradation trajectory that transfers across domains. The hybrid architecture leverages both, achieving the best overall performance.
+\textbf{This is the paper's headline result.} Without failure labels, the trajectory prediction objective alone causes the encoder to learn a representation where the latent health state is linearly readable. This is independent of the last-window evaluation protocol, fine-tuning procedure, or any specific benchmark metric.
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figures/v8_encoder_analysis.pdf}
-\caption{PC1 of JEPA vs.\ contrastive encoder representations, plotted against spectral centroid and RUL\%. JEPA PC1 is uncorrelated with spectral centroid ($r=0.071$) and weakly correlated with RUL ($r=0.186$). Contrastive PC1 strongly tracks spectral centroid ($r=-0.856$) and RUL ($r=-0.648$), confirming that the temporal contrastive objective learns degradation-relevant features while JEPA learns waveform texture.}
-\label{fig:encoder_analysis}
-\end{figure}
+\subsection{Verification: Is the Tracking Genuine?}
+\label{sec:verification}
+
+A central concern with RUL benchmarks is that the canonical last-window protocol (one prediction per test engine) can be satisfied by cross-engine regression without within-engine tracking. We verify tracking via five independent diagnostics (\cref{fig:cmapss_tracking}).
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{figures/v8_latent_trajectories.pdf}
-\caption{JEPA V8 latent trajectories in PC space for six FEMTO bearing episodes. Color indicates RUL\% (green=healthy, red=failed). Arrows show mean drift direction from healthy to failed state. The scatter (PC1 only 9.7\% variance) confirms JEPA captures high-dimensional waveform structure rather than a single degradation axis - complementary to the contrastive encoder's clean spectral centroid signal.}
-\label{fig:latent_trajectories}
+\includegraphics[width=\textwidth]{figures/v12_cmapss_tracking.pdf}
+\caption{Within-engine tracking evidence (5 seeds). \textbf{(a)} Per-engine prediction std distribution; median $= 12.1 \pm 0.7$ (far above constant-predictor threshold of 3). \textbf{(b)} Within-engine Spearman $\rho$ distribution; median $= 0.830 \pm 0.023$, with 63/100 engines achieving $\rho > 0.7$. \textbf{(c)} Shuffle test: swapping $\h_\text{past}$ across engines degrades RMSE from 14.0 to 55.4 ($+41$ cycles).}
+\label{fig:cmapss_tracking}
 \end{figure}
 
-\subsection{When Does Transfer Succeed?}
-\label{sec:transfer_analysis}
+\begin{enumerate}[nosep]
+  \item \textbf{Prediction variance.} Per-engine prediction standard deviation, median $= 12.1 \pm 0.7$ cycles (5 seeds). A constant predictor has std $\approx 0$; a tracker should have std $10$--$30$. \textbf{PASS.}
+  \item \textbf{Within-engine Spearman $\rho$.} Median $\rho = 0.830 \pm 0.023$ between predicted and true RUL across all cycles of each test engine. 63/100 engines have $\rho > 0.7$ on average. \textbf{PASS.}
+  \item \textbf{Shuffle test.} Randomly permuting $\h_\text{past}$ across engines at inference time degrades RMSE from 13.98 to $55.45 \pm 1.62$. The $+41.5$ penalty proves $\h_\text{past}$ carries engine-specific degradation information. \textbf{PASS.}
+  \item \textbf{Hand-engineered baseline margin.} JEPA E2E outperforms the 58-feature Ridge regressor (which is flat within each engine) by 5.0 RMSE. The benchmark requires genuine within-engine signal. \textbf{PASS.}
+  \item \textbf{Sliding-cut evaluation.} Evaluating across all cut points (not just the last window) gives RMSE $11.77$---15\% better than last-window ($13.98$), as expected from a genuine tracker that benefits from having more history at earlier cut points (\cref{fig:cmapss_main}c). \textbf{PASS.}
+\end{enumerate}
 
-The divergent within-dataset vs.\ cross-dataset performance reveals a fundamental trade-off:
+\subsection{Label Efficiency}
+\label{sec:label_efficiency}
 
-\begin{itemize}[nosep]
-  \item \textbf{Within-dataset}: JEPA is preferred because fine-grained waveform features are discriminative when train/test distributions match. JEPA achieves RMSE 0.113 on FEMTO$\to$FEMTO vs.\ 0.142 for contrastive.
-  \item \textbf{Cross-dataset}: Contrastive is preferred because only dataset-invariant features (spectral centroid shift) transfer. Contrastive achieves RMSE 0.227 on FEMTO$\to$XJTU vs.\ 0.280 for JEPA.
-\end{itemize}
+The grey swan motivation is that failure data is scarce. \Cref{tab:main_results} shows that at 5\% labels (4 training engines), JEPA frozen achieves RMSE $21.53 \pm 2.0$ while the supervised LSTM collapses to $33.08 \pm 9.6$. The frozen encoder's variance is $5$--$30\times$ lower than the LSTM at every budget below 20\%.
 
-The coefficient of variation in episode lifetimes (CV = 0.635) explains why elapsed-time baselines fail cross-dataset: FEMTO bearings live 1--7 hours while XJTU-SY bearings live 0.5--2.6 hours, making calendar time a poor proxy for degradation state.
+An unexpected finding: frozen JEPA has \emph{higher} tracking fidelity ($\rho = 0.856$) than E2E ($\rho = 0.804$). E2E fine-tuning trades some tracking fidelity for better RMSE calibration---the improvement is in mapping to the correct RUL scale, not in degradation detection. The pretraining objective itself is the source of the health-tracking signal; fine-tuning refines the readout.
 
-\subsection{Limitations}
+\subsection{Multi-Subset Generalization}
+\label{sec:multisubset}
+
+\begin{table}[t]
+\centering
+\caption{Multi-subset results. Traj JEPA E2E, seed 0. Tracking diagnostics confirm genuine degradation signal across all subsets.}
+\label{tab:multisubset}
+\small
+\begin{tabular}{@{}lcccccc@{}}
+\toprule
+Subset & RMSE (E2E) & RMSE (Frozen) & $\rho_\text{median}$ & pred\_std & vs.\ Regressor & STAR (paper) \\
+\midrule
+FD001 & 14.23$_{\pm0.4}$ & 17.81$_{\pm1.7}$ & 0.830 & 12.1 & +5.0 & 10.61 \\
+FD003 & 15.37$_{\pm0.9}$ & 19.25$_{\pm3.2}$ & 0.665 & 12.9 & +2.9 & 10.71 \\
+FD004 & 25.62$_{\pm0.3}$ & 29.35$_{\pm0.6}$ & 0.654 & 7.1 & +5.9 & 14.25 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{tab:multisubset} shows that all three tested subsets show genuine tracking ($\rho > 0.5$) and outperform the hand-engineered regressor.
+
+\paragraph{FD002 distribution shift.} FD002 (6 operating conditions) reveals a limitation: the frozen encoder achieves val probe RMSE $15.35$ on training-distribution engines but $26.07$ on the canonical test set (\cref{fig:fd002}). The gap is caused by operating-condition mismatch: conditions 1, 2, and 5 are $2.5$--$3.1\times$ overrepresented at test time vs.\ training. The encoder learns degradation well within each condition, but the per-condition normalization is mis-calibrated on rare training conditions that dominate the test set.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/v12_fd002_diagnosis.pdf}
+\caption{FD002 distribution shift. \textbf{(a)} Val vs.\ test RMSE gap: FD001 has a $-2.1$ gap (test easier), FD002 has $+10.7$. \textbf{(b)} Per-condition test RMSE. \textbf{(c)} Condition distributions: conditions 1, 2, 5 severely overrepresented in test.}
+\label{fig:fd002}
+\end{figure}
+
+\paragraph{Cross-fault transfer.} Pretraining on FD001 (fan degradation) and evaluating with a frozen probe on FD003 (fan + HPC) incurs a 7--9 RMSE penalty. However, the cross-fault frozen probe at 10\% labels (RMSE 28.79) still outperforms a supervised LSTM in-domain at the same budget (RMSE 31.22).
+
+% ============================================================
+% 5. ANALYSIS
+% ============================================================
+\section{Analysis}
+\label{sec:analysis}
+
+\subsection{Evaluation Protocol Transparency}
+\label{sec:eval_protocol}
+
+The standard C-MAPSS evaluation tests each engine at a single cut point (the last observed cycle). We additionally report sliding-cut RMSE (all cut points from cycle 30 to end), which more honestly measures how the model performs across the full operational range. The sliding-cut RMSE ($11.77$) is better than last-window ($13.98$), as expected: at earlier cut points, the encoder has more history and tracks degradation more precisely. We advocate publishing both metrics.
+
+\subsection{What Does the Encoder Represent?}
+\label{sec:representation}
+
+\paragraph{PCA analysis.} PC1 of the frozen encoder embeddings explains 47.6\% of variance with $|\rho| = 0.797$ against the health index. The representation is low-rank and degradation-aligned.
+
+\paragraph{Frozen vs.\ E2E.} The frozen encoder has \emph{higher} tracking $\rho$ (0.856) than E2E (0.804). This is surprising: E2E, which sees RUL labels, tracks degradation \emph{less} faithfully. The explanation is that E2E optimizes for RMSE calibration (mapping to the correct scale) at the expense of rank preservation. The degradation signal originates entirely from pretraining.
+
+\plannedc{\paragraph{Planned: length vs.\ content.} The encoder receives both sensor values and sinusoidal positional encodings indexed by cycle number. Since all training engines are run-to-failure, sequence length correlates with elapsed life. Three planned ablations will disentangle these sources: (1)~constant-input test (repeat one cycle's sensors $t$ times, vary $t$); (2)~length-matched cross-engine swap (same $t$, different sensors); (3)~temporal shuffle (permute cycle order within each engine). If the encoder primarily encodes length rather than sensor content, the $R^2 = 0.926$ result would reflect a length artifact and the claims would require revision.}
+
+\plannedc{\paragraph{Planned: from-scratch ablation.} Training the same architecture with E2E fine-tuning from random initialization (instead of pretrained weights) at each label budget would quantify the pretraining contribution directly. If the delta is $<$1 RMSE, the E2E result is essentially supervised learning in a Transformer; the paper would then lead exclusively with the frozen and H.I.\ results as SSL evidence.}
+
+% ============================================================
+% 6. LIMITATIONS
+% ============================================================
+\section{Limitations}
 \label{sec:limitations}
 
 \begin{enumerate}[nosep]
-  \item \textbf{Small dataset.} With only 23 bearing episodes, our results have non-trivial variance (e.g., JEPA+LSTM std = 0.015). Each run-to-failure episode requires physically destroying a bearing, fundamentally limiting dataset scale.
-  \item \textbf{Single channel.} Current experiments use only one vibration channel. Extending to multivariate inputs (e.g., multi-axis accelerometers, motor current) is a natural next step.
-  \item \textbf{Temporal contrastive requires episode structure.} The contrastive objective assumes access to run-to-failure episodes with temporal ordering.
-  \item \textbf{JEPA pretraining instability.} Training loss oscillates after epoch 2 on heterogeneous multi-source data; the best checkpoint is always early (\cref{fig:pretrain_history}, Appendix).
-  \item \textbf{Two transfer pairs.} Cross-dataset evaluation is limited to FEMTO$\leftrightarrow$XJTU-SY. A trajectory variant of JEPA applied to C-MAPSS turbofan data (Appendix~\ref{app:turbofan}) confirms the framework generalizes to 14-channel multivariate sensor streams, but cross-domain bearing$\leftrightarrow$turbofan transfer is not evaluated.
-  \item \textbf{Gap to supervised SOTA.} On C-MAPSS FD001, JEPA E2E achieves RMSE $14.23 \pm 0.39$ versus STAR (supervised, RMSE $12.19$ replication). Closing this $\sim$2 RMSE gap is ongoing work. Health index recovery ($R^2 = 0.926$) and within-engine tracking ($\rho = 0.830$) confirm the representations are genuinely learning degradation structure.
+  \item \textbf{Run-to-failure assumption.} \todo{Critical honesty item.} All C-MAPSS training engines run to failure. The temporal structure of the pretraining data implicitly reveals degradation progression: the encoder sees trajectories that always end at failure, and sequence length correlates with degradation state. This is weaker than labeled RUL supervision, but stronger than truly unlabeled data (e.g., censored industrial data where engines are replaced before failure). The length-vs-content ablation (\cref{sec:representation}) is required to quantify how much of the learned signal exploits this structural supervision vs.\ genuine sensor-content encoding.
+
+  \item \textbf{Single benchmark.} Results are on C-MAPSS, a simulation with known physics. Generalization to real industrial sensors with noise, missing data, and sensor drift is untested.
+
+  \item \textbf{Gap to supervised SOTA.} JEPA E2E achieves 14.23 vs.\ STAR 12.19 ($\sim$2 RMSE gap). Closing this gap likely requires architectural scaling or improved fine-tuning schedules.
+
+  \item \textbf{FD002/FD004 multi-condition challenge.} The per-condition normalization fails under distribution shift. Condition-aware encoder designs (condition tokens, conditioned normalization) are needed.
+
+  \item \textbf{Bearing vibration data.} We also evaluated JEPA on single-channel bearing vibration from FEMTO~\citep{nectoux2012pronostia} and XJTU-SY~\citep{wang2020xjtusybearing} (23 run-to-failure episodes, 8 pretraining sources, 33{,}939 windows). JEPA alone achieved weak correlation with the dominant degradation indicator (spectral centroid PC1 $\rho = 0.071$) and required fusion with handcrafted spectral features to be competitive (Appendix~\ref{app:bearings}). This highlights a data-scale limitation: 23 bearing episodes may be insufficient for self-supervised pretraining to discover degradation structure that domain experts encode via spectral centroid, kurtosis, and envelope analysis. The C-MAPSS results (100--260 engines with 14 sensors) suggest the framework becomes effective at larger data scales with richer multivariate structure.
 \end{enumerate}
 
 % ============================================================
-% 6. CONCLUSION
+% 7. CONCLUSION
 % ============================================================
 \section{Conclusion}
 \label{sec:conclusion}
 
-We introduced a self-supervised framework for mechanical prognostics in the grey swan regime---where the component failures most critical to predict are precisely those with the least training data. The framework addresses two domains.
+We introduced Trajectory JEPA, a self-supervised framework for mechanical prognostics in the grey swan regime. The central finding is that predicting future sensor trajectories in latent space---without any failure labels---causes a Transformer encoder to internalize a latent health variable that is linearly decodable ($R^2 = 0.926$) and tracks within-engine degradation ($\rho = 0.830$). This result is verified against five independent diagnostics and a tight hand-engineered baseline.
 
-For single-channel bearing vibration, combining JEPA pretraining (which captures waveform texture) with temporal contrastive learning (which captures degradation dynamics) and domain-informed spectral features achieves RMSE $0.055 \pm 0.004$, a $75.5\%$ improvement over time-only baselines. Different self-supervised objectives learn fundamentally different representations, explaining their complementary strengths: JEPA excels within-dataset while contrastive learning enables cross-dataset transfer ($+38\%$ vs.\ time-only, $p < 0.001$).
+The frozen encoder exhibits \emph{higher} tracking fidelity than the E2E fine-tuned version, suggesting that the pretraining objective itself is the source of the degradation signal; fine-tuning refines calibration rather than detection. At low label budgets, this translates to $5$--$30\times$ lower variance than supervised approaches---critical for industrial deployment where consistency matters.
 
-For multivariate turbofan sensor streams (\cref{app:turbofan}), a trajectory variant of JEPA pretrained entirely without failure labels recovers the simulator's latent health index with $R^2 = 0.926$ via a linear probe on frozen representations. This is the cleanest evidence that self-supervised trajectory prediction alone causes the encoder to internalize degradation state: no labels, no fine-tuning, and the representation is linearly readable. The same encoder achieves RMSE $14.23 \pm 0.39$ on C-MAPSS FD001 (5 seeds), with genuine within-engine degradation tracking confirmed by five independent diagnostics (Spearman $\rho = 0.830$, prediction variance, shuffle test, sliding-cut evaluation, and a tight hand-engineered feature-regressor lower bound). Importantly, the frozen encoder exhibits \emph{higher} tracking fidelity ($\rho = 0.856$) than the E2E fine-tuned encoder ($\rho = 0.804$), suggesting that fine-tuning improves scale calibration rather than degradation detection---the pretraining objective itself is the source of the health-tracking signal.
-
-Key open questions remain: (1)~a from-scratch ablation comparing pretrained vs.\ random initialization under identical E2E fine-tuning would quantify the pretraining contribution directly; (2)~disentangling whether the encoder reads sensor degradation patterns or primarily encodes sequence length requires targeted input-ablation experiments; (3)~closing the remaining 2 RMSE gap to supervised STAR likely requires condition-aware normalization for multi-regime data (FD002/FD004). Finally, synthetic data augmentation using physics-informed degradation models could address the fundamental scarcity of rare failure trajectories that motivates this work.
+\plannedc{The key open question is whether the encoder reads sensor degradation patterns or primarily encodes sequence length. All training data is run-to-failure, providing implicit structural supervision. The planned length-vs-content ablation, from-scratch comparison, and STAR label-efficiency benchmark will determine whether the SSL claims survive scrutiny or need to be scoped to the frozen H.I.\ recovery result alone. We believe the honest presentation of both the strong results and the open loopholes is itself a contribution: the C-MAPSS community has not previously published within-engine tracking diagnostics, sliding-cut evaluation, or tight feature-regressor baselines alongside last-window RMSE.}
 
 % ============================================================
 % REFERENCES
@@ -462,225 +442,82 @@ Key open questions remain: (1)~a from-scratch ablation comparing pretrained vs.\
 \newpage
 \appendix
 
-\section{Dataset Details}
-\label{app:datasets}
+\section{C-MAPSS Dataset Details}
+\label{app:cmapss}
 
-The FEMTO bearing dataset~\citep{nectoux2012pronostia} was collected at the FEMTO-ST institute using an accelerated degradation test platform. Bearings are subjected to radial loads while rotating at controlled speeds, with vibration measured by a piezoelectric accelerometer at 25.6\,kHz. The dataset contains 17 run-to-failure experiments across 3 operating conditions (we use 16 with complete recordings).
+C-MAPSS~\citep{saxena2008cmapss} simulates turbofan engine degradation under controlled conditions. Each engine starts with slightly different initial wear and operates until failure. The simulation produces 21 sensor channels per cycle; we select 14 informative sensors (dropping 7 near-constant channels: s1, s5, s6, s10, s16, s18, s19).
 
-The XJTU-SY bearing dataset~\citep{wang2020xjtusybearing} contains 15 rolling element bearings tested under 3 operating conditions. Each bearing is monitored with two accelerometers (horizontal and vertical) at 25.6\,kHz. We use 7 bearings with clear degradation trajectories.
-
-JEPA pretraining uses 33,939 vibration windows from 8 sources, all resampled to 12,800\,Hz:
-
-\begin{table}[h]
-\centering
-\caption{Pretraining data sources.}
-\label{tab:pretrain_sources}
-\small
-\begin{tabular}{@{}lccl@{}}
-\toprule
-Source & Windows & Sampling Rate & Fault Types \\
-\midrule
-CWRU & 2,400 & 12\,kHz & Healthy, IR, OR, Ball \\
-MFPT & 1,200 & 25.6\,kHz & Healthy, IR, OR \\
-IMS & 3,000 & 20\,kHz & Run-to-failure \\
-FEMTO & 8,000 & 25.6\,kHz & Run-to-failure \\
-XJTU-SY & 4,500 & 25.6\,kHz & Run-to-failure \\
-Paderborn & 6,000 & 64\,kHz & Healthy, IR, OR \\
-Ottawa & 4,839 & 12\,kHz & Healthy, IR, OR, Ball \\
-MAFAULDA & 4,000 & 50\,kHz & Multiple \\
-\bottomrule
-\end{tabular}
-\end{table}
+For FD001/FD003 (single operating condition): global min-max normalization per sensor on training data only. For FD002/FD004 (6 operating conditions): per-condition normalization via KMeans clustering ($k=6$) on operating settings, with min-max applied per cluster. Test data is normalized using training statistics only.
 
 \section{Hyperparameters}
 \label{app:hyperparams}
 
 \begin{table}[h]
 \centering
-\caption{Complete hyperparameter settings.}
+\caption{Complete hyperparameter settings for Trajectory JEPA.}
 \label{tab:hyperparams}
 \small
 \begin{tabular}{@{}llc@{}}
 \toprule
 Component & Hyperparameter & Value \\
 \midrule
-\multirow{7}{*}{JEPA Pretraining} & Encoder dim / depth / heads & 256 / 4 / 4 \\
-& Predictor dim / depth & 128 / 4 \\
-& Mask ratio & 62.5\% \\
-& EMA momentum & 0.996 \\
-& Learning rate & $1 \times 10^{-4}$ \\
-& Batch size / Epochs & 256 / 100 (best ep.\ 2) \\
-& Loss & L1 + var.\ reg ($\lambda = 0.1$) \\
+\multirow{6}{*}{Pretraining} & Encoder: $d_\text{model}$ / layers / heads & 256 / 2 / 4 \\
+& Encoder parameters & 1.26M \\
+& EMA momentum $\tau$ & 0.99 \\
+& Prediction horizon $k$ & $\mathcal{U}[5, 30]$ \\
+& Learning rate & $3 \times 10^{-4}$ (cosine decay) \\
+& Epochs / Early stop & 200 / probe RMSE at ep.\ 50 \\
 \midrule
-\multirow{3}{*}{Contrastive} & Learning rate / Margin $\alpha$ & $1 \times 10^{-4}$ / 1.0 \\
-& Epochs / Episodes & 100 / 18 \\
+\multirow{4}{*}{Fine-tuning} & Probe & Linear (256 $\to$ 1) \\
+& Frozen LR / E2E encoder LR & $10^{-3}$ / $10^{-4}$ \\
+& Epochs / Patience & 100 / 20 \\
+& Optimizer & AdamW \\
 \midrule
-\multirow{3}{*}{RUL Heads} & LSTM: hidden / layers / dropout & 128 / 2 / 0.2 \\
-& Transformer: layers / heads / dim & 4 / 4 / 128 \\
-& Learning rate & $1 \times 10^{-3}$ \\
+\multirow{2}{*}{Data} & Train/val split & 85\% / 15\% by engine \\
+& RUL cap $R_\text{max}$ & 125 cycles \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.7\textwidth]{figures/v8_pretrain_history.pdf}
-\caption{JEPA V8 pretraining loss curve. The model achieves its best validation loss at epoch 2 (0.0168), after which training and validation losses diverge. This instability on heterogeneous multi-source data is a known limitation: the best checkpoint must be selected early, preventing full benefit from extended pretraining. We address this with early stopping based on probe RMSE at epoch 50.}
-\label{fig:pretrain_history}
-\end{figure}
-
-\section{Additional Results}
-\label{app:additional}
+\section{Cross-Fault and Cross-Subset Transfer}
+\label{app:transfer}
 
 \begin{table}[h]
 \centering
-\caption{Linear vs.\ piecewise-linear RUL labels.}
-\label{tab:piecewise}
-\small
-\begin{tabular}{@{}lccc@{}}
-\toprule
-Method & Linear RMSE & Piecewise RMSE & $\Delta$ \\
-\midrule
-JEPA + LSTM & 0.189 & 0.310 & +0.121 \\
-HC + MLP & 0.085 & 0.114 & +0.029 \\
-HC + LSTM & 0.177 & 0.214 & +0.037 \\
-Transformer + HC & 0.070 & 0.114 & +0.044 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[h]
-\centering
-\caption{JEPA pretraining configurations explored.}
-\label{tab:configs}
-\small
-\begin{tabular}{@{}lccccl@{}}
-\toprule
-Config & LR & EMA & Mask & Best Val Loss & Verdict \\
-\midrule
-Default & $10^{-4}$ & 0.996 & 62.5\% & 0.0168 (ep.\ 2) & \textbf{Best} \\
-Lower LR & $3 \times 10^{-5}$ & 0.996 & 62.5\% & 0.0172 & Similar \\
-Fixed LR & $10^{-5}$ & 0.996 & 62.5\% & 0.0189 & Worse \\
-High EMA & $10^{-4}$ & 0.999 & 62.5\% & 0.0178 & Worse \\
-2ch FFT & $10^{-4}$ & 0.996 & 62.5\% & 0.0149 & Better loss, worse RUL \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-\section{Extension to Turbofan RUL Prediction (C-MAPSS)}
-\label{app:turbofan}
-
-To assess whether self-supervised JEPA representations generalize beyond single-channel vibration to multivariate sensor streams, we apply a trajectory variant of JEPA to the NASA C-MAPSS turbofan dataset~\citep{saxena2008cmapss}.
-
-\paragraph{Trajectory JEPA for multivariate sensors.}
-Instead of masking spatial patches in a 1D vibration window, we use a \emph{trajectory} formulation: given past sensor observations $\x_{1:t}$, predict the latent representation of future observations $\x_{t+1:t+k}$ using a causal context encoder and an EMA target encoder. This captures temporal degradation dynamics across 14 sensor channels simultaneously, without requiring failure labels.
-
-\paragraph{Dataset.}
-C-MAPSS FD001 contains 100 training engines and 100 test engines, each operating under a single condition until failure. We select 14 informative sensors (removing near-constant channels), normalize using train-set statistics, and cap RUL at 125 cycles. We use an 85\%/15\% train/val split by engine. All results are evaluated using the canonical test set (last-window-per-engine, RUL from \texttt{RUL\_FD001.txt}).
-
-\paragraph{Architecture.}
-The context encoder is a 2-layer causal Transformer ($d_\text{model}=256$, 4 heads, 1.26M parameters). Pretraining uses horizon-aware prediction: the encoder predicts latent representations $k \in [5, 30]$ steps ahead, with $k$ sampled uniformly. An EMA target encoder (momentum $= 0.99$) provides stable prediction targets, preventing collapse. The model is pretrained for up to 200 epochs using probe-based early stopping (best probe RMSE at epoch 50).
-
-\paragraph{Fine-tuning.}
-A linear RUL probe is trained on frozen encoder representations (frozen mode) or jointly with the encoder (E2E mode). We evaluate at five label budgets (100\%, 50\%, 20\%, 10\%, 5\% of training engines) using 5 seeds each.
-
-\paragraph{Results.}
-\begin{table}[h]
-\centering
-\caption{C-MAPSS FD001 RUL prediction. RMSE in cycles (RUL cap = 125). Mean $\pm$ std over 5 seeds. Lower is better. STAR paper result from~\citet{fan2024star}; STAR (replic.) is our 5-seed replication (FD001 config, same hyperparameters). AE-LSTM from~\citet{lecam2025aelstm}.}
-\label{tab:turbofan}
-\small
-\begin{tabular}{@{}llccccc@{}}
-\toprule
-Type & Method & 100\% & 50\% & 20\% & 10\% & 5\% \\
-\midrule
-Supervised & STAR (paper) & 10.61 & --- & --- & --- & --- \\
-Supervised & STAR (replic.) & 12.19$_{\pm0.6}$ & --- & --- & --- & --- \\
-SSL (paper) & AE-LSTM & 13.99 & --- & --- & --- & --- \\
-\midrule
-Supervised & LSTM (ours) & 17.36$_{\pm1.2}$ & 18.30$_{\pm0.8}$ & 18.55$_{\pm0.8}$ & 31.22$_{\pm10.9}$ & 33.08$_{\pm9.6}$ \\
-SSL (ours) & Traj JEPA Frozen & 17.81$_{\pm1.7}$ & 18.71$_{\pm1.1}$ & 19.83$_{\pm0.3}$ & 19.93$_{\pm0.9}$ & 21.53$_{\pm2.0}$ \\
-SSL (ours) & \textbf{Traj JEPA E2E} & \textbf{14.23}$_{\pm0.4}$ & \textbf{14.93}$_{\pm0.4}$ & \textbf{16.54}$_{\pm0.8}$ & \textbf{18.66}$_{\pm0.8}$ & 25.33$_{\pm5.1}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.85\textwidth]{figures/v12_label_efficiency.png}
-\caption{C-MAPSS FD001 label efficiency comparison. JEPA E2E (solid blue) outperforms the supervised LSTM at all five label budgets. JEPA Frozen (dashed) outperforms LSTM at very low budgets ($\leq$10\% labels, 8 engines), demonstrating critical advantages for the grey swan regime where failure trajectories are scarce. LSTM variance explodes below 20\% labels (large error bars); JEPA frozen std remains $\leq$2.0 cycles across all budgets (5--30$\times$ more stable). Dashed horizontal lines show the AE-LSTM SSL baseline (13.99) and STAR supervised replication (12.19), both at 100\% labels only.}
-\label{fig:label_efficiency}
-\end{figure}
-
-\paragraph{Key findings.}
-\begin{enumerate}[nosep]
-  \item \textbf{Competitive with prior SSL on C-MAPSS}: Traj JEPA E2E ($14.23 \pm 0.39$ across 5 seeds) matches AE-LSTM SSL (13.99) within 1.7\% - the only published SSL result on C-MAPSS FD001 - without using failure-time labels during pretraining. Unlike AE-LSTM, we evaluate at five label budgets, demonstrating consistent advantage over a supervised LSTM from 10\% to 100\% labels.
-  \item \textbf{Outperforms supervised LSTM at all label budgets}: At 10\% labels (8 training engines), JEPA E2E achieves RMSE 18.66 vs LSTM 31.22 --- a 40\% reduction. Frozen JEPA (19.93) also substantially outperforms LSTM (31.22).
-  \item \textbf{Genuine within-engine tracking} (\cref{fig:cmapss_tracking}): We rigorously verify that the RMSE improvement reflects real degradation tracking, not population-mean regression. Median within-engine Spearman $\rho = 0.830 \pm 0.023$ across 100 test engines (5 seeds; 63/100 engines have $\rho > 0.7$ on average). Shuffling $h_\text{past}$ context vectors across engines at inference time degrades RMSE from 13.98 to $55.45 \pm 1.62$ ($+41.5$ cycles, 5 seeds), confirming that each embedding is engine-specific and not a fixed bias.
-  \item \textbf{Health index recovery without labels}: A linear Ridge probe trained on frozen $h_\text{past}$ embeddings recovers the simulator's health index with validation $R^2 = 0.926$ (target: 0.7), robust across three health index parameterizations ($R^2 \in [0.917, 0.926]$). The embedding space is dominated by a single degradation direction: PC1 explains 47.6\% of variance and correlates with the health index at $|\rho| = 0.797$, while PC2 and PC3 have $|\rho| \leq 0.16$.
-  \item \textbf{Stability at low labels}: JEPA frozen std = 0.34--2.0 across all budgets vs LSTM std = 9--11, a 5--30$\times$ variance reduction critical for industrial deployment.
-\end{enumerate}
-
-These results confirm that the JEPA framework generalizes beyond vibration signals: the trajectory prediction objective learns degradation-aware representations from unlabeled multivariate sensor streams, with strong label efficiency and stability advantages over supervised baselines. Crucially, the RMSE improvements reflect genuine within-engine degradation tracking rather than population-mean effects, as verified by five independent diagnostic checks (\cref{fig:cmapss_main,fig:cmapss_tracking}).
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{figures/v12_cmapss_main_results.pdf}
-\caption{C-MAPSS FD001 verification summary. \textbf{(a)} Baseline hierarchy: constant predictor (43.3 RMSE), hand-engineered ridge regressor on per-engine summaries (19.2 RMSE), JEPA frozen (17.8 RMSE), and JEPA E2E (14.2 RMSE, 5-seed mean). Each step represents genuine within-engine tracking rather than population-mean fitting. \textbf{(b)} Health index recovery validation $R^2$ across three H.I.\ parameterizations; all exceed 0.7, confirming the result is not sensitive to the specific H.I.\ definition. \textbf{(c)} Sliding-cut versus last-window evaluation: the model performs 15\% better when evaluated across all cut points (11.8 vs 14.0 RMSE), as expected from a genuine degradation tracker.}
-\label{fig:cmapss_main}
-\end{figure}
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{figures/v12_cmapss_tracking.pdf}
-\caption{Within-engine degradation tracking evidence. \textbf{(a)} Distribution of per-engine prediction standard deviation across 100 FD001 test engines; mean median $= 12.1 \pm 0.7$ cycles over 5 seeds (far above the constant-predictor threshold of 3). \textbf{(b)} Distribution of within-engine Spearman $\rho$; mean median $= 0.830 \pm 0.023$ over 5 seeds, with 63/100 engines achieving $\rho > 0.7$ on average. \textbf{(c)} Shuffle test: shuffling $h_\text{past}$ context vectors across engines at inference time degrades RMSE from 14.0 to 55.4 ($+41$ cycles, 5 seeds), proving the embeddings are engine-specific rather than fixed biases.}
-\label{fig:cmapss_tracking}
-\end{figure}
-
-\paragraph{Evaluation protocol transparency.}
-The standard C-MAPSS evaluation protocol tests each engine at a single cut point (the last observed cycle), systematically selecting the hardest case where the engine is maximally degraded and history is minimal. We additionally report a sliding-cut evaluation, measuring RMSE across all cut points from cycle 30 to the end for each test engine. The sliding-cut RMSE is $11.77$ versus $13.98$ for last-window (a 16\% improvement), with per-engine mean RMSE of $9.87$. This is expected: at earlier cut points, the encoder has more history and can track degradation more precisely. We report both metrics. The last-window metric is standard and enables comparison to published work; the sliding-cut metric more honestly measures how the model performs across the full operational range.
-
-\paragraph{FD002 distribution shift diagnosis.}
-FD002 (six operating conditions, 260 training engines) shows a large val/test gap: the frozen encoder achieves val probe RMSE $= 15.35$ on in-distribution engines but $26.07 \pm 0.26$ on the canonical test set (\cref{fig:fd002_diagnosis}a). Condition analysis reveals the root cause (\cref{fig:fd002_diagnosis}b--c): operating conditions 1, 2, and 5 are overrepresented at test time relative to training (ratios of $2.5\times$, $2.6\times$, and $3.1\times$ respectively), while condition 0 (50\% of training) is only 27\% of test windows. The per-condition KMeans normalization in V11 is calibrated on the training distribution and mis-scales test windows that fall in rare training conditions. This is not an SSL pretraining failure - the encoder learns FD002 degradation well (val RMSE $= 15.35$) - but a test-distribution mismatch inherent in the C-MAPSS benchmark design.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{figures/v12_fd002_diagnosis.pdf}
-\caption{FD002 distribution shift diagnosis. \textbf{(a)} Val vs.\ test RMSE gap: FD001 has a -2.1 gap (test easier), while FD002 has a +10.7 gap. The frozen encoder generalizes within the training distribution (val=15.35) but fails on the canonical test set. \textbf{(b)} Per-condition test RMSE; conditions 1, 2, 3, 5 (red) are overrepresented at test time and show higher RMSE. \textbf{(c)} Training vs.\ test condition distributions: conditions 1, 2, 5 are $2.5\times$--$3.1\times$ overrepresented in test last-window cycles vs.\ training.}
-\label{fig:fd002_diagnosis}
-\end{figure}
-
-\paragraph{Cross-fault transfer (FD001 $\to$ FD003).}
-To test whether representations transfer across fault modes, we pretrain on FD001 (fan blade degradation) and evaluate with a frozen linear probe on FD003 (HPC degradation, same operating condition). This is a zero-shot encoder transfer: the probe is re-trained with FD003 labels, but the encoder weights are fixed from FD001 pretraining.
-
-\begin{table}[h]
-\centering
-\caption{Cross-fault transfer: FD001-pretrained encoder evaluated on FD003 (different fault mode). RMSE in cycles. Mean $\pm$ std over 5 seeds. Lower is better. STAR paper result from~\citet{fan2024star}; STAR (replic.) is our 5-seed replication.}
+\caption{Cross-fault transfer: FD001-pretrained encoder evaluated on FD003. RMSE in cycles, 5 seeds.}
 \label{tab:crossfault}
 \small
-\begin{tabular}{@{}lcccccc@{}}
+\begin{tabular}{@{}lccccc@{}}
 \toprule
 Setting & 100\% & 50\% & 20\% & 10\% & 5\% \\
 \midrule
 FD001 in-domain (frozen) & 17.81 & 18.71 & 19.83 & 19.93 & 21.53 \\
-FD001$\to$FD003 cross-fault (frozen) & 24.79$_{\pm0.6}$ & 25.91$_{\pm0.4}$ & 27.82$_{\pm1.5}$ & 28.79$_{\pm0.4}$ & 28.28$_{\pm0.2}$ \\
-Supervised LSTM (FD001 reference architecture) & 17.36 & 18.30 & 18.55 & 31.22 & 33.08 \\
-STAR (paper, FD003) & 10.71 & --- & --- & --- & --- \\
-STAR (replic., FD003) & 12.74$_{\pm0.1}$ & --- & --- & --- & --- \\
+FD001$\to$FD003 (frozen) & 24.79$_{\pm0.6}$ & 25.91$_{\pm0.4}$ & 27.82$_{\pm1.5}$ & 28.79$_{\pm0.4}$ & 28.28$_{\pm0.2}$ \\
+LSTM (FD001 ref.) & 17.36 & 18.30 & 18.55 & 31.22 & 33.08 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The cross-fault transfer incurs a consistent 7--9 RMSE penalty relative to in-domain (Table~\ref{tab:crossfault}). The penalty reflects that FD001 and FD003 have different degradation signatures: fan blade wear and HPC wear affect different sensors and follow different temporal patterns. Despite this, the cross-fault frozen probe at 10\% labels (RMSE = 28.79) still outperforms a fully supervised LSTM with the same label budget in-domain (RMSE = 31.22). This demonstrates that SSL representations provide useful structure even across mismatched fault modes.
+Cross-fault transfer incurs 7--9 RMSE penalty, but the cross-fault probe at 10\% labels (28.79) still outperforms a supervised LSTM at the same budget (31.22), demonstrating that SSL representations provide useful structure even across mismatched fault modes.
 
-\paragraph{Cross-subset pretraining (FD002 $\to$ FD001).}
-We also test whether pretraining on FD002 (260 engines, 6 operating conditions) improves FD001 fine-tuning via a richer pretraining corpus. FD002-pretrained frozen probes match or slightly outperform FD001 in-domain frozen probes at high label counts (100\%: 17.50 vs 17.81; 50\%: 17.43 vs 18.71). However, at 10\% labels the cross-subset frozen probe is substantially \emph{worse} (24.45 vs 19.93). E2E fine-tuning consistently underperforms in-domain pretraining at all budgets (e.g., 100\%: 17.50 vs 14.23). These results indicate that the FD002 encoder learned operating-condition-specific representations that resist adaptation to FD001's single-condition setting. More training data from a different distribution does not substitute for matched pretraining data, especially at low label budgets.
+Cross-subset pretraining (FD002$\to$FD001) matches or slightly outperforms FD001 in-domain frozen at high labels (100\%: 17.50 vs 17.81) but underperforms at low labels (10\%: 24.45 vs 19.93), indicating that more data from a different distribution does not substitute for matched pretraining data at small scale.
 
-\paragraph{FD003 in-domain generalization.}
-To verify the approach generalizes across C-MAPSS subsets, we also apply Trajectory JEPA to FD003, which has the same single operating condition as FD001 but combines two fault modes (fan blade and HPC degradation). We pretrain from scratch on FD003 training engines, then fine-tune at 100\%, 20\%, and 10\% label budgets. Traj JEPA E2E achieves RMSE = 15.37$_{\pm0.9}$ at 100\% labels, outperforming a supervised LSTM baseline (17.36, evaluated on FD001 with same architecture) on the harder mixed-fault subset. At 10\% labels, JEPA E2E (21.54$_{\pm1.5}$) substantially outperforms the supervised LSTM reference (31.22$_{\pm10.9}$, FD001), confirming the label efficiency advantage generalizes beyond single-fault-mode data.
+\section{Bearing Vibration Experiments}
+\label{app:bearings}
 
-\paragraph{FD004: multi-condition multi-fault challenge.}
-FD004 is the hardest C-MAPSS subset, combining 6 operating conditions with 2 fault modes across 249 training engines. Trajectory JEPA E2E achieves RMSE = 25.62$_{\pm0.3}$ at 100\% labels (vs STAR supervised 15.87~\citep{fan2024star}). While E2E consistently outperforms frozen probe across all label budgets (25.62 vs 29.35 at 100\%; 29.03 vs 31.08 at 10\%), the absolute gap to supervised SOTA is substantially larger than on FD001/FD003. We attribute this to the increased representational demand: the V2 encoder (d\_model=256) must learn operating-condition-invariant degradation features from 6 distinct operating regimes. Notably, prediction variance is very low (std $\leq$ 0.61 across all budgets), indicating stable representations even on this challenging subset. Scaling encoder capacity for multi-condition settings is a clear direction for future work.
+To assess whether the framework generalizes to single-channel vibration data at smaller scale, we also evaluated on bearing run-to-failure datasets.
+
+\paragraph{Setup.} JEPA pretraining on 33,939 vibration windows from 8 bearing sources (CWRU, MFPT, IMS, FEMTO, XJTU-SY, Paderborn, Ottawa, MAFAULDA), all resampled to 12,800\,Hz. The encoder is a 4-layer ViT ($d = 256$, 3.2M parameters) operating on 16 patches of 64 samples each, with 62.5\% masking. Evaluation on FEMTO~\citep{nectoux2012pronostia} and XJTU-SY~\citep{wang2020xjtusybearing} (23 episodes, 75\%/25\% split).
+
+\paragraph{Results.} JEPA alone (RMSE 0.189) matches handcrafted features (HC+LSTM: 0.177, $p = 0.40$) but has very low correlation with the dominant degradation indicator (spectral centroid PC1 $\rho = 0.071$). A hybrid architecture fusing JEPA embeddings with 18 handcrafted spectral features achieves RMSE $0.055 \pm 0.004$ ($+75.5\%$ vs.\ time-only baseline), confirming that JEPA captures complementary information. For cross-dataset transfer (FEMTO$\to$XJTU-SY), temporal contrastive pretraining outperforms JEPA by $+18.8\%$ ($p < 0.001$).
+
+\paragraph{Lesson.} The bearing results highlight a data-scale limitation. With 23 run-to-failure episodes and single-channel vibration, JEPA pretraining does not discover spectral centroid shift---the dominant degradation indicator---that domain experts encode directly. The framework requires either (a)~larger datasets with richer structure (as in C-MAPSS) or (b)~domain-informed masking strategies that direct the encoder toward degradation-relevant features.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{figures/v8_rul_comparison.pdf}
+\caption{Bearing RUL comparison (FEMTO + XJTU-SY, 5 seeds). The hybrid JEPA + HC architecture achieves the best result, but JEPA alone is only marginally better than handcrafted features---and much worse than the hybrid. This motivates the trajectory formulation on richer multivariate data (C-MAPSS).}
+\label{fig:bearing_results}
+\end{figure}
 
 \end{document}
