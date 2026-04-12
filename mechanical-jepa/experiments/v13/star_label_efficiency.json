@@ -1,0 +1,295 @@
+{
+  "50pct": {
+    "budget": 0.5,
+    "rmse_mean": 13.255552101135255,
+    "rmse_std": 0.7414664915075814,
+    "score_mean": 307.3647399902344,
+    "score_std": 48.64646540718645,
+    "per_seed": [
+      {
+        "seed": 42,
+        "test_rmse": 13.928345680236816,
+        "test_score": 350.988037109375,
+        "best_val_rmse": 13.543466567993164,
+        "best_epoch": 28,
+        "epochs_run": 48,
+        "n_train_engines": 42,
+        "n_train_windows": 7645,
+        "wall_time_s": 538.0952410697937
+      },
+      {
+        "seed": 123,
+        "test_rmse": 13.512027740478516,
+        "test_score": 334.2434387207031,
+        "best_val_rmse": 12.297613143920898,
+        "best_epoch": 28,
+        "epochs_run": 48,
+        "n_train_engines": 42,
+        "n_train_windows": 7171,
+        "wall_time_s": 507.2773334980011
+      },
+      {
+        "seed": 456,
+        "test_rmse": 12.797798156738281,
+        "test_score": 292.8412170410156,
+        "best_val_rmse": 13.578585624694824,
+        "best_epoch": 20,
+        "epochs_run": 40,
+        "n_train_engines": 42,
+        "n_train_windows": 7515,
+        "wall_time_s": 454.88580989837646
+      },
+      {
+        "seed": 789,
+        "test_rmse": 12.042622566223145,
+        "test_score": 218.42794799804688,
+        "best_val_rmse": 13.151668548583984,
+        "best_epoch": 20,
+        "epochs_run": 40,
+        "n_train_engines": 42,
+        "n_train_windows": 7542,
+        "wall_time_s": 452.345915555954
+      },
+      {
+        "seed": 1024,
+        "test_rmse": 13.996966361999512,
+        "test_score": 340.32305908203125,
+        "best_val_rmse": 12.537093162536621,
+        "best_epoch": 31,
+        "epochs_run": 51,
+        "n_train_engines": 42,
+        "n_train_windows": 7247,
+        "wall_time_s": 563.087913274765
+      }
+    ],
+    "all_rmse": [
+      13.928345680236816,
+      13.512027740478516,
+      12.797798156738281,
+      12.042622566223145,
+      13.996966361999512
+    ]
+  },
+  "20pct": {
+    "budget": 0.2,
+    "rmse_mean": 17.742105865478514,
+    "rmse_std": 3.618805418897749,
+    "score_mean": 1482.0425842285156,
+    "score_std": 1935.1458306793195,
+    "per_seed": [
+      {
+        "seed": 42,
+        "test_rmse": 17.6337947845459,
+        "test_score": 551.9135131835938,
+        "best_val_rmse": 18.672245025634766,
+        "best_epoch": 11,
+        "epochs_run": 31,
+        "n_train_engines": 17,
+        "n_train_windows": 3212,
+        "wall_time_s": 168.58973860740662
+      },
+      {
+        "seed": 123,
+        "test_rmse": 23.67310333251953,
+        "test_score": 5339.2626953125,
+        "best_val_rmse": 18.77301025390625,
+        "best_epoch": 12,
+        "epochs_run": 32,
+        "n_train_engines": 17,
+        "n_train_windows": 2846,
+        "wall_time_s": 158.95772194862366
+      },
+      {
+        "seed": 456,
+        "test_rmse": 14.058448791503906,
+        "test_score": 361.9833679199219,
+        "best_val_rmse": 14.659398078918457,
+        "best_epoch": 20,
+        "epochs_run": 40,
+        "n_train_engines": 17,
+        "n_train_windows": 3214,
+        "wall_time_s": 220.50573873519897
+      },
+      {
+        "seed": 789,
+        "test_rmse": 13.986213684082031,
+        "test_score": 362.37255859375,
+        "best_val_rmse": 15.44328784942627,
+        "best_epoch": 31,
+        "epochs_run": 51,
+        "n_train_engines": 17,
+        "n_train_windows": 2982,
+        "wall_time_s": 256.2991371154785
+      },
+      {
+        "seed": 1024,
+        "test_rmse": 19.35896873474121,
+        "test_score": 794.6807861328125,
+        "best_val_rmse": 16.559114456176758,
+        "best_epoch": 7,
+        "epochs_run": 27,
+        "n_train_engines": 17,
+        "n_train_windows": 3029,
+        "wall_time_s": 145.25936245918274
+      }
+    ],
+    "all_rmse": [
+      17.6337947845459,
+      23.67310333251953,
+      14.058448791503906,
+      13.986213684082031,
+      19.35896873474121
+    ]
+  },
+  "10pct": {
+    "budget": 0.1,
+    "rmse_mean": 18.72086181640625,
+    "rmse_std": 2.757763064042165,
+    "score_mean": 1513.3540832519532,
+    "score_std": 1499.1097711664065,
+    "per_seed": [
+      {
+        "seed": 42,
+        "test_rmse": 22.86498260498047,
+        "test_score": 4432.16650390625,
+        "best_val_rmse": 23.22759437561035,
+        "best_epoch": 25,
+        "epochs_run": 45,
+        "n_train_engines": 8,
+        "n_train_windows": 1443,
+        "wall_time_s": 142.85819268226624
+      },
+      {
+        "seed": 123,
+        "test_rmse": 20.749753952026367,
+        "test_score": 1423.1429443359375,
+        "best_val_rmse": 17.949655532836914,
+        "best_epoch": 25,
+        "epochs_run": 45,
+        "n_train_engines": 8,
+        "n_train_windows": 1499,
+        "wall_time_s": 142.83137011528015
+      },
+      {
+        "seed": 456,
+        "test_rmse": 17.425785064697266,
+        "test_score": 638.1253662109375,
+        "best_val_rmse": 17.73860740661621,
+        "best_epoch": 74,
+        "epochs_run": 94,
+        "n_train_engines": 8,
+        "n_train_windows": 1541,
+        "wall_time_s": 259.4778165817261
+      },
+      {
+        "seed": 789,
+        "test_rmse": 15.024557113647461,
+        "test_score": 404.0234680175781,
+        "best_val_rmse": 16.383861541748047,
+        "best_epoch": 26,
+        "epochs_run": 46,
+        "n_train_engines": 8,
+        "n_train_windows": 1526,
+        "wall_time_s": 135.9080080986023
+      },
+      {
+        "seed": 1024,
+        "test_rmse": 17.539230346679688,
+        "test_score": 669.3121337890625,
+        "best_val_rmse": 15.944108009338379,
+        "best_epoch": 21,
+        "epochs_run": 41,
+        "n_train_engines": 8,
+        "n_train_windows": 1447,
+        "wall_time_s": 123.4970223903656
+      }
+    ],
+    "all_rmse": [
+      22.86498260498047,
+      20.749753952026367,
+      17.425785064697266,
+      15.024557113647461,
+      17.539230346679688
+    ]
+  },
+  "5pct": {
+    "budget": 0.05,
+    "rmse_mean": 24.553692626953126,
+    "rmse_std": 6.444933717087623,
+    "score_mean": 23191.40837402344,
+    "score_std": 31704.88800216233,
+    "per_seed": [
+      {
+        "seed": 42,
+        "test_rmse": 18.534143447875977,
+        "test_score": 622.3987426757812,
+        "best_val_rmse": 22.19171714782715,
+        "best_epoch": 17,
+        "epochs_run": 37,
+        "n_train_engines": 4,
+        "n_train_windows": 669,
+        "wall_time_s": 68.91322088241577
+      },
+      {
+        "seed": 123,
+        "test_rmse": 21.09939956665039,
+        "test_score": 1040.9669189453125,
+        "best_val_rmse": 17.84524154663086,
+        "best_epoch": 16,
+        "epochs_run": 36,
+        "n_train_engines": 4,
+        "n_train_windows": 793,
+        "wall_time_s": 74.95757389068604
+      },
+      {
+        "seed": 456,
+        "test_rmse": 19.046483993530273,
+        "test_score": 679.9340209960938,
+        "best_val_rmse": 20.810985565185547,
+        "best_epoch": 13,
+        "epochs_run": 33,
+        "n_train_engines": 4,
+        "n_train_windows": 696,
+        "wall_time_s": 64.93878769874573
+      },
+      {
+        "seed": 789,
+        "test_rmse": 29.131019592285156,
+        "test_score": 81899.0234375,
+        "best_val_rmse": 25.96464729309082,
+        "best_epoch": 50,
+        "epochs_run": 70,
+        "n_train_engines": 4,
+        "n_train_windows": 654,
+        "wall_time_s": 127.46629238128662
+      },
+      {
+        "seed": 1024,
+        "test_rmse": 34.95741653442383,
+        "test_score": 31714.71875,
+        "best_val_rmse": 36.26601028442383,
+        "best_epoch": 3,
+        "epochs_run": 23,
+        "n_train_engines": 4,
+        "n_train_windows": 756,
+        "wall_time_s": 49.23603701591492
+      }
+    ],
+    "all_rmse": [
+      18.534143447875977,
+      21.09939956665039,
+      19.046483993530273,
+      29.131019592285156,
+      34.95741653442383
+    ]
+  },
+  "kill_criterion": {
+    "star_20pct_rmse": 17.742105865478514,
+    "verdict": "STRONG: STAR@20% > 16 RMSE. Label-efficiency pitch survives."
+  },
+  "wall_time_total_s": 4675.150557756424,
+  "reference_100pct": {
+    "rmse_mean": 12.186,
+    "rmse_std": 0.553
+  }
+}

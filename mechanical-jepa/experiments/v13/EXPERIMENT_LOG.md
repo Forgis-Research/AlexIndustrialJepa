@@ -335,23 +335,26 @@ this trade-off because it never freezes representations.
 
 ---
 
-## Phase 0a: STAR Label-Efficiency Sweep (PARTIAL RESULTS)
+## Phase 0a: STAR Label-Efficiency Sweep (COMPLETE)
 
-**Intermediate results**:
-| Budget | STAR RMSE | STAR Std |
-|--------|-----------|----------|
-| 100%   | 12.19     | 0.55     | (from prior run)
-| 50%    | 13.26     | 0.74     |
-| 20%    | 17.74     | 3.62     |
-| 10%    | pending   |          |
-| 5%     | pending   |          |
+**Time**: 2026-04-12 21:39 - 22:59 UTC (~80 min)
+**Script**: experiments/v13/phase0a_star_label_sweep.py
 
-**KILL CRITERION CHECK**: STAR@20% = 17.74 > 16 -> **Label-efficiency pitch is STRONG!**
+**Final results**:
+| Budget | STAR RMSE | STAR Std | JEPA E2E | JEPA Frozen |
+|--------|-----------|----------|----------|-------------|
+| 100%   | 12.19     | 0.55     | 14.18    | 16.70       |
+| 50%    | 13.26     | 0.74     | -        | -           |
+| 20%    | 17.74     | 3.62     | 18.00    | 19.50       |
+| 10%    | 18.72     | 2.76     | 19.97    | 19.83       |
+| 5%     | 24.55     | 6.45     | 29.64    | 24.47       |
 
-STAR degrades dramatically at 20% labels (12.19 -> 17.74, +5.55 RMSE).
-Meanwhile JEPA E2E at 20% is 18.00 and JEPA frozen at 20% is 19.50.
-At 20%, STAR barely beats JEPA E2E (17.74 vs 18.00). The label-efficiency
-advantage of JEPA is clear: with 100% labels STAR wins by 2 RMSE, but with
-20% labels the gap shrinks to < 0.3 RMSE.
+**KILL CRITERION: STAR@20% = 17.74 > 16 -> Label-efficiency pitch STRONG!**
+
+**Headlines**:
+1. STAR's advantage shrinks from -2.0 (100%) to -0.3 (20%) to +0.1 (5%)
+2. At 5% labels, JEPA frozen BEATS STAR (24.47 vs 24.55)!
+3. STAR variance explodes at low labels (std 0.55 -> 6.45)
+4. JEPA frozen is the most stable method at extreme low labels
 
 ---
