@@ -149,3 +149,80 @@ If confirmed by n_cuts=50 and n_cuts=176, the gap to STAR must be structural:
   while JEPA is SSL pretrained then fine-tuned with probe
 
 ---
+
+## Phase 0d: Length-vs-Content Ablation (COMPLETE)
+
+**Time**: 2026-04-12 ~21:32 UTC
+**Duration**: 10 seconds (inference only, no training)
+**Script**: experiments/v13/phase0d_length_vs_content.py
+
+Three inference-only tests on frozen V2 encoder:
+
+**Test 1 - Constant Input**: Repeated first cycle t=[30,50,80,110,140,170,200] times.
+Prediction range: 2.29 cycles across all lengths. **PE does NOT dominate** - the model
+produces near-constant output (~120-122) regardless of length when content is constant.
+
+**Test 2 - Length-Matched Cross-Engine Swap**: 10 engine pairs within 10 cycles of each
+other. Mean cosine similarity: 0.647. Mean prediction difference: 4.24 cycles.
+**Content matters** - different sensors at same length produce different embeddings.
+Notable variation: some pairs have cos_sim<0.3, others >0.95.
+
+**Test 3 - Temporal Shuffle (strongest)**: Permute sensor rows, keep length/values.
+- Original: RMSE=16.06, rho_median=0.896
+- Shuffled: RMSE=36.77, rho_median=0.771
+- RMSE jumps +20.71 on shuffle, rho drops -0.125
+**Encoder reads temporal degradation patterns.** Shuffle destroys RMSE dramatically.
+
+**GATE: PASSED.** The encoder reads sensor content and temporal structure, not just length.
+The H.I. R^2=0.926 is NOT a length artifact. Representation claims hold.
+
+---
+
+## Phase 0c: From-Scratch Ablation (COMPLETE)
+
+**Time**: 2026-04-12 ~21:39 UTC
+**Duration**: 421 seconds (~7 min)
+**Script**: experiments/v13/phase0c_from_scratch.py
+
+Same V2 encoder (d=256, L=2) initialized from random weights vs pretrained checkpoint.
+Same E2E protocol (LR=1e-4, Adam, patience=20). 4 label budgets x 5 seeds x 3 conditions.
+
+**Results**:
+| Budget | Pretrained E2E | From-Scratch E2E | Frozen Probe | Delta (scratch-pretrained) |
+|--------|---------------|------------------|-------------|---------------------------|
+| 100%   | 14.18 +/- 0.55 | 22.99 +/- 2.33 | 16.70 +/- 0.95 | +8.81 |
+| 20%    | 18.00 +/- 1.37 | 32.50 +/- 1.50 | 19.50 +/- 1.58 | +14.51 |
+| 10%    | 19.97 +/- 2.19 | 35.59 +/- 2.67 | 19.83 +/- 0.83 | +15.62 |
+| 5%     | 29.64 +/- 5.27 | 37.59 +/- 2.00 | 24.47 +/- 5.48 | +7.95 |
+
+**GATE: PASSED with massive margin.** Delta at 100% is +8.8 (>>3 threshold).
+Pretraining contributes enormously to E2E performance.
+
+**Key findings**:
+1. From-scratch E2E is catastrophically worse than pretrained E2E at all budgets.
+2. Delta peaks at 10-20% labels (~15 RMSE), not at 5% (E2E destabilizes with 4 engines).
+3. Frozen probe OUTPERFORMS pretrained E2E at 5% labels (24.47 vs 29.64) -
+   E2E fine-tuning is unstable when labels are very scarce.
+4. The "pretraining matters when labels are scarce" pitch is partially supported:
+   delta grows from 100%->20%->10%, but drops at 5% due to E2E instability.
+
+**Interpretation**: This is a STRONG SSL claim. The pretrained representations provide
+a foundation that E2E fine-tuning builds on. Without pretraining, the transformer encoder
+cannot learn meaningful representations from the limited fine-tuning data alone.
+
+---
+
+## Phase 0a: STAR Label-Efficiency Sweep (RUNNING)
+
+**Time**: Started 2026-04-12 ~21:39 UTC
+**Script**: experiments/v13/phase0a_star_label_sweep.py
+**Status**: Running in background (PID 32865), currently at 50% budget.
+Expected duration: 3-4 hours.
+
+---
+
+## Phase 0b: STAR FD004 Sweep (QUEUED)
+
+Queued behind Phase 0a (GPU contention). Will launch after 0a completes.
+
+---
