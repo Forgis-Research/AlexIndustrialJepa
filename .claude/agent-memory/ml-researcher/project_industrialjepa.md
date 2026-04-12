@@ -1,6 +1,6 @@
 ---
 name: IndustrialJEPA Project Context
-description: V12 DONE (Phase0/1/3/4/Extra): V11 real, H.I.R2=0.926, 5-seed 14.23+/-0.39, FD002=distrib.shift; 17ch ablation=NEGATIVE (global norm fails); STAR sweep pending (PID 243354, kill crit=@20%<=14)
+description: V12 COMPLETE except STAR sweep (running); V13 Exp1 running; CRITICAL: AE-LSTM=13.99<JEPA=14.23 (we don't beat SSL SOTA); paper has 8 figures now; V13 gap to STAR=~2 RMSE
 type: project
 ---
 
@@ -555,8 +555,28 @@ Tracking is real across all 4 C-MAPSS subsets.
 ### V12 Still Pending
 
 - STAR label efficiency sweep: running (PID 243354, 5 budgets x 5 seeds, started 00:12 Apr 12)
-  - Budget 100% expected ~03:05, budget 20% expected ~06:00
   - Kill criterion: STAR@20% <= 14 RMSE kills label-efficiency pitch
+  - Output: experiments/v12/star_label_efficiency.json (not yet available)
+
+### CRITICAL PAPER CORRECTION (discovered Apr 12 V12 session)
+
+AE-LSTM result=13.99 RMSE. JEPA E2E result=14.23 RMSE. 
+WE DO NOT OUTPERFORM AE-LSTM. 14.23 > 13.99 (lower is better).
+The paper now says "within 1.7% of prior SSL SOTA" (not "outperforms").
+All three occurrences fixed (contributions, key findings, conclusion).
+
+### V13 Experiments (launched Apr 12)
+
+V13 goal: Close ~2 RMSE gap between JEPA E2E (14.23) and STAR (12.19) on FD001.
+
+Exp 1: Fine-tuning schedule variants (PID 277608, started ~02:14 Apr 12)
+- e2e_baseline: 14.48 ± 0.55 (SANITY CHECK PASS, consistent with V12's 14.23)
+- e2e_low_lr (lr=5e-5), e2e_wd (wd=1e-4), warmup_freeze: still running
+- BUG FOUND+FIXED: eval_test_rmse was missing * RUL_CAP, giving 85.52 RMSE
+  (caught by magnitude check: expected ~14, got ~86)
+
+STAR FD004 replication: running (PID 245063, started 00:27 Apr 12)
+Output will be at paper-replications/star/results/FD004_results.json
 
 ### Files
 - `experiments/v12/` - all V12 code and results
