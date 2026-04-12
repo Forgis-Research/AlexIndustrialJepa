@@ -1,0 +1,10 @@
+{
+  "probe": "212b_verify_full_dataset",
+  "n_full": 183570,
+  "pos_full": 5850,
+  "lr_base_60": 0.8170065767594414,
+  "lr_base_maxvar_120": 0.8239365092103819,
+  "ensemble_base_maxvar_120": 0.8328981856779155,
+  "lr_base_maxvar_diff_180": 0.8286849087325745,
+  "ensemble_base_maxvar_diff_180": 0.8349389734385204
+}
