@@ -196,7 +196,7 @@ Our JEPA encoder follows the architecture of I-JEPA~\citep{assran2023ijepa} adap
 \end{equation}
 where $M$ is the set of masked indices, $\bar{M}$ the context indices, and $\text{sg}[\cdot]$ is stop-gradient. The variance regularization $\loss_{\text{var}} = \max(0, 1 - \sqrt{\Var(\z) + \epsilon})$ with $\lambda = 0.1$ prevents representation collapse by penalizing the encoder when embedding variance drops below a threshold - without this term, the encoder can minimize L1 loss by mapping all inputs to the same constant representation.
 
-\paragraph{Pretraining data.} We pretrain on 33{,}939 vibration windows from 8 bearing datasets (CWRU, MFPT, IMS, FEMTO, XJTU-SY, Paderborn, Ottawa, MAFAULDA), spanning diverse operating conditions, fault types, and sampling rates (all resampled to 12{,}800\,Hz).
+\paragraph{Pretraining data.} We pretrain on 33{,}939 vibration windows from 8 bearing datasets (CWRU~\citep{smith2021cwruleakage}, MFPT, IMS~\citep{ims_bearing}, FEMTO~\citep{nectoux2012pronostia}, XJTU-SY~\citep{wang2020xjtusybearing}, Paderborn, Ottawa, MAFAULDA), spanning diverse operating conditions, fault types, and sampling rates (all resampled to 12{,}800\,Hz).
 
 \subsection{Temporal Contrastive Learning}
 \label{sec:contrastive}
