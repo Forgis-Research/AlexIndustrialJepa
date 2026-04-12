@@ -393,7 +393,8 @@ The coefficient of variation in episode lifetimes (CV = 0.635) explains why elap
   \item \textbf{Single channel.} Current experiments use only one vibration channel. Extending to multivariate inputs (e.g., multi-axis accelerometers, motor current) is a natural next step.
   \item \textbf{Temporal contrastive requires episode structure.} The contrastive objective assumes access to run-to-failure episodes with temporal ordering.
   \item \textbf{JEPA pretraining instability.} Training loss oscillates after epoch 2 on heterogeneous multi-source data; the best checkpoint is always early.
-  \item \textbf{Two transfer pairs.} Cross-dataset evaluation is limited to FEMTO$\leftrightarrow$XJTU-SY. Validation on additional domains (e.g., turbofan engines) would strengthen generalization claims.
+  \item \textbf{Two transfer pairs.} Cross-dataset evaluation is limited to FEMTO$\leftrightarrow$XJTU-SY. A trajectory variant of JEPA applied to C-MAPSS turbofan data (Appendix~\ref{app:turbofan}) confirms the framework generalizes to 14-channel multivariate sensor streams, but cross-domain bearing$\leftrightarrow$turbofan transfer is not evaluated.
+  \item \textbf{Gap to supervised SOTA.} On C-MAPSS FD001, JEPA E2E achieves RMSE $14.23 \pm 0.39$ versus STAR (supervised, RMSE $12.19$ replication). Closing this $\sim$2 RMSE gap is ongoing work. Health index recovery ($R^2 = 0.926$) and within-engine tracking ($\rho = 0.830$) confirm the representations are genuinely learning degradation structure.
 \end{enumerate}
 
 % ============================================================
