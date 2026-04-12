@@ -5928,3 +5928,53 @@ Horizon   AUROC         pos_rate  Interpretation
 
 ---
 
+
+---
+
+## Exp 201: Frequency-Domain Features (PENDING)
+
+**Time:** 2026-04-12 ~02:00
+**Hypothesis:** High-frequency power per bin may encode anomaly precursors better than variance.
+**Status:** RUNNING (PID 256134)
+
+---
+
+## Exp 202: Variance Acceleration Features (PENDING)
+
+**Time:** 2026-04-12 ~02:00
+**Hypothesis:** First and second derivative of the variance profile (acceleration toward anomaly) adds signal.
+**Status:** RUNNING (PID 256169)
+
+---
+
+## Exp 203: Zone-Aggregated Nonlinear Features (PENDING)
+
+**Time:** 2026-04-12 ~02:00
+**Hypothesis:** Aggregating per-zone statistics (mean/std/max/min per FAR/GAP/NEAR) enables nonlinear models to outperform 60-bin LR.
+**Status:** RUNNING (PID 256316)
+
+---
+
+## Exp 204: Cross-Patient Generalization (PENDING)
+
+**Time:** 2026-04-12 ~02:00
+**Hypothesis:** LR 60-bin trained on SVDB4 generalizes to SVDB1 (different patient).
+**Status:** RUNNING (PID 257068)
+
+---
+
+## Exp 205: Bin Size Sweep (5/10/20/30-step bins) (PENDING)
+
+**Time:** 2026-04-12 ~02:00
+**Hypothesis:** Optimal bin size for 600-step context may not be 10 steps. Testing 5, 10, 20, 30-step bins.
+**Status:** RUNNING (PID 257338)
+
+---
+
+## Exp 206: LR + RF Soft Ensemble (PENDING)
+
+**Time:** 2026-04-12 ~02:00
+**Hypothesis:** Averaging LR 60-bin and RF 60-bin predicted probabilities improves over best single model.
+**Status:** RUNNING (PID 257374)
+
+---
