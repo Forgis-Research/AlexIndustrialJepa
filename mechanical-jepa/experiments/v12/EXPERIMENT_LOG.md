@@ -304,3 +304,33 @@ Still running:
 - Phase 2 (STAR): (PID 243354, ~100 min elapsed, ~3h remaining)
 
 ---
+
+---
+
+## Session continuation (T+2:15 onwards)
+
+### Paper updates from V12 findings:
+
+1. **AE-LSTM comparison corrected**: JEPA E2E 14.23 > AE-LSTM 13.99 (we were WRONG to claim
+   "outperforms"). Fixed in paper to "within 1.7% of prior SSL SOTA".
+
+2. **New figures added to paper**:
+   - Encoder analysis + latent trajectories (bearing, Analysis section)
+   - v12_cmapss_main_results.pdf: baseline hierarchy, H.I. recovery, sliding eval
+   - v12_cmapss_tracking.pdf: shuffle test, rho histogram, pred_std histogram
+   - v8_pretrain_history.pdf: added to appendix hyperparameters section
+
+3. **STAR replication row added**: Table in appendix now shows STAR (paper)=10.61 and
+   STAR (replic.)=12.19±0.6 for full transparency.
+
+4. **V13 Exp 1 launched** at T+2:14 (PID 273645). Bug found and fixed (missing RUL_CAP
+   scaling in eval_test_rmse). Restarted as PID 277608.
+   
+5. **V13 Exp 1 e2e_baseline result** (PID 277608): 14.48±0.55. Sanity check PASS.
+   Variants e2e_low_lr, e2e_wd, warmup_freeze still running.
+
+### Still running at T+2:22:
+- Phase 2 STAR sweep (PID 243354): ~2h22m elapsed, budget 100% nearing completion
+- V13 Exp 1 variants (PID 277608): e2e_baseline done, others running
+- STAR FD004 (PID 245063): ~2h running
+
