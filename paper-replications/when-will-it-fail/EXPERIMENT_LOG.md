@@ -6366,3 +6366,117 @@ Base+MaxVar+Interact (123):    0.8243 ± 0.0133  +0.005
 **File:** results/improvements/zone_interactions.json
 
 ---
+
+## Exp 218: Triple Ensemble (LR + RF + MLP) (COMPLETE)
+
+**Time:** 2026-04-12 ~04:45
+**Hypothesis:** Adding MLP to the LR+RF ensemble captures additional non-linear interactions.
+**Change:** 5-fold CV, all three models on Base+MaxVar (120-feat), equal weight ensemble.
+**Sanity checks:** ✓ LR+RF matches reference ✓ Per-fold results vary (fold 1: 0.859 - high variance) ✓ Triple > LR+RF in 4/5 folds
+**Result:**
+```
+Model              AUROC (5-fold)    Delta vs 0.828
+LR+RF (ref):       0.824 ± 0.014    (matches prior)
+LR+MLP:            0.830 ± 0.017    +0.002
+Triple LR+RF+MLP:  0.832 ± 0.016    +0.004  POTENTIAL NEW BEST
+```
+**Verdict:** PROMISING but NEEDS VALIDATION (high variance, fold 1 = 0.859 suspicious)
+**Key findings:**
+1. Triple ensemble 0.832 vs LR+RF 0.828 (+0.004)
+2. LR+MLP alone: 0.830 - competitive with LR+RF
+3. High variance (std=0.016 vs 0.014 for LR+RF) - less stable
+4. Requires multi-seed validation to confirm
+
+**CRITICAL NOTE:** The fold 1 AUROC = 0.859 for triple ensemble is suspicious (vs 0.851 for LR+RF). This fold may have a favorable class distribution. Multi-seed validation (Probe 218b) running to confirm.
+
+**File:** results/improvements/triple_ensemble.json
+
+---
+
+## Exp 221: HistGradientBoosting on 120-feat (COMPLETE)
+
+**Time:** 2026-04-12 ~04:50
+**Hypothesis:** HistGBM (modern fast gradient boosting) may outperform RF on the 120-feat space.
+**Change:** HistGradientBoostingClassifier with 100/200 trees, depth 4/6, plus LR+HGB ensemble.
+**Sanity checks:** ✓ HGB runs correctly ✓ Results internally consistent ✓ Multiple configurations tested
+**Result:**
+```
+Model                  AUROC (5-fold)    Delta vs LR+RF (0.828)
+HGB(100 trees, d=4):   0.811 ± 0.014    -0.017
+HGB(200 trees, d=4):   0.811 ± 0.015    -0.017
+HGB(200 trees, d=6):   0.812 ± 0.012    -0.016
+LR+HGB ensemble:       0.826 ± 0.013    -0.002
+```
+**Verdict:** NEGATIVE - HistGBM is WORSE than RF on this dataset.
+**Key insight:** RF (0.813) vs HGB (0.811) - almost identical. Both are ensemble tree methods and capture similar non-linear patterns. The small LR+RF advantage over LR+HGB (0.828 vs 0.826) suggests RF's random subspace sampling adds slightly more diversity to the ensemble.
+
+**File:** results/improvements/histgbm.json
+
+---
+
+## Exp 222: Feature Importance and Zone Contribution Analysis (COMPLETE)
+
+**Time:** 2026-04-12 ~04:55
+**Hypothesis:** Which specific bins within the 60-bin feature are most important?
+**Change:** LR coefficient analysis, leave-one-zone-out ablation, noise injection sensitivity.
+**Sanity checks:** ✓ Coefficients match expected 3-zone pattern ✓ NEAR dominates (consistent with prior) ✓
+**Result:**
+```
+Zone Contribution (leave-one-zone-out):
+  Full model AUROC:  0.8133 (80/20 split)
+  No FAR zone:       0.7785  FAR contribution: +0.035
+  No GAP zone:       0.7882  GAP contribution: +0.025
+  No NEAR zone:      0.7015  NEAR contribution: +0.112  ← DOMINANT
+
+Top NEGATIVE coefficients (strongest AP- predictors):
+  Bins 51-56 (NEAR, t-90 to t-40): coef=-1.85 to -0.51
+Top POSITIVE coefficients (strongest AP+ predictors):  
+  Bins 37-39 (GAP, t-230 to t-200): coef=+0.19 to +0.16
+  
+Most sensitive bins (AUROC drop when noised):
+  Bins 51-55 (NEAR zone): sensitivity +0.07 to +0.13 each
+```
+**Key findings:**
+1. NEAR zone contributes +0.112 AUROC - 4x more than FAR (+0.035) or GAP (+0.025)
+2. The critical bins are 51-55 (t-90 to t-40): deeply negative (predict AP- when high var)
+3. Top positive bins: GAP-NEAR boundary (bins 37-40)
+4. This means: "If variance is LOW in NEAR zone AND HIGH near GAP-NEAR boundary → AP+"
+
+**Mechanistic insight:** The model learns: "Calm just before prediction horizon + elevated activity in GAP = prepare for anomaly"
+
+**File:** (no separate JSON - inline analysis)
+
+---
+
+## Exp 224: Subgroup Analysis by Anomaly History (COMPLETE)
+
+**Time:** 2026-04-12 ~05:05
+**Hypothesis:** The 3-zone mechanism should be stronger when a previous anomaly block is visible within the 600-step context window.
+**Change:** Annotate each sample with distance to previous anomaly block. Compare AUROC in "recent history" vs "distant history" subgroups.
+**Sanity checks:** ✓ Block durations exactly 100 steps (all blocks!) ✓ Total 117 blocks in test set ✓ Consistent with feature importance findings
+**Result:**
+```
+Anomaly block properties: ALL blocks = exactly 100 steps (perfectly regular)
+Inter-block gaps: mean=1465, median=1272 (range: 235-8297)
+
+Subgroup                          N_total   AP+    AUROC
+Full dataset:                     36,704    1,170  0.820
+Prev block < 600 steps away:      13,517      404  0.861  ← MUCH HIGHER
+Prev block >= 600 steps away:     23,187      766  0.784  ← Still good
+Prev block in FAR zone (400-600):  4,254      292  0.761
+```
+**Verdict:** INFORMATIVE - Strongest finding of the session.
+**Key insights:**
+1. 3-zone mechanism: 0.861 AUROC when prev block visible (3-zone directly applicable)
+2. When no block visible (65% of cases): 0.784 still works via BASELINE signal variation
+3. ALL anomaly blocks are exactly 100 steps - this is a highly regular dataset
+4. The 0.820 overall AUROC = weighted combination of 0.861 (recent) and 0.784 (distant)
+5. The "distant" 0.784 represents the BASELINE predictability of pre-anomaly physiology
+
+**Implication for paper:** The 3-zone signal is NOT just about the previous block. It also captures:
+  - Pre-anomaly physiological changes that happen 200-400 steps before onset (GAP zone)
+  - Calm preceding period (NEAR zone) independent of previous block history
+
+**File:** (inline analysis - no separate JSON needed)
+
+---

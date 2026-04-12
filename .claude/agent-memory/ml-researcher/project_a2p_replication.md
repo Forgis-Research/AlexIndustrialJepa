@@ -477,3 +477,50 @@ All in `results/improvements/`:
 | LR 60-bin global_var (600-step) | 0.820 ± 0.012 | Clean single-feature result |
 | TF 600-step (near-random) | 0.512 ± 0.032 | FAILS on extended context |
 | Theoretical ceiling | 0.968 | |
+
+## NEW CRITICAL FINDINGS (April 12, 2026 - Session 6: Probes 211-225)
+
+### Session 6 Key Results
+- **SMD cross-dataset failure**: Base+MaxVar approach WORSENS SMD (0.577 vs 0.640 base). Feature approach is SVDB4-specific.
+- **Context extension negative**: 800/1000/1200-step contexts add noise (0.819-0.814), 600 is optimal.
+- **Triple ensemble 0.832**: LR+RF+MLP ensemble achieves 0.832 ± 0.016 (pending multi-seed validation). LR+MLP alone: 0.830.
+- **DiffVar feature 0.835**: Channel difference variance (var(ch0-ch1)) + Base+MaxVar ensemble achieves 0.835 on full dataset (pending verification).
+- **MLP(64,32): 0.826**: Small MLP on 120-feat space, competitive with LR+RF (0.828).
+- **HistGBM: 0.811**: HistGradientBoosting < RF on this task.
+
+### SVDB4 Anomaly Block Structure (Confirmed)
+- ALL 117 blocks = EXACTLY 100 steps (std=0, min=max=100) - uniform periodic structure
+- Inter-block gaps: mean=1465, median=1272, range=235-8297 steps
+- 65% of AP+ samples have no prev block within 600-step context
+- 35% of AP+ have prev block within context
+
+### Subgroup Analysis (Probe 224) - KEY MECHANISTIC INSIGHT
+- AP+ with prev block < 600 steps: **AUROC = 0.861** (3-zone mechanism fully applies)
+- AP+ with no prev block in context: **AUROC = 0.784** (pre-anomaly physiology signal)
+- Overall 0.820 = weighted average of these two subgroups
+- The 3-zone signal works BOTH when the previous block is visible AND when it isn't
+
+### Zone Contribution (Probe 222)
+- NEAR zone: +0.112 AUROC contribution (dominant)
+- FAR zone: +0.035 AUROC contribution
+- GAP zone: +0.025 AUROC contribution
+- Most sensitive bins: 51-55 (NEAR, t-90 to t-40)
+
+### Updated Final Leaderboard (Session 6, April 12, 2026)
+| Method | AUROC | Notes |
+|--------|-------|-------|
+| **DiffVar+Base+MaxVar Ensemble** | **0.835** | Pending full-dataset verification |
+| Triple LR+RF+MLP | 0.832 ± 0.016 | Pending multi-seed validation |
+| LR+RF Ensemble (Base+MaxVar) | 0.828 ± 0.014 | CONFIRMED BEST |
+| MLP(64,32) 120-feat | 0.826 ± 0.013 | Competitive |
+| LR 60-bin global_var | 0.820 ± 0.012 | Clean baseline |
+
+### Convergence Assessment
+After 225 experiments, performance has converged around 0.828-0.835 range. The dominant signal (NEAR zone variance) is fully exploited. Remaining improvements require either:
+1. Additional ECG-specific features (channel difference)
+2. Neural architectures that learn non-linear zone interactions
+3. Better calibration for precision-recall tradeoff
+
+### Chronos Status (Probe 144)
+- Still running at 4+ hours elapsed (9199 windows × ~1.5s each)
+- Expected result: Chronos standard AP was 0.745; strict AP likely 0.790-0.820
