@@ -1,0 +1,65 @@
+{
+  "warmup_freeze": [
+    {
+      "seed": 42,
+      "test_rmse": 14.94856071472168,
+      "val_rmse": 7.421093463897705,
+      "epochs": 100
+    },
+    {
+      "seed": 123,
+      "test_rmse": 15.234292030334473,
+      "val_rmse": 8.348984718322754,
+      "epochs": 100
+    },
+    {
+      "seed": 456,
+      "test_rmse": 14.162357330322266,
+      "val_rmse": 6.404235363006592,
+      "epochs": 100
+    },
+    {
+      "seed": 789,
+      "test_rmse": 13.630791664123535,
+      "val_rmse": 8.69908618927002,
+      "epochs": 69
+    },
+    {
+      "seed": 1024,
+      "test_rmse": 13.022910118103027,
+      "val_rmse": 6.1645331382751465,
+      "epochs": 100
+    }
+  ],
+  "standard_e2e": [
+    {
+      "seed": 42,
+      "test_rmse": 14.38180160522461
+    },
+    {
+      "seed": 123,
+      "test_rmse": 14.924056053161621
+    },
+    {
+      "seed": 456,
+      "test_rmse": 14.024331092834473
+    },
+    {
+      "seed": 789,
+      "test_rmse": 13.611154556274414
+    },
+    {
+      "seed": 1024,
+      "test_rmse": 13.8856201171875
+    }
+  ],
+  "summary": {
+    "warmup_freeze_mean": 14.199782371520996,
+    "warmup_freeze_std": 0.8174421815765582,
+    "standard_e2e_mean": 14.165392684936524,
+    "standard_e2e_std": 0.4533770820765049,
+    "delta_mean": 0.034389686584471946,
+    "improved": false,
+    "wall_time_total_s": 308.0891766548157
+  }
+}
