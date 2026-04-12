@@ -1,0 +1,8 @@
+{
+  "probe": "228_diffvar_integration_step5",
+  "lr_base_maxvar_120": 0.8225110473766201,
+  "lr_180_diffvar": 0.8275598681349143,
+  "ensemble_120_ref": 0.824158175813103,
+  "ensemble_180_diffvar": 0.827100155748578,
+  "delta_diffvar": 0.0029419799354749587
+}

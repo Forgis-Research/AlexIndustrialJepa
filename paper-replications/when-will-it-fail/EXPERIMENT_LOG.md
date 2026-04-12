@@ -6480,3 +6480,86 @@ Prev block in FAR zone (400-600):  4,254      292  0.761
 **File:** (inline analysis - no separate JSON needed)
 
 ---
+
+## Exp 219: LR Regularization Sweep on 120-feat (COMPLETE)
+
+**Time:** 2026-04-12 ~05:10
+**Hypothesis:** Higher regularization (lower C) or L1/ElasticNet might improve 0.822 LR on 120-feat.
+**Change:** Sweep C from 0.1 to 50, plus ElasticNet and L1 penalty on Base+MaxVar (120-feat).
+**Sanity checks:** ✓ C=1.0 matches expected ✓ All results internally consistent ✓ Low sensitivity confirms stable task
+**Result:**
+```
+Penalty                    AUROC (5-fold)
+C=0.1 (strong L2):        0.8225 ± 0.013
+C=0.5:                    0.8229 ± 0.013
+C=1.0 (reference):        0.8225 ± 0.014
+C=5.0:                    0.8220 ± 0.014
+C=10.0:                   0.8220 ± 0.014
+C=50.0 (weak L2):         0.8215 ± 0.014
+ElasticNet (l1_ratio=0.5): 0.8229 ± 0.013
+ElasticNet (l1_ratio=0.9): 0.8230 ± 0.013
+L1 only:                  0.8230 ± 0.013
+```
+**Verdict:** NEGATIVE - C=1.0 is already optimal. Negligible variation across full range (range=0.0015).
+**Key insight:** The task is completely insensitive to regularization strength. The signal-to-noise ratio in the 120 features is high enough that even very weak regularization (C=50) works well. L1/ElasticNet marginally better (+0.0005) but within std.
+
+**File:** results/improvements/lr_regularization_120feat.json
+
+---
+
+## Exp 218b: Triple Ensemble Multi-Seed Validation (COMPLETE)
+
+**Time:** 2026-04-12 ~05:15
+**Hypothesis:** The triple ensemble (LR+RF+MLP) result of 0.832 is stable across RF seeds.
+**Change:** Run triple ensemble CV with 5 different RF/MLP seeds, report mean.
+**Sanity checks:** ✓ LR+RF stable across seeds (std=0.0005) ✓ Triple stable (std=0.0009) ✓ Delta consistent
+**Result:**
+```
+Seed  0: LR+RF=0.8242, Triple=0.8292
+Seed  1: LR+RF=0.8237, Triple=0.8299
+Seed  2: LR+RF=0.8253, Triple=0.8321
+Seed 42: LR+RF=0.8242, Triple=0.8300
+Seed 99: LR+RF=0.8242, Triple=0.8304
+
+LR+RF:  0.8243 ± 0.0005  (very stable)
+Triple: 0.8303 ± 0.0009  (very stable)  ← NEW BEST CONFIRMED
+Delta:  +0.0060 (consistent across all seeds)
+```
+**Verdict:** KEEP - Triple ensemble confirmed at **0.830 ± 0.001** (5 seeds, very stable).
+**Key findings:**
+1. Triple ensemble (LR+RF+MLP) is consistently +0.006 better than LR+RF across ALL seeds
+2. Both methods are highly stable (std~0.001) - reliable result, not a lucky run
+3. The MLP adds independent diversity beyond what RF captures
+4. NEW BEST: 0.830 ± 0.001 (5-seed mean)
+
+**Note:** This is slightly different from the single-run 0.832 - the single run had favorable fold assignments. The 5-seed mean (0.830) is the reliable estimate.
+
+**File:** results/improvements/triple_ensemble.json (multi-seed version pending)
+
+---
+
+## Exp 228: DiffVar Integration on Step-5 Dataset (COMPLETE)
+
+**Time:** 2026-04-12 ~05:20
+**Hypothesis:** Adding DiffVar (ch0-ch1 variance) to Base+MaxVar improves over ensemble alone.
+**Change:** Build DiffVar features for step-5 subsampled dataset (N=36704) and test.
+**Sanity checks:** ✓ Base+MaxVar matches prior (0.822/0.824) ✓ DiffVar computed correctly ✓
+**Result:**
+```
+Feature set                    AUROC (5-fold)    Delta vs 0.820
+LR Base+MaxVar (120, ref):     0.8225 ± 0.0137  (ref)
+LR Base+MaxVar+Diff (180):     0.8276 ± 0.0148  +0.005
+Ensemble 120-feat (ref):       0.8242 ± 0.0140  (ref)
+Ensemble 180-feat:             0.8271 ± 0.0131  +0.003
+```
+**Verdict:** INFORMATIVE - DiffVar closes the gap between LR and ensemble (+0.005 for LR), but ensemble doesn't benefit much.
+**Key finding:** LR Base+MaxVar+DiffVar = 0.828, matching the LR+RF ensemble (0.824)! This means either approach achieves similar performance. The DiffVar feature makes LR competitive with the ensemble.
+
+**Comparison across approaches:**
+- LR+RF Ensemble (120-feat): 0.824
+- LR Base+MaxVar+Diff (180-feat): 0.828
+- Triple LR+RF+MLP (120-feat): 0.830
+
+**File:** results/improvements/diffvar_integration.json
+
+---
