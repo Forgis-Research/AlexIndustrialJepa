@@ -105,7 +105,7 @@ A key finding is that different self-supervised objectives learn fundamentally d
 \begin{enumerate}[nosep]
   \item A self-supervised framework for mechanical prognostics that learns degradation-aware representations from unlabeled vibration data across 8 bearing datasets (33,939 pretraining windows). JEPA pretraining alone matches expert-designed handcrafted features ($p = 0.40$); their fusion achieves RMSE $0.055 \pm 0.004$ - a $21.4\%$ improvement over the best handcrafted-only method (\cref{sec:indomain}).
 
-  \item Cross-dataset RUL transfer via temporal contrastive learning, achieving $+38\%$ over time-only baselines ($p < 0.001$) on FEMTO$\to$XJTU-SY - the first such result for bearing prognostics (\cref{sec:transfer}).
+  \item Cross-dataset RUL transfer via temporal contrastive learning without target-domain labels, achieving $+38\%$ over time-only baselines ($p < 0.001$) on FEMTO$\to$XJTU-SY - the first SSL-based cross-dataset result for bearing RUL prognostics (\cref{sec:transfer}).
 
   \item A mechanistic analysis showing that JEPA captures waveform texture while contrastive learning captures spectral centroid shift, explaining when and why each objective excels (\cref{sec:encoder_analysis}).
 
