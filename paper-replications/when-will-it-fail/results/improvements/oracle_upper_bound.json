@@ -1,0 +1,7 @@
+{
+  "probe": "197_oracle_upper_bound",
+  "results": {
+    "causal_60bin": 0.8122328448838559,
+    "oracle_60bin": 0.8103361857824672
+  }
+}

@@ -395,3 +395,41 @@ All in `results/improvements/`:
 - `optimal_lr.json`: Probe 63 4-feature LR analysis
 - `epoch_curve.json`: Probe 40 epoch learning curve
 - `architecture_comparison_stats.json`: Probe 65 formal t-tests
+
+## NEW CRITICAL FINDINGS (April 12, 2026 - Overnight Session 4: Probes 165-197)
+
+### Extended Context - NEW BEST (Probes 165-167)
+- **LR 60-bin (600-step context): 0.820 ± 0.012 CV AUROC - NEW BEST**
+- Prior best: LR 20-bin 200-step = 0.791 ± 0.020
+- Extended context improvement: +0.029 (+3.7%), p=0.000, CI=[+0.031,+0.050]
+- Context plateau: seq_200=0.791, seq_400=0.811, seq_600=0.820, seq_800=0.821 (plateau at 600-800)
+
+### Three-Zone Mechanism (Probes 172-176)
+- **FAR zone [t-600:t-400]**: prior block remnant - POSITIVE coefs (+0.06 to +0.14)
+- **GAP zone [t-400:t-200]**: deep inter-block calm - NEGATIVE coefs (trough at -0.54)
+- **NEAR zone [t-200:t]**: imminent onset calm - DEEPLY NEGATIVE (deepest: bin54 [t-60:t-50] = -2.25)
+- Zone ablation: FAR=0.675, GAP=0.724, NEAR=0.788, ALL=0.820 (all three zones necessary)
+- **Zone stability (Probe 195)**: cosine similarity 0.990 ± 0.005 across 5 folds; GAP negative 5/5; NEAR deepest 5/5
+
+### Per-Bin Analysis (Probe 184)
+- Best single bin: bin54 [t-60:t-50] = 0.691 AUROC
+- Using ALL 60 bins achieves 0.820 via feature interactions (+0.129 from best single bin)
+
+### Cross-Dataset (Probes 158, 179)
+- SMD 50K sample: 200-step=0.485, 600-step=0.640 (+0.155) - same pattern
+- SMD zone ablation: NEAR=0.488, GAP+NEAR=0.584, ALL=0.640
+
+### RF Extended Context (Probe 182)
+- RF 60-bin (600-step): 0.790 ± 0.024 (LR still better by 0.030)
+- All models benefit from extended context; LR best because temporal structure is linear-model-friendly
+
+### Final Strict AP Leaderboard (April 12, 2026)
+| Method | 5-fold CV AUROC | Notes |
+|--------|-----------------|-------|
+| Oracle [t+100,t+150] | 0.648 ± 0.010 | |
+| LR 20-bin (200-step) | 0.791 ± 0.020 | Prior best |
+| RF 20-bin (200-step) | 0.791 ± 0.013 | |
+| **LR 60-bin (600-step)** | **0.820 ± 0.012** | **NEW BEST** |
+| RF 60-bin (600-step) | 0.790 ± 0.024 | |
+| TF supervised (50ep) | 0.723 ± 0.005 | No benefit from extended ctx |
+| Theoretical ceiling | 0.968 | |
