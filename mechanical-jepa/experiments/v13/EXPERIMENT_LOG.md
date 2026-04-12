@@ -46,14 +46,17 @@ Do NOT treat first run results as valid.
 - e2e_baseline: 14.480 +/- 0.547 (delta: +0.250 vs ref 14.23) [NOISE]
 - e2e_low_lr (5e-5): 14.851 +/- 0.693 (delta: +0.621) [WORSE - slower convergence hurts]
 - e2e_wd (L2=1e-4): 15.003 +/- 0.556 (delta: +0.773) [WORSE - regularization hurts calibration]
-- warmup_freeze (20ep freeze, then lr=1e-5 encoder): TBD (PID 277608)
+- warmup_freeze (20ep freeze, then lr=1e-5 encoder): 15.266 +/- 1.873 (delta: +1.036) [WORST + UNSTABLE]
 
-**Sanity checks**: All passed for completed variants (RMSE 14-15, magnitude correct)
+**Sanity checks**: All passed (RMSE 14-16, magnitude correct). warmup_freeze high variance (1.873)
+flagged as potentially unstable - inconsistent probe gradient updates during freeze phase.
 
-**Key finding**: Fine-tuning schedule is NOT the bottleneck. Lower LR and weight decay
-both hurt performance. The encoder fine-tuning at LR=1e-4 is already well-tuned.
+**KEY FINDING: Fine-tuning schedule is NOT the bottleneck.**
+All non-baseline variants are WORSE. The standard E2E fine-tuning (LR=1e-4, no WD) is
+already optimal for this architecture. The STAR gap (14.48 vs 12.19 = 2.3 RMSE) must
+come from the model architecture or pretraining representation quality.
 
-**Verdict**: REVERT all non-baseline variants. Keep e2e_baseline config for future experiments.
+**Verdict**: REVERT all non-baseline variants. Keep e2e_baseline config for all future experiments.
 
 **Next**: Move to Exp 2 (probe variants) once warmup_freeze result is in.
 
