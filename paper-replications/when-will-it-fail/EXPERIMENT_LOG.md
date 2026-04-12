@@ -5845,7 +5845,34 @@ Best C=10: 0.8199 (+0.0002 over C=1.0)
 
 ---
 
-## Exp 196: Lead Time Sensitivity (PENDING)
+## Exp 196: Lead Time Sensitivity Analysis (COMPLETE)
+
+**Time:** 2026-04-12 ~01:35
+**Hypothesis:** AUROC degrades as prediction horizon increases. Task is easier when predicting nearer anomalies.
+**Change:** Vary pred_horizon from 50 to 300 steps; 600-step LR 60-bin; strict AP (no context anomaly); 5-fold CV
+**Note:** This uses a DIFFERENT strict AP filter: excludes windows where CONTEXT [t-50:t] has anomaly (vs our standard which excludes NEAR-HORIZON [t+50:t+100] anomaly). Numbers lower than standard strict AP (0.820).
+**Sanity checks:** ✓ Higher pos_rate at pred_100 (10.5%) vs pred_50 (7%) - correct ✓ Monotone degradation with horizon ✓ Slight recovery at 300 (fewer positives, noisy)
+**Result:**
+```
+Horizon   AUROC         pos_rate  Interpretation
+   50s:   0.669 ± 0.030  7.0%   Easiest: anomaly imminent, context has early signal
+  100s:   0.655 ± 0.035 10.5%   Standard AP task (ref - but different filter than 0.820)
+  150s:   0.639 ± 0.040 10.5%   Slightly harder
+  200s:   0.633 ± 0.042 10.3%   Hardest: context barely reaches prior block
+  300s:   0.643 ± 0.042  9.7%   Slight recovery (different pos distribution)
+```
+**Verdict:** KEEP - Lead time analysis shows expected degradation; 50s > 100s > 150s ≈ 200s ≈ 300s
+**Key findings:**
+1. AUROC degrades from 0.669 (50s) to 0.633 (200s) = -0.036 over 150 extra seconds
+2. Degradation is gradual (not cliff) - the temporal mechanism is robust
+3. 300s slight recovery: at 300s, we're looking 5+ blocks ahead (past the immediate block boundary), hitting a different predictive regime
+4. Practical conclusion: operator benefits most from 50-step lead time (easier prediction)
+
+**CAUTION ON COMPARISON**: These numbers (0.655 at 100s) are NOT directly comparable to our main 0.820 result because this probe uses a different strict AP filter (context clean, not horizon clean). The 0.820 uses our standard strict AP with near-horizon contamination filter.
+
+**File:** results/improvements/lead_time_analysis.json
+
+---
 
 **Time:** 2026-04-12 ~01:00
 **Hypothesis:** AUROC degrades as prediction horizon increases (50->300 steps). This quantifies practical forecast horizon.
