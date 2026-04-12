@@ -123,6 +123,64 @@ diagnostic on C-MAPSS is obscuring useful information about how their model actu
 
 ---
 
+## Phase Extra: FD003 and FD004 Tracking Verification
+
+| Subset | RMSE (seed=0) | V11 reported | pred_std_median | rho_median | vs. regressor |
+|:------:|:-------------:|:------------:|:---------------:|:----------:|:-------------:|
+| FD003 | 16.10 | 15.37 | 12.88 | 0.665 | **+2.91 V11 wins** |
+| FD004 | 26.04 | 25.62 | 7.14 | 0.654 | **+5.86 V11 wins** |
+
+Both FD003 and FD004 show genuine tracking. FD003 rho_median=0.665 and FD004 rho_median=0.654,
+both above the 0.5 threshold. The reconstructed seed=0 RMSE is consistent with V11 reported
+across all 4 subsets. FD004's lower pred_std_median (7.14) reflects the harder 6-condition
+task where condition switching adds noise to within-engine predictions.
+
+---
+
+## Phase 3b: Frozen vs E2E Tracking Quality
+
+A surprising finding: the frozen encoder (no E2E fine-tuning) has HIGHER median rho than
+the E2E fine-tuned encoder.
+
+| Mode | Test RMSE | pred_std_median | rho_median |
+|:----:|:---------:|:---------------:|:----------:|
+| Frozen | 15.91 | 10.73 | **0.856** |
+| E2E | 13.98 | 12.39 | 0.804 |
+
+Interpretation: E2E fine-tuning trades some tracking fidelity for better RMSE calibration.
+The frozen encoder tracks degradation more faithfully (higher rho) but at a higher RMSE.
+The E2E advantage comes from calibration of the RUL scale, not improved degradation detection.
+
+---
+
+## Phase Extra: PCA of JEPA Encoder Embeddings
+
+| Metric | Value |
+|:-------|:-----:|
+| PC1 explained variance | 47.6% |
+| PC1 + PC2 total variance | 78.4% |
+| PC1 Spearman |rho| with H.I. | **0.797** |
+| PC2, PC3 |rho| with H.I. | 0.154, 0.121 (negligible) |
+
+PC1 alone, capturing 47.6% of variance, has |rho|=0.797 with the health index. This is
+purely from pretraining - no labels, no fine-tuning. The embedding space is dominated by
+a single direction that tracks engine degradation.
+
+---
+
+## Phase Extra: H.I. Parameterization Robustness
+
+| H.I. Definition | Train R² | Val R² |
+|:----------------|:--------:|:------:|
+| Piecewise linear | 0.964 | **0.926** |
+| Sigmoid | 0.953 | 0.917 |
+| Raw RUL normalized | 0.964 | 0.926 |
+
+All three parameterizations exceed the 0.7 target. The H.I. recovery result is not sensitive
+to which specific functional form is chosen for the health index.
+
+---
+
 ## Phase 1: FD002 Val/Test Gap
 
 ### 1.1: Gap Measurement
@@ -142,8 +200,21 @@ test engine last-windows fall disproportionately in conditions rare during train
 
 ### 1.2: Condition Assignment
 
-Condition assignment plot generated. Analysis pending on whether any condition is >1.5x
-overrepresented in test vs training. See `analysis/plots/v12/fd002_condition_assignment.png`.
+FD002 has 6 operating conditions identified by KMeans. Distribution comparison:
+
+| Condition | Train fraction | Test fraction | Ratio | Status |
+|:---------:|:--------------:|:-------------:|:-----:|:------:|
+| 0 | 0.510 | 0.268 | 0.53 | Under-tested |
+| 1 | 0.049 | 0.124 | 2.53 | OVERREPRESENTED |
+| 2 | 0.063 | 0.163 | 2.59 | OVERREPRESENTED |
+| 3 | 0.130 | 0.159 | 1.22 | Balanced |
+| 4 | 0.193 | 0.151 | 0.78 | Under-tested |
+| 5 | 0.045 | 0.140 | 3.11 | OVERREPRESENTED |
+
+Conditions 1, 2, and 5 are severely underrepresented in training but over-represented at
+test time. This explains the FD002 val/test gap: the JEPA encoder learns well when trained,
+but the test engine last-windows are disproportionately from conditions where the normalizer
+has poor coverage.
 
 ### 1.3: Op-Settings as Input Channels
 
@@ -212,3 +283,11 @@ Three narrative options, ordered by strength:
 | `fd002_condition_input_results.json` | 17-channel FD002 ablation (pending) |
 | `star_label_efficiency.json` | STAR label sweep (pending, background) |
 | `analysis/plots/v12/` | All diagnostic plots |
+| `pca_analysis.json` | PC1 explains 47.6% variance, rho=0.797 with H.I. |
+| `frozen_vs_e2e_tracking.json` | Frozen rho_median=0.856, E2E rho_median=0.804 |
+| `hi_alternative_params.json` | All 3 H.I. parameterizations: val R²>0.91 |
+| `extra_fd003_fd004_diagnostics.json` | FD003/FD004 both confirmed tracking |
+| `multiseed_phase0_diagnostics.json` | 5-seed tracking stats (pending) |
+| `fd002_condition_input_results.json` | 17-channel FD002 ablation (pending) |
+| `star_label_efficiency.json` | STAR label sweep (pending, background) |
+| `paper_figures/` | Paper-quality PNG figures (Figures 1-3) |
