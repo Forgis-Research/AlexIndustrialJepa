@@ -1,0 +1,8 @@
+{
+  "probe": "190_smd_extrapolation",
+  "svdb4_relative_improvement": 0.03666245259165602,
+  "smd_50k_relative_improvement": 0.31958762886597947,
+  "full_smd_200step_ref": 0.698,
+  "full_smd_600step_estimate": 0.7238259999999999,
+  "note": "Conservative estimate; full dataset needed for verification"
+}

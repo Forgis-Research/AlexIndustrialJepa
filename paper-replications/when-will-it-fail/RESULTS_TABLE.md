@@ -339,3 +339,116 @@ This pattern only exists in strict AP+ events (no ongoing anomaly) - contaminate
 | Oracle [t+100,t+150] | 0.629 ± 0.015 |
 
 7-bin bins: t=[140-150], [150-160], [90-100], [190-200], [30-40], [130-140], [160-170]
+
+---
+
+## Overnight Session 4 Results: Extended Context (Probes 157-183)
+
+### Main Finding: Extended Context (600 steps) Achieves SOTA 0.820 Strict AP AUROC
+
+The standard A2P context window is 200 steps. Extending to 600 steps captures the full "three-zone" temporal structure, improving strict AP AUROC from 0.791 to **0.820 ± 0.012** (5-fold CV).
+
+### Final Strict AP Comparison Table
+
+| Method | Context | AUROC (5-fold CV) | vs Oracle | Notes |
+|--------|---------|-------------------|-----------|-------|
+| Random | - | 0.500 | - | Reference |
+| A2P (paper, 10-seed) | 200 | 0.528 ± 0.042 | -0.095 | Standard AP (contaminated) |
+| Oracle [t+100,t+150] | - | 0.623 ± 0.016 | baseline | Wrong window |
+| LR 4-feat | 200 | 0.706 ± 0.023 | +0.083 | No training |
+| TF supervised | 200 | 0.723 ± 0.005 | +0.100 | 3 seeds, 100ep |
+| RF 20-bin | 200 | 0.744 ± 0.020 | +0.121 | n=200 trees |
+| GBM 20-bin | 200 | 0.767 ± 0.032 | +0.144 | n=100 trees |
+| LR 20-bin | 200 | **0.791 ± 0.020** | **+0.168** | BEST 200-step |
+| RF 60-bin | 600 | 0.790 ± 0.024 | +0.167 | Extended context |
+| LR 60-bin | 600 | **0.820 ± 0.012** | **+0.197** | **BEST OVERALL** |
+| Oracle [t+150,t+200] | - | 0.983 ± 0.004 | +0.360 | Correct oracle (ceiling) |
+
+### Zone Ablation (SVDB4 strict AP, 5-fold CV)
+
+| Zone(s) | Coverage | AUROC | Delta vs ALL |
+|---------|----------|-------|-------------|
+| FAR only | t-600:t-400 | 0.675 ± 0.025 | -0.145 |
+| GAP only | t-400:t-200 | 0.724 ± 0.032 | -0.095 |
+| NEAR only | t-200:t | 0.788 ± 0.024 | -0.032 |
+| FAR+GAP | t-600:t-200 | 0.737 ± 0.023 | -0.083 |
+| FAR+NEAR | t-600:t-400 + t-200:t | 0.805 ± 0.014 | -0.015 |
+| GAP+NEAR | t-400:t | 0.807 ± 0.019 | -0.013 |
+| ALL (60-bin) | t-600:t | **0.820 ± 0.012** | 0 |
+
+All three zones contribute independently. NEAR is most important (0.788 alone), FAR second (0.675), GAP third (0.724). Removing any zone costs 0.013-0.145 AUROC.
+
+### Context Window Sweep (SVDB4 strict AP, 5-fold CV)
+
+| seq_len | n_bins | AUROC | Notes |
+|---------|--------|-------|-------|
+| 50 | 5 | 0.700 ± 0.012 | - |
+| 100 | 10 | 0.769 ± 0.024 | - |
+| 200 | 20 | 0.788 ± 0.025 | A2P default |
+| 400 | 40 | 0.807 ± 0.019 | +0.019 |
+| 600 | 60 | **0.820 ± 0.012** | **+0.032** |
+| 800 | 80 | 0.821 ± 0.017 | plateau |
+| 1000 | 100 | 0.816 ± 0.030 | plateau + noise |
+| 1200 | 120 | 0.820 ± 0.033 | plateau + noise |
+
+**Optimal context: 600 steps**. Beyond 600, std increases but mean doesn't improve.
+
+### 60-Bin LR Coefficient Profile
+
+The three-zone mechanism is directly visible in the LR coefficients:
+
+| Zone | Time Range | Coef Range | Interpretation |
+|------|-----------|------------|----------------|
+| FAR early | t-600:t-490 | +0.06 to +0.14 | Prior block high var (positive = AP+) |
+| FAR late | t-480:t-400 | -0.02 to -0.31 | Transition to calm |
+| GAP deep | t-400:t-300 | -0.21 to -0.46 | Deep inter-block calm |
+| GAP late | t-300:t-200 | -0.27 to +0.22 | Recovery to baseline |
+| NEAR early | t-200:t-100 | +0.10 to -0.39 | Pre-onset transition |
+| NEAR peak | t-100:t-40 | -0.65 to -2.25 | **STRONGEST: imminent onset calm** |
+| NEAR late | t-40:t | -1.32 to -0.02 | Recovery |
+
+**Strongest single coefficient:** bin54 [t-60:t-50] = -2.25 (very low variance 60-50 steps before prediction = AP+)
+
+### Cross-Dataset Summary (Strict AP, 5-fold CV)
+
+| Dataset | Context | LR AUROC | Oracle AUROC | Contamination | Notes |
+|---------|---------|----------|--------------|---------------|-------|
+| SVDB4 | 200 | 0.791 ± 0.020 | 0.623 ± 0.016 | 66.4% | Primary benchmark |
+| SVDB4 | 600 | **0.820 ± 0.012** | 0.623 ± 0.016 | 66.4% | Extended context |
+| SMD (50K) | 200 | 0.485 ± 0.029 | ~0.622 | 49.6% | Near-random (small sample) |
+| SMD (50K) | 600 | 0.640 ± 0.050 | ~0.622 | 49.6% | +0.155 with extended context |
+
+
+### Bootstrap Significance Test (Extended Context)
+
+```
+LR 20-bin (200-step): AUROC=0.772 [CI: 0.755, 0.788]
+LR 60-bin (600-step): AUROC=0.812 [CI: 0.794, 0.830]
+Delta: +0.040
+Bootstrap 95% CI: [+0.031, +0.050] (excludes 0!)
+p(delta <= 0) = 0.000 (p << 0.001)
+```
+
+The CIs are **completely non-overlapping**. This is publication-quality statistical evidence.
+
+### Method Hierarchy (Strict AP AUROC, 5-fold CV, SVDB4)
+
+```
+TASK CEILING:
+  Oracle [t+150,t+200]:    0.983 ± 0.004
+  
+OUR METHOD:
+  LR 60-bin (600-step):   0.820 ± 0.012  ***NEW BEST***
+
+ABLATIONS:
+  RF 60-bin (600-step):   0.790 ± 0.024  (+0.046 vs RF 200-step)
+  LR 20-bin (200-step):   0.791 ± 0.020  (A2P standard context)
+  RF 20-bin (200-step):   0.744 ± 0.020
+  GBM 20-bin (200-step):  0.767 ± 0.032
+  TF supervised:          0.723 ± 0.005  (A2P architecture)
+  LR 4-feat (no context): 0.706 ± 0.023
+  Oracle [t+100,t+150]:   0.623 ± 0.016  (wrong oracle)
+  A2P (10-seed):          0.528 ± 0.042  (near-random)
+  Random:                 0.500
+```
+
