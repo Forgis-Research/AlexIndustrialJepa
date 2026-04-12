@@ -1,0 +1,67 @@
+{
+  "per_seed_results": [
+    {
+      "seed": 42,
+      "test_rmse": 14.49721908569336,
+      "pred_std_median": 12.427385645461808,
+      "pred_std_mean": 16.46740838759583,
+      "rho_median": 0.8091783704434011,
+      "rho_mean": 0.6771842391062053,
+      "n_rho_gt_07": 66,
+      "n_rho_gt_05": 80,
+      "wall_time_s": 335.3923189640045
+    },
+    {
+      "seed": 123,
+      "test_rmse": 14.851541519165039,
+      "pred_std_median": 11.799290181029413,
+      "pred_std_mean": 15.851000279610952,
+      "rho_median": 0.799514257227312,
+      "rho_mean": 0.6372523997575873,
+      "n_rho_gt_07": 60,
+      "n_rho_gt_05": 75,
+      "wall_time_s": 341.81066155433655
+    },
+    {
+      "seed": 456,
+      "test_rmse": 13.801018714904785,
+      "pred_std_median": 12.335594032303254,
+      "pred_std_mean": 16.511006193235968,
+      "rho_median": 0.8569953024805872,
+      "rho_mean": 0.6758537193793601,
+      "n_rho_gt_07": 64,
+      "n_rho_gt_05": 77,
+      "wall_time_s": 391.6191191673279
+    },
+    {
+      "seed": 789,
+      "test_rmse": 14.104043006896973,
+      "pred_std_median": 13.039109510591434,
+      "pred_std_mean": 16.565768904501763,
+      "rho_median": 0.8518659196509535,
+      "rho_mean": 0.6663807483418169,
+      "n_rho_gt_07": 65,
+      "n_rho_gt_05": 75,
+      "wall_time_s": 278.81412267684937
+    },
+    {
+      "seed": 1024,
+      "test_rmse": 13.885926246643066,
+      "pred_std_median": 10.958027250305705,
+      "pred_std_mean": 15.729344238404256,
+      "rho_median": 0.8326880461966721,
+      "rho_mean": 0.6516348745524704,
+      "n_rho_gt_07": 60,
+      "n_rho_gt_05": 75,
+      "wall_time_s": 207.42943477630615
+    }
+  ],
+  "test_rmse_mean": 14.227949714660644,
+  "test_rmse_std": 0.3939481530043114,
+  "pred_std_median_mean": 12.111881323938324,
+  "pred_std_median_std": 0.6983458897669077,
+  "rho_median_mean": 0.8300483791997852,
+  "rho_median_std": 0.022702420389093616,
+  "all_pass_tracking": true,
+  "wall_time_s": 1563.1171510219574
+}

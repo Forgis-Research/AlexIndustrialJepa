@@ -234,19 +234,55 @@ is the most standard choice (matching C-MAPSS benchmark convention).
 
 ## Exp 14: Multi-Seed Trajectory Diagnostics (5 seeds)
 
-**Time**: 2026-04-12 T+1:25
-**Status**: RUNNING (PID 254211, ~14 min elapsed, ~16 min remaining)
+**Time**: 2026-04-12 T+1:46 (completed)
 **Hypothesis**: Phase 0 tracking verdict holds across all 5 seeds.
-**Expected**: mean_rho > 0.7, mean_pred_std > 10, RMSE mean ~13.8
-**Output**: multiseed_phase0_diagnostics.json
+**Sanity checks**: ✓ All 5 seeds pass thresholds, ✓ RMSE consistent with Phase 0
+**Result**:
+  - RMSE: 14.23 +/- 0.39 (range: 13.80 - 14.85)
+  - Pred std median: 12.11 +/- 0.70 (all > 10)
+  - Rho median: 0.830 +/- 0.023 (all > 0.7!)
+  - All seeds pass tracking: TRUE
+**Seeds**: 5 (42, 123, 456, 789, 1024)
+**Verdict**: CONFIRMED - tracking verdict is statistically robust
+**Insight**: Rho std = 0.023 is extremely small - the tracking signal is highly
+reproducible across random initialization. This is the key statistical validation
+for the paper claim.
+**Next**: Complete Phase 1 and Phase 2 (STAR)
 
 ---
 
-## Status at T+1:45
+## Exp 15: Paper Figures (Figures 1-3 + Supplemental S1-S3)
+
+**Time**: 2026-04-12 T+1:40-2:10
+**Change**: Generated 6 paper-quality figures:
+  - paper_figure1_main_results.png: baseline hierarchy, H.I. recovery, sliding vs last-window
+  - paper_figure2_fd002.png: FD002 val/test gap + per-condition RMSE
+  - paper_figure3_tracking.png: pred_std histogram, rho histogram, shuffle test
+  - suppl_figure_S1_multisubset.png: FD001/FD003/FD004 tracking comparison
+  - suppl_figure_S2_fd002.png: FD002 distribution shift diagnosis (3 panels)
+  - suppl_figure_S3_frozen_vs_e2e.png: frozen vs E2E calibration vs detection analysis
+**Verdict**: COMPLETE
+
+---
+
+## Exp 16: LaTeX Table Generation
+
+**Time**: 2026-04-12 T+2:00
+**Change**: Generated 6 publication-ready LaTeX tables (generate_latex_tables.py)
+**Sanity check**: All 26 internal consistency checks passed (sanity_check.py)
+**Verdict**: COMPLETE - all results internally consistent, safe for publication
+
+---
+
+## Status at T+2:15
+
+Completed:
+- Exp 1-14: All Phase 0/3/4/Extra experiments DONE
+- All 26 sanity checks pass
+- 6 paper figures (main + supplemental) generated
 
 Still running:
-- Exp 14: 5-seed trajectory diagnostics (~16 min remaining)
-- Phase 1.3: FD002 17-channel fine-tune (unknown remaining time)
-- Phase 2 (STAR): ~3+ hours remaining
+- Phase 1.3: FD002 17-channel fine-tune (PID 244550, ~90 min elapsed)
+- Phase 2 (STAR): (PID 243354, ~100 min elapsed, ~3h remaining)
 
 ---

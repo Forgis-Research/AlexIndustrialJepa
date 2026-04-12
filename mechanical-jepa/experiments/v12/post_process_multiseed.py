@@ -41,11 +41,11 @@ with open(V12_DIR / 'phase0_diagnostics.json') as f:
     p0 = json.load(f)
 
 print(f"\nComparison with Phase 0 (seed=0):")
-print(f"  RMSE: single={p0['test_rmse_reconstructed']:.2f}, multi={ms['test_rmse_mean']:.2f}")
+print(f"  RMSE: single={p0['reconstructed_test_rmse_seed0']:.2f}, multi={ms['test_rmse_mean']:.2f}")
 print(f"  rho: single={p0['within_engine_rho_median']:.3f}, multi={ms['rho_median_mean']:.3f}")
 
 # Consistency check
-rmse_consistent = abs(p0['test_rmse_reconstructed'] - ms['test_rmse_mean']) < 2.0
+rmse_consistent = abs(p0['reconstructed_test_rmse_seed0'] - ms['test_rmse_mean']) < 2.0
 rho_consistent = abs(p0['within_engine_rho_median'] - ms['rho_median_mean']) < 0.15
 print(f"\nConsistency: RMSE {'OK' if rmse_consistent else 'FAIL'}, rho {'OK' if rho_consistent else 'FAIL'}")
 
