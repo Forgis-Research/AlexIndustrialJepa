@@ -27,8 +27,8 @@ from models import (
 DEFAULT_LOSS_CONFIG = {
     'lambda_f': 1.0,           # Fine prediction weight
     'lambda_c': 0.5,           # Coarse prediction weight
-    'gamma': 0.1,              # MSE weight within prediction loss (paper: 0.1)
-    'kl_scale': 1.0,           # Scale factor for KL terms (paper uses KL as primary)
+    'gamma': 0.5,              # MSE weight within prediction loss
+    'kl_scale': 0.1,           # KL scale (paper=1.0 explodes on small batch; 0.1 is stable)
     'lambda_emb': 1.0,         # Embedding alignment
     'lambda_com': 0.25,        # Commitment loss
     'lambda_ent_sample': 0.005,  # Sample entropy (minimize) — paper: 0.005

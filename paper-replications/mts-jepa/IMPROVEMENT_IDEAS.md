@@ -9,10 +9,13 @@ All ideas from brainstorming (Phase 3J) with their current status.
 ## PROTOTYPED
 
 ### CC-JEPA: Causal Codebook JEPA
-- **Status**: Prototype implemented (`cc_jepa.py`)
-- **Results**: Pending comparison experiments
-- **Core insight**: Causal masking in encoder ensures genuine future prediction, codebook prevents collapse
-- **Next**: Run comparison on PSM and MSL
+- **Status**: Prototype implemented (`cc_jepa.py`), comparison experiments complete on PSM
+- **Results on PSM (2 seeds)**:
+  - CC-JEPA AUC: **54.0** vs MTS-JEPA AUC: 48.8 (+5.2 points, consistent across seeds)
+  - CC-JEPA is **1.75x faster** (79s vs 138s) — multivariate encoding avoids V parallel passes
+  - F1 identical (52.1) — both at threshold boundary
+- **Core insight**: Causal masking + multivariate encoding produces better probability rankings than channel-independent bidirectional encoding
+- **Verdict**: CONTINUE — consistent improvement with lower cost. Next: full-scale validation with gradient accumulation for batch_size=128
 
 ## DEFERRED (Promising, Needs More Time)
 

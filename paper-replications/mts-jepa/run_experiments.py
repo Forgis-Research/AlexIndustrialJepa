@@ -34,7 +34,7 @@ TRAIN_CONFIG = {
     'weight_decay': 1e-5,
     'n_epochs': 100,
     'patience': 10,
-    'patience_start': 50,
+    'patience_start': 90,  # Force at least 90 epochs of training (loss may increase)
     'max_grad_norm': 0.5,
     'd_model': 128,
     'd_out': 128,

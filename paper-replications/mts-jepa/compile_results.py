@@ -14,9 +14,9 @@ RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results"
 
 PAPER_TARGETS = {
     'MSL': {'f1': 33.58, 'auc': 66.08, 'precision': 35.87, 'recall': 40.80},
-    'SMAP': {'f1': 31.10, 'auc': 62.73, 'precision': 25.37, 'recall': 45.40},
-    'PSM': {'f1': 61.61, 'auc': 77.85, 'precision': 60.27, 'recall': 63.03},
-    'SWaT': {'f1': 39.72, 'auc': 67.23, 'precision': 30.47, 'recall': 56.91},
+    'SMAP': {'f1': 33.64, 'auc': 65.41, 'precision': 24.24, 'recall': 56.02},
+    'PSM': {'f1': 61.61, 'auc': 77.85, 'precision': 55.01, 'recall': 72.00},
+    'SWaT': {'f1': 72.89, 'auc': 84.95, 'precision': 98.00, 'recall': 58.05},
 }
 
 
