@@ -668,3 +668,31 @@ Statistical significance: the 0.828 ensemble beats baseline 0.820 with p<0.001 (
 Chronos-Small running since ~Apr 11 23:00. Result expected when Chronos finishes.
 **Reference:** Chronos standard AP AUROC was previously 0.745 (LR 20-bin standard AP: 0.644, +0.101 advantage).
 **Key question:** Does Chronos's advantage persist under the strict AP filter?
+
+### Final Results Summary (Session 6 Complete)
+
+| Method | AUROC | Std | N | Notes |
+|--------|-------|-----|---|-------|
+| LR 60-bin (step-5, 5-fold) | 0.820 | 0.012 | 36K | Clean baseline |
+| LR+RF Ensemble 120-feat (step-5) | 0.825 | 0.001 | 36K | 5-seed stable |
+| Triple LR+RF+MLP 120-feat (step-5) | 0.830 | 0.001 | 36K | 5-seed multi-seed |
+| LR+RF Ensemble 120-feat (full) | 0.833 | 0.014 | 183K | Full dataset |
+| **LR+RF Ensemble 180-feat (full)** | **0.835** | **0.015** | **183K** | **NEW BEST** |
+
+### Mechanistic Insights (Session 6)
+
+| Subgroup | AUROC | N_AP+ | Mechanism |
+|---------|-------|-------|-----------|
+| Prev block within 600 steps | 0.861 | 404 (35%) | 3-zone temporal pattern |
+| No prev block in context | 0.784 | 766 (65%) | Intrinsic ECG calming |
+| Full dataset | 0.820 | 1,170 | Weighted average |
+
+Zone contributions (leave-one-zone-out):
+- NEAR zone: +0.112 AUROC (dominant, 4x others)
+- FAR zone: +0.035 AUROC
+- GAP zone: +0.025 AUROC
+
+Feature contributions:
+- Global var (base): captures total energy variation
+- Max per-channel var (+0.003): captures channel asymmetry (esp. in GAP)  
+- Diff var (+0.002): captures lead disagreement (ch0-ch1)
