@@ -1,6 +1,6 @@
 ---
 name: IndustrialJEPA Project Context
-description: V12 VERIFICATION COMPLETE: V11 validated as real (not constant-predictor); H.I.R2=0.926; 5-seed RMSE=14.23+/-0.39; FD002 gap=+10.7 (distribution shift, not SSL failure); STAR label sweep pending
+description: V12 DONE (Phase0/1/3/4/Extra): V11 real, H.I.R2=0.926, 5-seed 14.23+/-0.39, FD002=distrib.shift; 17ch ablation=NEGATIVE (global norm fails); STAR sweep pending (PID 243354, kill crit=@20%<=14)
 type: project
 ---
 
@@ -544,11 +544,19 @@ Tracking is real across all 4 C-MAPSS subsets.
 4. DIAGNOSIS: FD002 gap = distribution shift (val=15.35, test=26.07)
 5. PENDING: STAR label sweep (kill criterion: if STAR@20% <= 14, pivot to H.I. headline)
 
-### V12 Pending Results (background processes)
+### V12 Phase 1.3 (COMPLETE - NEGATIVE)
 
-- STAR label efficiency sweep: 5 budgets x 5 seeds (~4-5 hours, still running at T+1:30)
-- FD002 17-channel ablation: 17ch frozen/E2E on FD002 with op-settings as input (~T+2:30)
-- Kill criterion: if frozen 17ch FD002 RMSE < 20, condition-awareness confirmed for v13
+17ch FD002 ablation (op-settings as input channels, global norm): FAILED.
+- Pretrain probe RMSE: 33.64 (vs 14ch: ~15.35)
+- Frozen RMSE: 40.81 (vs baseline 26.33, +14.5 WORSE)
+- Kill criterion triggered: condition-as-input-channels doesn't fix FD002
+- V13 insight: need condition tokens or condition-conditioned normalization, NOT naive concat
+
+### V12 Still Pending
+
+- STAR label efficiency sweep: running (PID 243354, 5 budgets x 5 seeds, started 00:12 Apr 12)
+  - Budget 100% expected ~03:05, budget 20% expected ~06:00
+  - Kill criterion: STAR@20% <= 14 RMSE kills label-efficiency pitch
 
 ### Files
 - `experiments/v12/` - all V12 code and results
