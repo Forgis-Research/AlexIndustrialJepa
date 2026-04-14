@@ -71,7 +71,18 @@ If frozen RMSE > 18.5 (worse than V2 by > 0.7), we revert. Otherwise the change 
 
 ### Result
 
-See `experiments/v14/full_sequence_prediction.json`. At the time of writing, probe RMSE on val during pretraining reached 14.10 (V2 baseline probe best was ~10.3 at val; numbers differ in protocol but indicate the encoder is learning meaningful features). Test-set fine-tuning numbers pending.
+Positive result. See `experiments/v14/full_sequence_prediction.json`.
+
+| Mode   | V14 full-seq   | V2 baseline  | Delta   |
+|:-------|:---------------|:-------------|:--------|
+| Frozen | **15.70 ± 0.21** | 17.81 ± 1.7  | **-2.11** |
+| E2E    | 14.32 ± 0.64   | 14.23 ± 0.39 | +0.09   |
+
+Per-seed frozen: [15.66, 15.46, 15.97]. Per-seed E2E: [14.70, 14.83, 13.42].
+
+Frozen improves by -2.11 RMSE with **8x lower seed std** (0.21 vs 1.7). E2E is essentially tied with V2. Kill criterion (frozen > 18.5) NOT triggered. The change is kept as the V14 default target-encoder configuration.
+
+Interpretation: letting the target see the full trajectory closes **37%** of the frozen-probe gap to supervised STAR at 100% labels (from 17.81 - 12.19 = 5.6 RMSE to 15.70 - 12.19 = 3.5 RMSE). The 8x reduction in seed variance suggests the richer target representation gives the predictor a cleaner teaching signal. Pretraining wall time: ~10 min on one A10G GPU, total experiment (pretrain + 6 fine-tunes) ~11.2 min.
 
 ## MTS-JEPA Comparison (Phase 5c) {#sec-mtsjepa}
 

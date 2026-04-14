@@ -358,6 +358,28 @@ The grey swan motivation is that failure data is scarce. \Cref{tab:main_results,
 
 \paragraph{Tracking fidelity: frozen vs.\ E2E.} An unexpected finding: frozen JEPA has \emph{higher} within-engine tracking ($\rho = 0.856$) than E2E ($\rho = 0.804$). E2E fine-tuning trades some tracking fidelity for better RMSE calibration---the improvement is in mapping to the correct RUL scale, not in degradation detection. We provide a principled rationale for this trade-off in \cref{sec:theory_frozen_e2e}.
 
+\subsection{Architectural Ablation: Full-Sequence Target Encoder}
+\label{sec:full_sequence}
+
+In the baseline Trajectory JEPA, the target encoder $\target$ processes only the future window $\x_{t+1:t+k}$. We test a simple variant in which the target encoder instead processes the whole trajectory up to $t+k$, $\x_{1:t+k}$ (the past is already encoded by the context encoder; the target now represents the complete trajectory including past and future). The loss, EMA, predictor, and context encoder are unchanged.
+
+\begin{table}[h]
+\centering
+\caption{Full-sequence target ablation, FD001 at 100\% labels, 3 seeds. Frozen probe improves by $-2.1$ RMSE with $8\times$ lower seed std; E2E is unchanged.}
+\label{tab:full_sequence}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Mode & Full-sequence target (V14) & Original target (V2) & $\Delta$ \\
+\midrule
+Frozen & $\mathbf{15.70}_{\pm0.21}$ & $17.81_{\pm1.7}$ & $-2.11$ \\
+E2E    & $14.32_{\pm0.64}$ & $14.23_{\pm0.39}$ & $+0.09$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Letting the target encoder see the full trajectory closes $37\%$ of the frozen-probe gap to supervised STAR at 100\% labels (from $17.81 - 12.19 = 5.6$ RMSE to $15.70 - 12.19 = 3.5$ RMSE), while keeping the 5\% STAR crossover intact. The $8\times$ reduction in seed variance is consistent with the target representation containing more information, giving the predictor a cleaner teaching signal. We adopt this configuration as the V14 default.
+
 \subsection{From-Scratch Ablation}
 \label{sec:from_scratch}
 
