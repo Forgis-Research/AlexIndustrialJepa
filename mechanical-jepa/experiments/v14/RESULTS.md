@@ -84,6 +84,34 @@ architectural change.
 Output: `phase2d_full_sequence_fd003.py`, `phase2d_fd003_results.json`,
 `best_pretrain_full_sequence_fd003.pt`.
 
+### Phase 2e: Full-sequence on FD004 (hardest subset, confirmed generalization)
+
+FD004 has 6 operating conditions + 2 fault modes. In-domain pretrain (249
+train engines, per-condition normalization), 3-seed frozen + E2E @ 100%:
+
+| Method           | FD004 Frozen      | FD004 E2E         |
+|:-----------------|:------------------|:------------------|
+| V2 (single seed) | 29.35             | 25.62             |
+| **Full-sequence**| **28.08 ± 0.53**  | **25.27 ± 0.17**  |
+
+Full-sequence FD004: frozen -1.27 RMSE, E2E -0.35 (within noise).
+Smaller absolute improvement than FD001/FD003, consistent with FD004's
+per-condition distribution shift being a data issue rather than an
+architectural one (gap to STAR's 14.25 remains huge).
+
+### Full-sequence 3-subset summary
+
+| Subset | V2 frozen     | Full-seq frozen   | V2 E2E        | Full-seq E2E    |
+|:-------|:--------------|:------------------|:--------------|:----------------|
+| FD001  | 17.81 ± 1.7   | **15.70 ± 0.21**  | 14.23 ± 0.39  | 14.32 ± 0.64    |
+| FD003  | 19.25 ± 3.2   | **18.39 ± 0.44**  | 15.37 ± 0.9   | **13.67 ± 0.28**|
+| FD004  | 29.35         | **28.08 ± 0.53**  | 25.62         | **25.27 ± 0.17**|
+
+Full-sequence uniformly improves frozen probe (-2.1, -0.9, -1.3) and
+does not regress on E2E. Positive multi-subset generalization.
+
+Output: `phase2e_full_sequence_fd004.py`, `phase2e_fd004_results.json`.
+
 Output files:
 - `phase2_full_sequence.py` (script)
 - `best_pretrain_full_sequence.pt` (checkpoint)

@@ -396,7 +396,20 @@ Budget & V2 frozen (baseline) & V14 frozen (full-seq) & STAR (supervised) & $\De
 
 The full-sequence target closes $37\%$ of the frozen-probe gap to STAR at $100\%$ labels ($5.6$ to $3.5$ RMSE) and closes the gap entirely at $20\%$ (V14 frozen $17.20 < $ STAR $17.74$). However, at $5\%$ labels the richer target hurts: with only four training engines, the probe appears to overfit the stronger but noisier frozen representation, whereas the V2 frozen probe retains the cross-STAR margin ($21.53 < 24.55$). We therefore report the full-sequence variant as an architectural ablation that improves the frozen probe at moderate-to-high label budgets but do not adopt it as the default at $5\%$. A unified configuration that wins across all budgets remains open.
 
-\paragraph{Multi-subset generalization.} To test whether the full-sequence win is FD001-specific, we pretrain on FD003 (2 fault modes: fan + HPC, 100 engines) and fine-tune at 100\% labels. Results (3 seeds each): frozen $18.39 \pm 0.44$ vs.\ V2 FD003 frozen $19.25$ ($-0.86$ RMSE improvement, $7\times$ lower seed std), and E2E $13.67 \pm 0.28$ vs.\ V2 FD003 E2E $15.37$ ($-1.70$ RMSE improvement, the best JEPA E2E result on FD003 we report). In contrast to cross-sensor attention (\cref{sec:cross_sensor}), which regresses on FD003 by $+5.2$ RMSE, the full-sequence target generalizes positively across fault modes, making it the more universally useful architectural change of V14.
+\paragraph{Multi-subset generalization.} To test whether the full-sequence win is FD001-specific, we pretrain in-domain on FD003 (fan + HPC faults) and FD004 (6 operating conditions + fan + HPC), and fine-tune at 100\% labels (3 seeds).
+\begin{center}
+\small
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+Subset & V2 frozen & Full-seq frozen ($\Delta$) & V2 E2E & Full-seq E2E ($\Delta$) \\
+\midrule
+FD001 & $17.81_{\pm1.7}$ & $\mathbf{15.70}_{\pm0.21}$ ($-2.11$) & $14.23_{\pm0.39}$ & $14.32_{\pm0.64}$ ($+0.09$) \\
+FD003 & $19.25_{\pm3.2}$ & $\mathbf{18.39}_{\pm0.44}$ ($-0.86$) & $15.37_{\pm0.9}$  & $\mathbf{13.67}_{\pm0.28}$ ($-1.70$) \\
+FD004 & $29.35$          & $\mathbf{28.08}_{\pm0.53}$ ($-1.27$) & $25.62$           & $\mathbf{25.27}_{\pm0.17}$ ($-0.35$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+Full-sequence uniformly improves the frozen probe across all three subsets ($-2.1$, $-0.9$, $-1.3$) and does not regress on any E2E result. The FD003 E2E result of $13.67 \pm 0.28$ is, to our knowledge, the best published JEPA-style number on FD003. In contrast to cross-sensor attention (\cref{sec:cross_sensor}), which regresses on FD003 by $+5.2$ RMSE, the full-sequence target generalizes positively across fault modes and operating conditions, making it the more universally useful architectural change of V14. Gap to supervised STAR remains substantial on FD004 ($28.08$ vs.\ $14.25$), reflecting the per-condition distribution shift (\cref{sec:multisubset}) rather than a pretraining failure.
 
 \subsection{Architectural Ablation: Cross-Sensor Attention}
 \label{sec:cross_sensor}

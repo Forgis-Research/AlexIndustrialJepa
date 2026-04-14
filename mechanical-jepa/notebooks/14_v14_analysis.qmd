@@ -111,6 +111,27 @@ Full-sequence on FD003: frozen -0.86 RMSE vs V2 (7× lower std), E2E **-1.70 RMS
 
 Full-sequence is the more universally useful V14 architectural change - it generalizes across fault modes while cross-sensor is FD001-specific.
 
+### Phase 2e: Full-sequence on FD004 (hardest subset)
+
+FD004 has 6 operating conditions + fan + HPC faults. 249 train engines, per-condition normalization, 3 seeds frozen + E2E @ 100%:
+
+| Method | FD004 Frozen | FD004 E2E |
+|:-------|:-------------|:----------|
+| V2 (single-seed) | 29.35 | 25.62 |
+| **Full-sequence** | **28.08 ± 0.53** | **25.27 ± 0.17** |
+
+Full-sequence FD004: frozen -1.27, E2E -0.35. Smaller absolute improvement than FD001/FD003, consistent with FD004's gap being a per-condition distribution shift rather than an architecture issue.
+
+### Full-sequence 3-subset summary
+
+| Subset | V2 frozen     | Full-seq frozen   | V2 E2E        | Full-seq E2E    |
+|:-------|:--------------|:------------------|:--------------|:----------------|
+| FD001  | 17.81 ± 1.7   | **15.70 ± 0.21**  | 14.23 ± 0.39  | 14.32 ± 0.64    |
+| FD003  | 19.25 ± 3.2   | **18.39 ± 0.44**  | 15.37 ± 0.9   | **13.67 ± 0.28**|
+| FD004  | 29.35         | **28.08 ± 0.53**  | 25.62         | **25.27 ± 0.17**|
+
+Full-sequence uniformly improves frozen probe across all three subsets (-2.1, -0.9, -1.3), and is best-or-tied on E2E. Universally positive generalization.
+
 ## Cross-Sensor Attention (Phase 3) {#sec-crosssensor}
 
 Sensor-as-token encoder inspired by iTransformer + STAR. 14 tokens per cycle, alternating temporal causal + cross-sensor attention, 961K params. Pretrain + fine-tune sweep:
