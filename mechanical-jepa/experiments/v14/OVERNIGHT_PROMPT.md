@@ -324,6 +324,111 @@ will ask "is this comparison fair?" — answer it preemptively.
 
 ---
 
+## Phase 5c — MTS-JEPA comparison study [~1.5h]
+
+**Context**: We have a full replication of MTS-JEPA (He et al. 2026) at
+`paper-replications/mts-jepa/`. The replication underperformed their
+numbers (likely due to reduced model size: d=128 vs paper d=256, 3 vs 6
+layers). We also have a critical review (`CRITICAL_REVIEW.md`) and their
+code. MTS-JEPA is the closest methodological relative to our work — both
+are JEPA variants for multivariate time series. A rigorous comparison is
+essential for positioning.
+
+### 5c.1 Architectural diff table
+
+Produce a precise side-by-side comparison:
+
+| Design choice | Ours (Trajectory JEPA) | MTS-JEPA (He et al.) |
+|---|---|---|
+| Task | RUL regression (continuous) | Anomaly prediction (binary) |
+| Prediction target | Future trajectory latent $h_{t+1:t+k}$ | Next-window latent (single step) |
+| Masking/splitting | Temporal cut at $t$ (causal) | Temporal cut (fine) + full-history (coarse) |
+| Encoder | Causal Transformer (flat) | Multi-resolution: fine + coarse dual-predictor |
+| Collapse prevention | EMA target + L1 loss | Codebook regularization (VQ-VAE style) |
+| Downstream | Linear probe or E2E fine-tune | Frozen MLP classifier on codebook distributions |
+| Multi-scale | None | Two branches: fine (local patches) + coarse (cross-attn compressed history) |
+| Cross-variate attention | None (sensors concatenated per cycle) | None explicit (but operates on multivariate patches) |
+
+### 5c.2 What can we learn from MTS-JEPA?
+
+Evaluate these design ideas from MTS-JEPA for our setting. For each,
+assess: would this help on C-MAPSS? Is it quick to test?
+
+1. **Codebook regularization** — MTS-JEPA uses a discrete bottleneck
+   (VQ-VAE codebook) to prevent collapse instead of EMA. Their ablation
+   shows removing the codebook causes near-collapse (std→0). Our EMA
+   approach doesn't collapse (v12 verified). But does a codebook produce
+   MORE informative representations? Quick test: add a VQ bottleneck
+   after the context encoder, pretrain, compare frozen probe.
+   **Verdict**: suggest only if quick (<1h to implement + test).
+
+2. **Dual-resolution predictor** — MTS-JEPA has fine (local patch) and
+   coarse (compressed full-history) branches. Our predictor is single-
+   resolution. A coarse branch that cross-attends over the full history
+   could help with long engines where early degradation signals matter.
+   **Verdict**: suggest for v15, not quick enough for v14.
+
+3. **Anomaly score from prediction error** — MTS-JEPA uses the
+   prediction residual as an anomaly score. We could do the same: high
+   prediction error at a given cycle means the encoder was surprised,
+   which could indicate a degradation phase transition.
+   **Verdict**: quick diagnostic (~30 min). Plot prediction error vs
+   cycle for a few engines. Does it spike during degradation onset?
+
+4. **Cross-domain pretraining** — MTS-JEPA shows that pretraining on
+   related datasets (target excluded) retains competitive performance.
+   We haven't tested cross-domain pretraining (e.g., FD002→FD001 worked
+   poorly in v11, but FD003→FD001 is untested).
+   **Verdict**: suggest for v15.
+
+### 5c.3 What can MTS-JEPA learn from us?
+
+Document advantages of our approach that MTS-JEPA lacks:
+
+1. **Representation quality diagnostics** — Our verification suite
+   (shuffle test, tracking rho, from-scratch ablation, feature-regressor
+   baseline, length-vs-content) is far more rigorous than MTS-JEPA's
+   frozen-MLP-F1 evaluation. MTS-JEPA has no equivalent of our within-
+   sequence tracking metric.
+
+2. **Label-efficiency evaluation** — MTS-JEPA evaluates at 100% labels
+   only. Our label-budget sweep (5%-100%) with STAR comparison is
+   methodologically stronger.
+
+3. **Honest comparison to trivial baselines** — Our 58-feature Ridge
+   regressor establishes a tight lower bound. MTS-JEPA doesn't compare
+   against trivial feature-engineered baselines.
+
+4. **Run-to-failure structural supervision honesty** — We flag that all
+   training data is run-to-failure (implicit supervision). MTS-JEPA
+   doesn't discuss this.
+
+### 5c.4 Quick experiment: prediction-error anomaly score [~30 min]
+
+On the frozen V2 encoder, for each training engine at each cycle $t$:
+- Compute the prediction loss (L1 between predicted and actual future
+  latent, using the pretrained predictor with $k=15$)
+- Plot prediction error vs cycle for 5 representative engines
+- Overlay with the H.I. / RUL label
+- Does prediction error increase during degradation? If yes, the
+  encoder's "surprise" signal is itself an anomaly indicator — a
+  zero-label anomaly detector for free.
+
+Output:
+- `analysis/plots/v14/prediction_error_vs_degradation.png`
+- `experiments/v14/prediction_error_analysis.json`
+
+### 5c.5 Output
+
+Save full comparison as `experiments/v14/mtsjepa_comparison.md`:
+- Architecture diff table
+- What we can learn (with feasibility assessment)
+- What they can learn (our methodological advantages)
+- Prediction-error analysis result
+- Recommendations for v15
+
+---
+
 ## Phase 6 — Theory: why does trajectory prediction learn degradation? [~2h]
 
 This is the section that could elevate the paper from accept to spotlight.
