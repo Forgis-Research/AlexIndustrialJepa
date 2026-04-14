@@ -126,6 +126,33 @@ Concentration on a single key (core speed) is consistent with degradation being 
 
 ![Degradation minus healthy (shift)](../analysis/plots/v14/cross_sensor_attention_diff.png)
 
+### Phase 3d: Does this generalize to FD003?
+
+Tested cross-sensor architecture with in-domain FD003 pretrain (fan + HPC faults, 100 engines).
+
+| Subset | V2 frozen       | Cross-sensor frozen | Delta    |
+|:-------|:----------------|:---------------------|:---------|
+| FD001  | 17.81 ± 1.7     | 14.98 ± 0.22         | -2.83    |
+| FD003  | 19.25 ± 3.2     | **24.49 ± 0.12**     | **+5.24** |
+
+**Cross-sensor REGRESSES on FD003.** The architectural gain is FD001-specific.
+
+**Attention pattern differs by fault mode**:
+
+| Pattern               | FD001 (fan-only)         | FD003 (fan + HPC)        |
+|:----------------------|:-------------------------|:-------------------------|
+| Biggest attention key | s14 (corrected Nc)       | s8 (Nf), s13 (NRf)       |
+| Shift sign            | POSITIVE (focus on s14)  | NEGATIVE (defocus)       |
+| Physics               | core speed as reference  | fan-speed sensors change |
+
+Both subsets concentrate attention on rotor-speed sensors (s8 Nf, s13 NRf, s14 NRc), but the specific sensor and direction differ by fault mode. The broad finding - "cross-sensor attention is rotor-speed centric during degradation" - generalizes. The specific FD001 pattern (s*→s14 positive) does not. Paper now reports cross-sensor as an FD001-specific finding.
+
+![FD003 healthy attention](../analysis/plots/v14/cross_sensor_fd003_attention_healthy_mean.png)
+
+![FD003 degradation attention](../analysis/plots/v14/cross_sensor_fd003_attention_degradation_mean.png)
+
+![FD003 shift](../analysis/plots/v14/cross_sensor_fd003_attention_diff.png)
+
 ## MTS-JEPA Comparison (Phase 5c) {#sec-mtsjepa}
 
 Full comparison in `experiments/v14/mtsjepa_comparison.md`. Headlines:

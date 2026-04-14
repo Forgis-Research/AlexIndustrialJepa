@@ -145,6 +145,37 @@ is +21.5 RMSE - even larger than V2's +15.6. Phase 3's architectural win
 is not a free architecture gain: it REQUIRES trajectory-prediction
 pretraining to be realized. The 14.98 frozen number is an SSL win.
 
+### 3d. Cross-sensor on FD003 (multi-subset generalization, HONEST NEGATIVE)
+
+Tested whether Phase 3's architectural gain and physics-aligned attention
+generalize to FD003 (2 fault modes: fan + HPC, 100 train engines).
+
+In-domain pretrain on FD003 (120 ep, early-stopped at 45, best probe RMSE
+22.09 on val), then frozen probe at 100% labels over 3 seeds:
+
+| Subset | V2 frozen (5-seed)  | V14 cross-sensor frozen (3-seed) | Delta |
+|:-------|:--------------------|:----------------------------------|:------|
+| FD001  | 17.81 ± 1.7         | 14.98 ± 0.22                      | -2.83 |
+| FD003  | 19.25 ± 3.2         | **24.49 ± 0.12**                  | **+5.24** |
+
+Cross-sensor REGRESSES on FD003. The architectural win is FD001-specific.
+
+**Attention pattern differs by fault mode**:
+
+| Pattern                              | FD001 (fan-only)           | FD003 (fan + HPC)         |
+|:-------------------------------------|:---------------------------|:--------------------------|
+| Biggest degradation-time attention   | s* → s14 (corrected Nc)    | s* → s8 (Nf), s13 (NRf)   |
+| Sign of shift                        | POSITIVE (s* focus on s14) | NEGATIVE (s* defocus)     |
+| Physics                              | core-speed as reference    | fan-speed sensors change  |
+
+In BOTH subsets, rotor-speed sensors (s8 Nf, s13 NRf, s14 NRc) are the
+focal points of degradation-time attention - but the specific sensors
+and direction of shift differ by fault mode. The broad finding -
+"cross-sensor attention is rotor-speed centric during degradation" -
+generalizes; the specific FD001 pattern (s*→s14 positive) does not.
+
+Plots: `analysis/plots/v14/cross_sensor_fd003_attention_*.png`
+
 ### Verdict
 
 Architecture is a WIN at 100% labels (new SOTA frozen on FD001 at 14.98)
