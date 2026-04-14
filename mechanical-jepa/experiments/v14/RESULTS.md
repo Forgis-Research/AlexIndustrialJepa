@@ -129,6 +129,22 @@ Plots saved:
 - `analysis/plots/v14/cross_sensor_attention_all_mean.png`
 - `analysis/plots/v14/cross_sensor_attention_diff.png`
 
+### 3c. From-scratch ablation on cross-sensor
+
+To check whether Phase 3's gain is an SSL contribution or an architecture-alone
+contribution, we ran the analogue of v13's Phase 0c ablation on the cross-sensor
+architecture: same arch, same E2E protocol, random init vs pretrained.
+
+| Budget | pretrained E2E    | scratch E2E       | delta   | V2 delta (ref) |
+|:-------|:------------------|:------------------|:--------|:---------------|
+| 100%   | 14.24 ± 1.09      | 19.64 ± 1.68      | +5.40   | +8.81          |
+| 10%    | 20.15 ± 2.43      | 41.65 ± 2.63      | +21.49  | +15.62         |
+
+Pretraining does MASSIVE work on cross-sensor too. At 10% labels, the gain
+is +21.5 RMSE - even larger than V2's +15.6. Phase 3's architectural win
+is not a free architecture gain: it REQUIRES trajectory-prediction
+pretraining to be realized. The 14.98 frozen number is an SSL win.
+
 ### Verdict
 
 Architecture is a WIN at 100% labels (new SOTA frozen on FD001 at 14.98)
