@@ -251,6 +251,79 @@ theoretical grounding and a second domain.
 
 ---
 
+## Phase 5b — Deep SSL comparison: apples-to-apples vs SOTA SSL [~1.5h]
+
+**Problem**: We currently compare against AE-LSTM (13.99 RMSE, the only
+published SSL result on C-MAPSS FD001) and claim "within 1.7%." But this
+comparison is shallow. We need to understand exactly how the methods
+differ and whether the comparison is fair.
+
+### 5b.1 Literature audit
+
+Search for ALL published SSL/self-supervised results on C-MAPSS. For each,
+record:
+- Exact RMSE on FD001 (and FD002/3/4 if available)
+- What is "self-supervised" — what labels are used vs not used?
+- Pretraining objective (reconstruction, contrastive, predictive, etc.)
+- Does pretraining use run-to-failure structure? (If yes, that's implicit
+  supervision — same concern as ours)
+- Architecture and param count
+- Number of seeds / statistical reporting
+- Evaluation protocol (last-window? sliding? what RUL cap?)
+
+Known SSL methods to check:
+- AE-LSTM (LeCam et al. 2025): autoencoder reconstruction on C-MAPSS
+- DCSSL (Shen et al. 2026): dual-dimensional contrastive on bearings
+  (did they eval on C-MAPSS?)
+- Wang et al. 2024 (masked AE for turbofan): in our bib, check results
+- MTS-JEPA (He et al. 2026): JEPA for multivariate time series — did
+  they eval on C-MAPSS?
+- TS-JEPA (Ennadir et al. 2024): JEPA for time series classification
+- Any others found via web search
+
+Save as `experiments/v14/ssl_comparison_audit.md`.
+
+### 5b.2 Apples-to-apples comparison table
+
+Build a comparison table that is HONEST about what's comparable:
+
+| Method | Pretraining labels? | Run-to-failure? | FD001 RMSE | Seeds | Protocol | Params |
+|--------|-------------------|-----------------|------------|-------|----------|--------|
+| Ours (frozen) | None | Yes (structural) | 17.81 | 5 | last-window, cap=125 | 1.26M |
+| Ours (E2E) | RUL (fine-tune) | Yes | 14.23 | 5 | same | 1.26M |
+| AE-LSTM | None (reconstruction) | ? | 13.99 | ? | ? | ? |
+| ... | ... | ... | ... | ... | ... | ... |
+
+For AE-LSTM specifically:
+- Read the paper carefully. Does AE-LSTM pretrain on run-to-failure data?
+  If yes, it has the same structural supervision we do.
+- Does AE-LSTM report multi-seed results? If not, their 13.99 might be
+  a lucky seed (our seed 456 hit 13.80, seed 123 hit 14.85).
+- Does AE-LSTM use the same RUL cap (125)? Same sensor selection?
+- What's their architecture size?
+
+### 5b.3 Head-to-head replication (if feasible)
+
+If AE-LSTM's approach is simple enough (autoencoder LSTM pretraining →
+linear probe), implement it on our data pipeline with our splits and
+seeds. This gives a true apples-to-apples comparison:
+- Same data, same splits, same seeds, same evaluation
+- Only the pretraining objective differs (reconstruction vs prediction)
+
+If the AE-LSTM replication matches 13.99 on our pipeline, the comparison
+is clean. If it's significantly different, the published number isn't
+directly comparable to ours.
+
+Output: `experiments/v14/ssl_head_to_head.json` (if replicated)
+
+### 5b.4 Paper table update
+
+Update the paper's main results table to include a "fair comparison"
+column that flags what IS and ISN'T comparable. A NeurIPS reviewer
+will ask "is this comparison fair?" — answer it preemptively.
+
+---
+
 ## Phase 6 — Theory: why does trajectory prediction learn degradation? [~2h]
 
 This is the section that could elevate the paper from accept to spotlight.
@@ -342,12 +415,12 @@ Use `.qmd` format, `code-fold: true`, `self-contained: true`, `theme: cosmo`.
 T+0:00  Phase 1 (paper H.I. reframe, 30 min) — COMMIT + PUSH
 T+0:30  Launch Phase 2 (full-sequence pretrain, background, ~3h)
 T+0:30  Phase 4 (data analysis plots, 1h) — COMMIT + PUSH
-T+1:30  Phase 6 (theory, 2h) — COMMIT + PUSH
+T+1:30  Phase 5b (SSL comparison audit + head-to-head, 1.5h) — COMMIT + PUSH
 T+3:00  Collect Phase 2 results — COMMIT + PUSH
 T+3:00  Launch Phase 3a (cross-sensor pretrain, background, ~4h)
-T+3:30  Phase 5 (paper review + update, 1h) — COMMIT + PUSH
-T+4:30  Phase 6 continued if needed
-T+5:00  Phase 3b (attention map analysis, after 3a finishes) — COMMIT + PUSH
+T+3:00  Phase 6 (theory, 2h) — COMMIT + PUSH
+T+5:00  Phase 5 (paper review + update, integrates 5b findings, 1h) — COMMIT + PUSH
+T+6:00  Phase 3b (attention map analysis, after 3a finishes) — COMMIT + PUSH
 T+7:00  Collect Phase 3 results — COMMIT + PUSH
 T+7:00  Phase 7 (Quarto notebook, 1h) — COMMIT + PUSH
 T+8:00  Session wrap-up, final RESULTS.md — COMMIT + PUSH
