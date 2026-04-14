@@ -382,6 +382,32 @@ Budget & V2 frozen (baseline) & V14 frozen (full-seq) & STAR (supervised) & $\De
 
 The full-sequence target closes $37\%$ of the frozen-probe gap to STAR at $100\%$ labels ($5.6$ to $3.5$ RMSE) and closes the gap entirely at $20\%$ (V14 frozen $17.20 < $ STAR $17.74$). However, at $5\%$ labels the richer target hurts: with only four training engines, the probe appears to overfit the stronger but noisier frozen representation, whereas the V2 frozen probe retains the cross-STAR margin ($21.53 < 24.55$). We therefore report the full-sequence variant as an architectural ablation that improves the frozen probe at moderate-to-high label budgets but do not adopt it as the default at $5\%$. A unified configuration that wins across all budgets remains open.
 
+\subsection{Architectural Ablation: Cross-Sensor Attention}
+\label{sec:cross_sensor}
+
+Inspired by iTransformer~\citep{liu2024itransformer} and STAR's two-stage attention~\citep{fan2024star}, we test a sensor-as-token encoder. Each cycle produces 14 tokens (one per sensor), each a shared linear projection of the scalar sensor value plus a learnable sensor-ID embedding and a sinusoidal time PE. Two alternating layer pairs apply temporal causal attention (within each sensor's cycle stream) and cross-sensor attention (within each cycle, across the 14 sensors). The model has $961$K parameters, comparable to V2's $1.26$M.
+
+\begin{table}[h]
+\centering
+\caption{Cross-sensor attention ablation on FD001 frozen probe (5 seeds at low labels, 3 seeds at 100\%). Cross-sensor is the best frozen result at 100\% labels ($14.98$, $-2.83$ vs.\ V2) but is brittle at low labels, where the simpler V2 architecture is more robust (20\% std 10.19 is dominated by a single catastrophic seed). Full-sequence (\cref{sec:full_sequence}) is added for reference.}
+\label{tab:cross_sensor}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Budget & V2 frozen & Full-seq (\cref{sec:full_sequence}) & Cross-sensor (this section) \\
+\midrule
+100\% & $17.81_{\pm1.7}$ & $15.70_{\pm0.21}$ & $\mathbf{14.98}_{\pm0.22}$ \\
+20\%  & $19.83_{\pm0.30}$ & $\mathbf{17.20}_{\pm1.91}$ & $25.02_{\pm10.19}$ \\
+10\%  & $19.93_{\pm0.90}$ & $\mathbf{18.79}_{\pm1.96}$ & $22.05_{\pm3.59}$ \\
+5\%   & $\mathbf{21.53}_{\pm2.0}$ & $26.57_{\pm4.70}$ & $27.40_{\pm7.44}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The 100\% frozen result ($14.98$) reduces the frozen-probe gap to supervised STAR ($12.19$) to $2.8$ RMSE, the smallest gap yet. E2E at 100\% ($14.35 \pm 0.85$) is indistinguishable from V2. However, seed variance at low labels is severe (20\% std $10.19$ from one catastrophic seed). We therefore report cross-sensor as a high-label architectural study rather than a universal replacement, and we retain V2 as the production default for the 5\% STAR crossover.
+
+\paragraph{Physics-aligned attention.} Averaging the last cross-sensor layer's attention maps across training engines and splitting by cycle phase (first 60\% = healthy, last 40\% = degradation), we observe that during degradation, many temperature and pressure sensors concentrate attention on a single key: $s_{14}$ (core speed $N_c$). The five largest healthy-to-degradation attention shifts are $s_3 \to s_{14}$ (HPC outlet total temperature, $+0.103$), $s_{15} \to s_{14}$ (bypass ratio, $+0.099$), $s_{11} \to s_{14}$ (HPC outlet static pressure, $+0.096$), $s_4 \to s_{14}$ (LPT outlet temperature, $+0.095$), and $s_2 \to s_{14}$ (LPC outlet temperature, $+0.090$). Concentration on a single key (core speed) is consistent with degradation being a near-one-dimensional phenomenon in sensor-attention space, which is the same qualitative finding as our PCA analysis in \cref{sec:representation} (PC1 dominates, $47.6\%$ variance). Attention-map figures are in the supplementary material.
+
 \subsection{From-Scratch Ablation}
 \label{sec:from_scratch}
 

@@ -97,6 +97,35 @@ Interpretation: letting the target see the full trajectory closes **37%** of the
 
 Mixed. The full-sequence variant wins at ≥10% labels (beats STAR at 20%, matches at 10%), but REGRESSES at 5% (+5.04 vs V2; loses the STAR crossover). The simpler V2 target is more robust when fine-tuning data is extremely scarce - four engines appear to overfit to the richer but noisier full-sequence representation. Honest finding: we report the full-sequence variant as an ablation but keep V2 as the default for the 5% STAR crossover. A configuration that wins across all budgets is open.
 
+## Cross-Sensor Attention (Phase 3) {#sec-crosssensor}
+
+Sensor-as-token encoder inspired by iTransformer + STAR. 14 tokens per cycle, alternating temporal causal + cross-sensor attention, 961K params. Pretrain + fine-tune sweep:
+
+| Budget | V2 frozen      | Phase 2 (full-seq) | Phase 3 (cross-sensor) |
+|:-------|:---------------|:-------------------|:------------------------|
+| 100%   | 17.81 ± 1.7    | 15.70 ± 0.21       | **14.98 ± 0.22**        |
+| 20%    | 19.83 ± 0.30   | **17.20 ± 1.91**   | 25.02 ± 10.19           |
+| 10%    | 19.93 ± 0.90   | **18.79 ± 1.96**   | 22.05 ± 3.59            |
+| 5%     | **21.53 ± 2.0**| 26.57 ± 4.70       | 27.40 ± 7.44            |
+
+Cross-sensor is the best frozen result at 100% labels and reduces the gap to supervised STAR from 5.6 to 2.8 RMSE. E2E at 100% is indistinguishable from V2 (14.35 vs 14.23). At low labels, cross-sensor is brittle: the 20% std of 10.19 is driven by one catastrophic seed.
+
+**Attention map finding (physics-aligned)**: during degradation, many temperature and pressure sensors (s2, s3, s4, s11, s15) concentrate attention on **s14 (core speed Nc)**. The top five healthy-to-degradation attention shifts all point at s14:
+
+- s3 (HPC outlet temp) → s14: +0.103
+- s15 (bypass ratio) → s14: +0.099
+- s11 (HPC outlet pressure) → s14: +0.096
+- s4 (LPT outlet temp) → s14: +0.095
+- s2 (LPC outlet temp) → s14: +0.090
+
+Concentration on a single key (core speed) is consistent with degradation being a near-one-dimensional phenomenon in attention space - the same qualitative finding as the PCA analysis in v12 (PC1 dominates, 47.6% variance).
+
+![Healthy phase attention](../analysis/plots/v14/cross_sensor_attention_healthy_mean.png)
+
+![Degradation phase attention](../analysis/plots/v14/cross_sensor_attention_degradation_mean.png)
+
+![Degradation minus healthy (shift)](../analysis/plots/v14/cross_sensor_attention_diff.png)
+
 ## MTS-JEPA Comparison (Phase 5c) {#sec-mtsjepa}
 
 Full comparison in `experiments/v14/mtsjepa_comparison.md`. Headlines:

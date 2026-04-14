@@ -68,10 +68,82 @@ Output files:
 - `full_sequence_prediction.json` (seed-level numbers; pending full run)
 - `phase2_output.log`, `phase2_stdout.log`
 
-## Phase 3: Cross-sensor attention (iTransformer) (DEFERRED to V15)
+## Phase 3: Cross-sensor attention (iTransformer-inspired) (DONE - MIXED)
 
-Not started this session - prioritized theory, SSL audit, and paper polish
-instead. Script sketch documented in V15 plan below.
+Implemented sensor-as-token encoder: 14 tokens per cycle (one per sensor),
+shared linear projection + learnable sensor-ID embedding + sinusoidal time
+PE. Two alternating (temporal causal, cross-sensor) layer pairs, d=128,
+4 heads. 961K params (vs V2 1.26M).
+
+### 3a. Pretrain + fine-tune sweep
+
+Pretrain: 150-epoch budget, early-stopped at ep 90 with probe RMSE 17.79.
+Fine-tune (3 seeds frozen+E2E @ 100%, 5 seeds frozen @ 20/10/5%):
+
+| Budget | V2 frozen      | V14 Phase 3 frozen       | V14 Phase 2 frozen | Delta vs V2 |
+|:-------|:---------------|:-------------------------|:-------------------|:------------|
+| 100%   | 17.81 ± 1.7    | **14.98 ± 0.22**         | 15.70 ± 0.21       | **-2.83**   |
+| 20%    | 19.83 ± 0.30   | 25.02 ± 10.19            | 17.20 ± 1.91       | +5.19       |
+| 10%    | 19.93 ± 0.90   | 22.05 ± 3.59             | 18.79 ± 1.96       | +2.12       |
+| 5%     | 21.53 ± 2.0    | 27.40 ± 7.44             | 26.57 ± 4.70       | +5.87       |
+
+E2E @ 100%: 14.35 ± 0.85 (V2: 14.23 ± 0.39). Essentially tied with V2.
+
+**Pattern**: cross-sensor attention HELPS at 100% labels (best frozen result
+of any V14 variant) but REGRESSES at low labels, with very high seed variance
+(20% std = 10.19 driven by one outlier seed at 45.34).
+
+Same qualitative finding as Phase 2 (full-sequence): architectural richness
+helps when data is abundant but is brittle to low-label fine-tuning. The V2
+architecture remains the sweet spot for low-label robustness (the 5% STAR
+crossover).
+
+### 3b. Attention map analysis (PHYSICS-ALIGNED FINDING)
+
+Averaged cross-sensor attention maps across healthy (first 60% of cycles)
+and degradation (last 40%) phases on all 100 FD001 training engines.
+
+**Top healthy-phase attention pairs (off-diagonal)**:
+s12→s14 (0.165), s3→s21 (0.163), s20→s14 (0.163), s3→s20 (0.162), s7→s14 (0.161)
+
+**Top degradation-phase pairs**:
+s3→s14 (0.175), s15→s14 (0.175), s11→s14 (0.173), s20→s14 (0.171), s4→s14 (0.168)
+
+**Biggest shifts from healthy to degradation (query → key)**:
+- s3 (HPC outlet total temp) → s14 (core speed Nc): +0.103
+- s15 (bypass ratio) → s14: +0.099
+- s11 (HPC outlet static pressure) → s14: +0.096
+- s4 (LPT outlet total temp) → s14: +0.095
+- s2 (LPC outlet total temp) → s14: +0.090
+
+During degradation, many temperature and pressure sensors (s2, s3, s4, s11,
+s15) concentrate attention on **s14 (core speed)**, which is physically
+sensible: as the turbofan degrades, core speed becomes a load-bearing
+reference signal that other sensors "check against" to detect anomalies.
+Concentration on a single sensor key (s14) suggests degradation is a
+one-dimensional (health-index-like) phenomenon in sensor-attention space.
+
+Plots saved:
+- `analysis/plots/v14/cross_sensor_attention_healthy_mean.png`
+- `analysis/plots/v14/cross_sensor_attention_degradation_mean.png`
+- `analysis/plots/v14/cross_sensor_attention_all_mean.png`
+- `analysis/plots/v14/cross_sensor_attention_diff.png`
+
+### Verdict
+
+Architecture is a WIN at 100% labels (new SOTA frozen on FD001 at 14.98)
+and produces interpretable physics-aligned attention patterns. But it
+LOSES to V2 at low labels. V15 direction: either (a) use V2 at low labels
+and cross-sensor at 100%, or (b) regularize cross-sensor to be more robust
+(e.g., shorter sensor embedding, smaller d, or train-time dropout on sensor
+tokens).
+
+Output files:
+- `phase3_cross_sensor.py` (script, 540 lines)
+- `best_pretrain_cross_sensor.pt` (checkpoint, 961K params)
+- `cross_sensor_results.json` (seed-level numbers at all budgets)
+- `cross_sensor_attention_maps.json` (raw 14x14 maps per phase)
+- 4 attention-map PNGs in `analysis/plots/v14/`
 
 ## Phase 4: C-MAPSS data analysis plots (DONE)
 
