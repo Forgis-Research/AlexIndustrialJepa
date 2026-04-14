@@ -71,10 +71,11 @@
 Mechanical failures---bearing seizures, turbine blade cracks, pump seal ruptures---are \emph{grey swans}: rare enough that labeled failure data is scarce, yet physically grounded enough that their signatures hide in abundant unlabeled operational sensor streams.
 We ask whether self-supervised learning can extract these degradation signatures without failure labels, producing representations that generalize across fault types, operating conditions, and label budgets.
 We introduce Trajectory JEPA, a Joint Embedding Predictive Architecture that learns by predicting future multivariate sensor trajectories in latent space.
-The central finding is that trajectory prediction alone causes the encoder to internalize a latent health variable: on NASA C-MAPSS turbofan data, a linear probe on frozen, label-free representations recovers the simulator's health index with $R^2 = 0.926$---no failure labels, no fine-tuning, and the degradation axis is linearly readable.
-The same encoder achieves $\rmse = 14.23 \pm 0.39$ on the canonical FD001 benchmark (5 seeds), with genuine within-engine tracking confirmed by Spearman $\rho = 0.830 \pm 0.023$ and a $+41.5$ RMSE penalty when context vectors are shuffled across engines.
-At low label budgets ($\leq$10\% of training engines), the frozen encoder outperforms a supervised LSTM by $36$--$55\%$ in RMSE with $5$--$30\times$ lower variance.
-\plannedc{Ongoing work targets disentangling learned degradation structure from sequence-length encoding, quantifying the pretraining contribution via from-scratch ablation, and extending to cross-domain transfer (turbofan $\leftrightarrow$ bearings).}
+Our central empirical finding is that self-supervised trajectory prediction provides a large, quantifiable contribution to downstream RUL prediction: a from-scratch ablation (same architecture, same fine-tuning protocol, only the initialization changes) shows pretraining contributes $+8.8$ RMSE at 100\% labels and $+15.6$ RMSE at 10\% labels on NASA C-MAPSS FD001.
+This label-efficiency advantage produces a crossover against the supervised state of the art: at 5\% of training engines, our frozen encoder ($21.53 \pm 2.0$) outperforms STAR ($24.55$)---a supervised architecture that achieves $12.19$ RMSE with full labels.
+At 100\% labels the same encoder achieves $\rmse = 14.23 \pm 0.39$ on the canonical FD001 benchmark (5 seeds), with genuine within-engine tracking confirmed by Spearman $\rho = 0.830 \pm 0.023$ and a $+41.5$ RMSE penalty when context vectors are shuffled across engines.
+As a representation diagnostic, a linear Ridge probe on the frozen encoder recovers the C-MAPSS health index with $R^2 = 0.926$; because H.I.\ is a deterministic piecewise-linear transform of capped RUL, this quantifies the same encoder capability as frozen RMSE under a different evaluation protocol, and serves as supporting evidence for representation quality rather than a separate result.
+\plannedc{Ongoing work targets architectural changes to close the gap to supervised SOTA and a theoretical connection between trajectory prediction and slow feature analysis.}
 \end{abstract}
 
 % ============================================================
@@ -96,19 +97,19 @@ Concretely, we introduce Trajectory JEPA: a causal Transformer encoder that, giv
 \paragraph{Contributions.}
 
 \begin{enumerate}[nosep]
-  \item \textbf{Health index recovery without labels.} A linear Ridge probe on frozen Trajectory JEPA representations recovers the C-MAPSS simulator's latent health index with validation $R^2 = 0.926$, robust across three health index parameterizations ($R^2 \in [0.917, 0.926]$). This is the first demonstration that self-supervised trajectory prediction alone produces representations where a latent degradation variable is linearly decodable (\cref{sec:hi_recovery}).
+  \item \textbf{Quantified pretraining contribution (from-scratch ablation).} Holding the architecture and E2E fine-tuning protocol fixed, pretrained initialization outperforms random initialization by $+8.8$ RMSE at 100\% labels and $+15.6$ RMSE at 10\% labels on FD001. This isolates the contribution of trajectory-prediction pretraining from the contribution of the Transformer architecture itself, and is the strongest quantitative evidence in this paper that the SSL objective---not the inductive biases of the model---carries the signal (\cref{sec:label_efficiency,sec:from_scratch}).
 
-  \item \textbf{Verified degradation tracking.} We rigorously verify that the benchmark RMSE ($14.23 \pm 0.39$ on FD001, 5 seeds) reflects genuine within-engine tracking, not population-mean regression: median within-engine Spearman $\rho = 0.830 \pm 0.023$, a $+41.5$ RMSE penalty under representation shuffling, and a 5.4 RMSE margin over a tight 58-feature hand-engineered baseline (\cref{sec:verification}).
+  \item \textbf{Label-efficiency crossover against supervised SOTA.} At 5\% of training engines, our frozen encoder (RMSE $21.53 \pm 2.0$) outperforms a 5-seed replication of STAR (RMSE $24.55$), the supervised state of the art that achieves $12.19$ RMSE with full labels. At 20\% labels, JEPA frozen ($19.83$) roughly matches STAR ($19.21$). This crossover in the grey-swan regime is the practical consequence of label-efficient self-supervised pretraining (\cref{sec:label_efficiency}).
 
-  \item \textbf{Label efficiency and stability.} At 10\% labels (8 training engines), frozen JEPA achieves RMSE $19.93$ vs.\ supervised LSTM $31.22$ ($36\%$ reduction) with $5$--$30\times$ lower variance across seeds---critical for industrial deployment where consistency matters more than peak performance (\cref{sec:label_efficiency}).
+  \item \textbf{Verified degradation tracking.} We rigorously verify that the benchmark RMSE ($14.23 \pm 0.39$ on FD001, 5 seeds) reflects genuine within-engine tracking, not population-mean regression: median within-engine Spearman $\rho = 0.830 \pm 0.023$, a $+41.5$ RMSE penalty under representation shuffling, and a 5.4 RMSE margin over a tight 58-feature hand-engineered baseline (\cref{sec:verification}). This five-diagnostic tracking protocol is, to our knowledge, the first rigorous verification of within-engine signal on C-MAPSS.
+
+  \item \textbf{Representation diagnostic via H.I.\ recovery.} A linear Ridge probe on frozen representations recovers the piecewise-linear health index with validation $R^2 = 0.926$. Because H.I.\ is a deterministic transform of capped RUL (\cref{eq:hi_rul_equivalence}), this measures the same frozen-encoder capability as the 17.81 RMSE frozen probe under a different evaluation protocol (engine-level cycle-by-cycle Ridge regression on in-distribution validation engines, rather than last-window prediction on the canonical test set). We present the $R^2$ as supporting evidence for representation quality, not as a separate headline claim (\cref{sec:hi_recovery}).
 
   \item \textbf{Multi-subset generalization.} The approach generalizes across C-MAPSS subsets: FD003 (mixed fault modes, RMSE $15.37$), FD004 (6 operating conditions + 2 fault modes, RMSE $25.62$), and cross-fault transfer FD001$\to$FD003 at low labels outperforms a supervised LSTM (\cref{sec:multisubset}).
 
-  \plannedc{\item \textbf{Planned: from-scratch ablation.} Same architecture and E2E fine-tuning protocol, random init vs.\ pretrained. Quantifies the pretraining contribution at each label budget. If the delta is $<$1 RMSE, the E2E result is not an SSL finding and the paper leads exclusively with frozen/H.I.\ claims.}
+  \plannedc{\item \textbf{Planned: theoretical analysis.} Formal connection between trajectory prediction and slow feature analysis, and an information-theoretic argument for why the encoder concentrates representational capacity on the slow (degradation) component.}
 
-  \plannedc{\item \textbf{Planned: length-vs-content disentanglement.} Three inference-only tests (constant input, length-matched cross-engine swap, temporal shuffle) that separate whether the encoder reads sensor degradation patterns or primarily encodes sequence length via positional encoding.}
-
-  \plannedc{\item \textbf{Planned: STAR label-efficiency comparison.} Evaluate the supervised STAR baseline~\citep{fan2024star} at 50\%, 20\%, 10\%, 5\% labels. If STAR at 20\% $\leq$ 14 RMSE, the label-efficiency pitch requires revision.}
+  \plannedc{\item \textbf{Planned: architectural study.} Cross-sensor attention (iTransformer-style) and full-sequence prediction targets, aimed at closing the $\sim$2 RMSE gap to STAR at 100\% labels.}
 \end{enumerate}
 
 % ============================================================
@@ -212,7 +213,14 @@ To evaluate whether the encoder has learned degradation structure \emph{independ
   \text{H.I.}(t) = \begin{cases} 1.0 & \text{if } t \leq T_i - R_{\max} \\ 1 - \frac{t - (T_i - R_{\max})}{R_{\max}} & \text{otherwise} \end{cases}
   \label{eq:hi}
 \end{equation}
-This piecewise-linear function is 1.0 during the healthy phase and declines linearly to 0 at failure, matching the RUL-cap convention. We fit a Ridge regression ($\alpha = 1.0$) from frozen $\h_\text{past}$ embeddings to H.I.\ targets on training engines, and evaluate $R^2$ on held-out validation engines. A high $R^2$ means the encoder's frozen representations already contain degradation state in a linearly accessible form---the strongest possible evidence for self-supervised representation quality.
+This piecewise-linear function is 1.0 during the healthy phase and declines linearly to 0 at failure, matching the RUL-cap convention. Note that H.I.\ is a deterministic affine transform of capped RUL:
+\begin{equation}
+  \text{H.I.}(t) = \frac{\min(T_i - t, R_{\max})}{R_{\max}} = \frac{\rul(t)}{R_{\max}},
+  \label{eq:hi_rul_equivalence}
+\end{equation}
+so a probe that predicts H.I.\ is predicting a rescaled RUL and measures the same underlying representation capability as the RUL probe.
+
+We fit a Ridge regression ($\alpha = 1.0$) from frozen $\h_\text{past}$ embeddings to H.I.\ targets on training engines, and evaluate $R^2$ on held-out validation engines. A high $R^2$ means the encoder's frozen representations contain degradation state in a linearly accessible form. We use $R^2$ as a diagnostic of representation quality, reported alongside the frozen-probe RMSE rather than as a separate claim.
 
 % ============================================================
 % 4. EXPERIMENTS
@@ -287,7 +295,7 @@ SSL (ours) & \textbf{Traj JEPA E2E} & \textbf{14.23}$_{\pm0.4}$ & \textbf{14.93}
 
 \paragraph{Beating the hand-engineered baseline.} The 58-feature Ridge regressor (RMSE $19.21$) is the tightest ``non-learning'' lower bound: it uses per-engine summary statistics (sensor means, slopes, length) but is flat within each engine. JEPA E2E outperforms it by $5.0$ RMSE, confirming the learned representation captures information beyond cross-engine summary statistics.
 
-\subsection{Health Index Recovery (Strongest SSL Evidence)}
+\subsection{Health Index Recovery as Representation Diagnostic}
 \label{sec:hi_recovery}
 
 \begin{figure}[t]
@@ -317,7 +325,7 @@ The frozen V2 encoder's $\h_\text{past}$ linearly predicts the approximate healt
 
 The embedding space is dominated by a single degradation direction: PC1 explains 47.6\% of variance and correlates with the health index at $|\rho| = 0.797$, while PC2 and PC3 have $|\rho| \leq 0.16$.
 
-\textbf{This is the paper's headline result.} Without failure labels, the trajectory prediction objective alone causes the encoder to learn a representation where the latent health state is linearly readable. This is independent of the last-window evaluation protocol, fine-tuning procedure, or any specific benchmark metric.
+\paragraph{Relation to frozen RMSE.} By \cref{eq:hi_rul_equivalence}, H.I.\ and capped RUL are deterministic transforms of each other; $R^2 = 0.926$ and frozen RMSE $17.81$ therefore quantify the same encoder capability under different evaluation protocols. The $R^2$ value is numerically higher for two reasons beyond representation quality: (i) H.I.\ is evaluated cycle-by-cycle across all training and validation cycles, so the $\sim$40\% of cycles that lie on the healthy plateau ($\text{H.I.}=1$) are trivially predictable by a constant bias and inflate $R^2$; (ii) evaluation is on in-distribution validation engines (15\% holdout from the training set) rather than on the harder canonical test set used for RMSE. We therefore treat the high $R^2$ as confirmation that the frozen representation is linearly degradation-aligned, not as a separate claim that outperforms the RMSE result.
 
 \subsection{Verification: Is the Tracking Genuine?}
 \label{sec:verification}
@@ -424,11 +432,11 @@ The standard C-MAPSS evaluation tests each engine at a single cut point (the las
 \section{Conclusion}
 \label{sec:conclusion}
 
-We introduced Trajectory JEPA, a self-supervised framework for mechanical prognostics in the grey swan regime. The central finding is that predicting future sensor trajectories in latent space---without any failure labels---causes a Transformer encoder to internalize a latent health variable that is linearly decodable ($R^2 = 0.926$) and tracks within-engine degradation ($\rho = 0.830$). This result is verified against five independent diagnostics and a tight hand-engineered baseline.
+We introduced Trajectory JEPA, a self-supervised framework for mechanical prognostics in the grey swan regime. The central empirical finding is that trajectory-prediction pretraining contributes a large and quantifiable fraction of downstream RUL performance: in a matched-architecture ablation, pretraining improves RMSE by $+8.8$ at 100\% labels and $+15.6$ at 10\% labels on FD001. The practical consequence is a label-efficiency crossover: at 5\% of training engines, the frozen self-supervised encoder outperforms a 5-seed replication of the supervised state of the art. Tracking is verified by five independent diagnostics including a $+41.5$ RMSE shuffle penalty and Spearman $\rho = 0.830$; as a representation diagnostic, a linear probe on the frozen encoder recovers the simulator's health index at $R^2 = 0.926$.
 
 The frozen encoder exhibits \emph{higher} tracking fidelity than the E2E fine-tuned version, suggesting that the pretraining objective itself is the source of the degradation signal; fine-tuning refines calibration rather than detection. At low label budgets, this translates to $5$--$30\times$ lower variance than supervised approaches---critical for industrial deployment where consistency matters.
 
-\plannedc{The key open question is whether the encoder reads sensor degradation patterns or primarily encodes sequence length. All training data is run-to-failure, providing implicit structural supervision. The planned length-vs-content ablation, from-scratch comparison, and STAR label-efficiency benchmark will determine whether the SSL claims survive scrutiny or need to be scoped to the frozen H.I.\ recovery result alone. We believe the honest presentation of both the strong results and the open loopholes is itself a contribution: the C-MAPSS community has not previously published within-engine tracking diagnostics, sliding-cut evaluation, or tight feature-regressor baselines alongside last-window RMSE.}
+The length-vs-content ablation (constant-input, length-matched swap, and temporal-shuffle tests) confirms the encoder reads sensor content rather than primarily encoding sequence length. All training data is nonetheless run-to-failure, which provides implicit structural supervision at the pretraining stage; we flag this in \cref{sec:limitations}. The C-MAPSS community has not previously published within-engine tracking diagnostics, sliding-cut evaluation, or tight feature-regressor baselines alongside last-window RMSE, and we hope the honest reporting of both strong results and open loopholes is itself a contribution. \plannedc{Open directions include architectural study (cross-sensor attention, multi-scale prediction targets) and a theoretical analysis linking trajectory prediction to slow feature analysis.}
 
 % ============================================================
 % REFERENCES
