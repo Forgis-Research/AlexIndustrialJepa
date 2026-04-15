@@ -1,0 +1,31 @@
+{
+  "palette": {
+    "primary": "#2D5F8A",
+    "primary_light": "#5B8DB8",
+    "primary_dark": "#1A3A5C",
+    "secondary": "#C25B28",
+    "secondary_light": "#E8925F",
+    "accent": "#3A8C6E",
+    "accent_light": "#6BB89A",
+    "warning": "#D4A843",
+    "neutral_dark": "#333333",
+    "neutral_mid": "#888888",
+    "neutral_light": "#CCCCCC",
+    "bg_light": "#F5F5F5",
+    "bg_encoder": "#E8F0F8",
+    "bg_predictor": "#FFF3E8",
+    "bg_target": "#E8F8F0",
+    "bg_loss": "#FFF8E8",
+    "arrow": "#555555"
+  },
+  "usage": {
+    "context_encoder": "primary / bg_encoder",
+    "target_encoder": "accent / bg_target",
+    "predictor": "secondary / bg_predictor",
+    "loss": "warning / bg_loss",
+    "data_flow_arrows": "arrow",
+    "text_labels": "neutral_dark",
+    "ema_arrow": "neutral_mid (dashed)",
+    "stop_gradient": "secondary (X marker)"
+  }
+}

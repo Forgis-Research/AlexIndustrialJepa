@@ -1,0 +1,156 @@
+% ============================================================
+% Comprehensive Benchmark Table: Trajectory JEPA across domains
+% Include in paper.tex via \input{benchmark_table}
+% ============================================================
+
+% Use \plannedc from paper.tex for TODO entries (renders blue in draft mode)
+% Define \tbd as alias for \plannedc to mark incomplete results
+\newcommand{\tbd}[1]{\plannedc{\textbf{#1}}}
+
+\begin{table*}[t]
+\centering
+\caption{\textbf{Comprehensive benchmark across domains and event types.}
+Each block represents a dataset family; rows show competitive methods (with citation) and Trajectory JEPA.
+\textcolor{blue}{Blue entries} are planned experiments to be completed before submission.
+All multi-seed results report mean $\pm$ std. Best SSL result per dataset in \textbf{bold}.
+$^\dagger$Single-seed or best-of-grid (not directly comparable to multi-seed means).
+}
+\label{tab:benchmark}
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.1}
+
+% -------------------------------------------------------
+% PART A: Turbofan RUL (C-MAPSS + N-CMAPSS)
+% -------------------------------------------------------
+\vspace{0.3em}
+\textbf{(A) Turbofan Engine RUL}: RMSE in cycles ($\downarrow$), RUL cap = 125
+\vspace{0.2em}
+
+\begin{tabular}{@{}llccccc@{}}
+\toprule
+Type & Method & FD001 & FD002 & FD003 & FD004 \\
+\midrule
+\multicolumn{6}{@{}l}{\textit{C-MAPSS}~\citep{saxena2008cmapss}: 100--260 train engines, 14 sensors, 1--6 op.\ conditions, 1--2 fault modes} \\
+\midrule
+Supervised & LSTM~\citep{zheng2017lstm} & 16.14 & 24.49 & 16.18 & 28.17 \\
+Supervised & DCNN~\citep{li2018dcnn} & 12.61 & 22.36 & 12.64 & 23.31 \\
+Supervised & TTSNet~\citep{ttsnet2025} & 11.02 & 13.25 & 11.06 & 18.26 \\
+Supervised & STAR~\citep{fan2024star} & 10.61$^\dagger$ & 13.47$^\dagger$ & 10.71$^\dagger$ & 15.87$^\dagger$ \\
+Supervised & STAR (our 5-seed replic.) & 12.19$_{\pm0.6}$ & --- & --- & --- \\
+\midrule
+SSL & AE-LSTM$^\dagger$~\citep{lecam2025aelstm} & 13.99$^\dagger$ & --- & --- & --- \\
+SSL & AE-LSTM (our 5-seed replic.) & 16.07$_{\pm2.8}$ & --- & --- & --- \\
+\rowcolor{blue!5}
+\textbf{SSL} & \textbf{Traj JEPA E2E (ours)} & \textbf{14.23}$_{\pm0.4}$ & \tbd{TODO} & \textbf{15.37}$_{\pm0.9}$ & \textbf{25.62}$_{\pm0.3}$ \\
+\rowcolor{blue!5}
+\textbf{SSL} & \textbf{Traj JEPA Frozen (ours)} & 17.81$_{\pm1.7}$ & \tbd{TODO} & 19.25$_{\pm3.2}$ & 29.35$_{\pm0.6}$ \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.8em}
+
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Type & Method & DS01 & DS02 & DS03 & DS07 \\
+\midrule
+\multicolumn{6}{@{}l}{\textit{N-CMAPSS}~\citep{ariaschaoncmapss2021}: 128 engines, real flight-envelope variability, 14 virtual sensors + 4 aux} \\
+\midrule
+Supervised & Stacked LSTM & 6.22 & --- & --- & --- \\
+Supervised & Multi-scale dilated TCN & $\sim$4.98 & $\sim$8.33 & $\sim$4.24 & $\sim$5.76 \\
+\rowcolor{blue!5}
+\textbf{SSL} & \textbf{Traj JEPA (ours)} & \tbd{TODO} & \tbd{TODO} & \tbd{TODO} & \tbd{TODO} \\
+\bottomrule
+\end{tabular}
+
+\vspace{1.2em}
+
+% -------------------------------------------------------
+% PART B: Bearing RUL
+% -------------------------------------------------------
+\textbf{(B) Bearing RUL}: RMSE normalized to $[0,1]$ health index ($\downarrow$)
+\vspace{0.2em}
+
+\begin{tabular}{@{}llcc@{}}
+\toprule
+Type & Method & FEMTO/PRONOSTIA & XJTU-SY \\
+\midrule
+\multicolumn{4}{@{}l}{\textit{FEMTO}~\citep{nectoux2012pronostia}: 17 bearings, 25.6\,kHz, 3 op.\ cond. \quad \textit{XJTU-SY}~\citep{wang2020xjtusybearing}: 15 bearings, 2 channels} \\
+\midrule
+Supervised & CNN-GRU-MHA~\citep{chen2024cnugrumha} & 0.044 & 0.069 \\
+Supervised & MDSCT~\citep{mdsct2024} & --- & state-of-art \\
+SSL & DCSSL~\citep{shen2026dcssl} & 0.038$^\dagger$ & --- \\
+\rowcolor{blue!5}
+\textbf{SSL} & \textbf{Traj JEPA + HC (ours)} & \textbf{0.055}$_{\pm0.004}$ & \tbd{TODO} \\
+\rowcolor{blue!5}
+\textbf{SSL} & \textbf{Traj JEPA alone (ours)} & 0.189 & \tbd{TODO} \\
+\bottomrule
+\end{tabular}
+
+\vspace{1.2em}
+
+% -------------------------------------------------------
+% PART C: Battery Degradation
+% -------------------------------------------------------
+\textbf{(C) Battery Degradation}: SOH RMSE (\%) or lifetime MAPE (\%) ($\downarrow$)
+\vspace{0.2em}
+
+\begin{tabular}{@{}llccc@{}}
+\toprule
+Type & Method & NASA Battery & MIT 124-cell & Metric \\
+\midrule
+\multicolumn{5}{@{}l}{\textit{NASA Battery}: 34 cells, V/I/T per cycle. \quad \textit{MIT 124-cell} (Severson et al., 2019): 124 LFP cells, early-cycle $\to$ lifetime} \\
+\midrule
+Supervised & CA-MT-BHP Transformer & 0.014\% & --- & SOH RMSE \\
+Foundation & BatteryGPT & --- & 0.213\% & SOH RMSE \\
+Supervised & RNN early-prediction & --- & 9.1\% & Lifetime MAPE \\
+\rowcolor{blue!5}
+\textbf{SSL} & \textbf{Traj JEPA (ours)} & \tbd{TODO} & \tbd{TODO} & \tbd{---} \\
+\bottomrule
+\end{tabular}
+
+\vspace{1.2em}
+
+% -------------------------------------------------------
+% PART D: Anomaly Detection (MTS-JEPA benchmarks)
+% -------------------------------------------------------
+\textbf{(D) Multivariate Time Series Anomaly Detection}: F1 ($\uparrow$), window-level early-warning protocol
+\vspace{0.2em}
+
+\begin{tabular}{@{}llcccc@{}}
+\toprule
+Type & Method & MSL & SMAP & SWaT & PSM \\
+\midrule
+\multicolumn{6}{@{}l}{\textit{MSL/SMAP}: NASA telemetry, 55/25 ch. \quad \textit{SWaT}: 51 sensors, 36 attacks. \quad \textit{PSM}: eBay servers, 26 dim.} \\
+\midrule
+SSL & TS2Vec~\citep{yue2022ts2vec} & 23.5 & 32.8 & 67.0 & 48.4 \\
+SSL & PatchTST~\citep{nie2023patchtst} & 27.0 & 30.1 & 70.6 & 58.2 \\
+SSL & TS-JEPA~\citep{tsjepa2024} & 25.5 & 26.6 & 72.0 & 53.3 \\
+SSL & MTS-JEPA~\citep{mtsjepa2026} & 33.6 & 33.6 & 72.9 & 61.6 \\
+\rowcolor{blue!5}
+\textbf{SSL} & \textbf{Traj JEPA (ours)} & \tbd{TODO} & \tbd{TODO} & \tbd{TODO} & \tbd{TODO} \\
+\bottomrule
+\end{tabular}
+
+\vspace{1.2em}
+
+% -------------------------------------------------------
+% PART E: Process Fault Detection
+% -------------------------------------------------------
+\textbf{(E) Process Fault Detection}: Macro F1 ($\uparrow$)
+\vspace{0.2em}
+
+\begin{tabular}{@{}llcc@{}}
+\toprule
+Type & Method & TEP (21 faults) & Hydraulic (UCI) \\
+\midrule
+\multicolumn{4}{@{}l}{\textit{TEP}: 52 sensors, 21 fault classes + normal. \quad \textit{Hydraulic}: 17 sensors, 4 condition targets.} \\
+\midrule
+Supervised & Physics-guided CRNN & 0.93 & --- \\
+Supervised & Multi-output CNN & --- & 98.5\% acc \\
+\rowcolor{blue!5}
+\textbf{SSL} & \textbf{Traj JEPA (ours)} & \tbd{TODO} & \tbd{TODO} \\
+\bottomrule
+\end{tabular}
+
+\end{table*}
