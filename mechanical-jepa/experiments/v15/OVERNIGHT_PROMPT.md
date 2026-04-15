@@ -89,9 +89,36 @@ Start with λ = 0.05 (5%), sweep {0.02, 0.05, 0.10} if time allows.
 Run Experiment B from REPLICATION_SPEC.md. If our `sigreg.py` uses
 moments-based approximation instead of EP, switch to official EP test.
 
-### 1b. SIGReg pretraining run
-Follow Experiment D from REPLICATION_SPEC.md:
-Follow Experiment D from REPLICATION_SPEC.md. Three configs:
+### 1b. SIGReg pretraining — training procedure (BE PRECISE)
+
+**View construction (important):**
+- **Global view (context):** from timestep 1 to cut-off t, where t is
+  sampled to give a reasonably large window (e.g., t ≥ 50 cycles).
+  This is what the context encoder sees: the full history up to t.
+- **Local views (targets):** smaller snippets x_{t+1:t+k} with
+  k ~ U[5,30]. These are what the predictor must predict in latent space.
+
+**Loss computation (be crystal clear):**
+```
+# Forward pass
+h_past = encoder(x_{1:t})              # context encoder output
+h_fut  = encoder(x_{t+1:t+k}).detach() # SAME encoder, no_grad (SIGReg-only)
+                                        # OR: ema_encoder(x_{t+1:t+k}) (EMA variant)
+h_hat  = predictor(h_past, k)          # predictor output
+
+# Losses
+L_pred = ||h_hat - h_fut||_1           # prediction loss (predictor vs target)
+L_sig  = SIGReg(h_past)                # regularizer on ENCODER output (NOT predictor)
+
+# Total
+L = (1 - λ) * L_pred + λ * L_sig       # λ = 0.05 default
+```
+
+**Key:** SIGReg is computed on **encoder output h_past**, NOT on predictor
+output. The encoder representations are what downstream probes consume, so
+those are what must be isotropic. The predictor is a throwaway component.
+
+**Three configs to compare:**
 
 | Config | EMA | Collapse prevention | λ |
 |--------|-----|--------------------|----|
@@ -101,12 +128,65 @@ Follow Experiment D from REPLICATION_SPEC.md. Three configs:
 
 M=512 slices. 200 epochs. 3 seeds each. Log all to wandb.
 If SIGReg-only works: try λ sweep {0.02, 0.05, 0.10} on best config.
+Be critical. Iterate. If something looks wrong (loss diverges, collapse),
+diagnose before moving on.
 
 ### 1c. Validate loss-performance correlation
 Run Experiment C from REPLICATION_SPEC.md: save checkpoints every 5 epochs,
 compute both (training loss) and (frozen probe RMSE), measure Spearman ρ.
 If ρ ≥ 0.8 → we can do hyperparameter search without downstream probes
 (huge advantage for multi-domain benchmark).
+
+### 1d. Embedding visualization — the "degradation clock"
+
+This could be a breakthrough visualization for the paper. The idea:
+
+**Hypothesis:** If SIGReg forces isotropic embeddings and the dominant
+latent variable is degradation progression, then engine trajectories in
+embedding space should trace smooth curves. With isotropy, these curves
+might form circular / semicircular arcs — a "degradation clock" where
+angular position corresponds to % remaining life.
+
+**Experiments:**
+1. Extract h_past for every timestep of every engine (frozen encoder).
+2. Apply PCA (2D) and t-SNE (2D) to the full set of embeddings.
+3. Color by:
+   - (a) %RUL (normalized remaining useful life, 0=failure, 1=healthy)
+   - (b) Time-to-threshold-exceedance (sensor s14 ±3σ)
+   - (c) Engine ID (to check within-engine trajectory structure)
+4. Check: do trajectories form arcs? Does %RUL map to angular position?
+
+**Why this might work:** SIGReg distributes embeddings isotropically
+on a sphere. If degradation is the dominant variation, it becomes the
+angular coordinate. Healthy engines cluster at one pole, degraded
+engines at another, with smooth progression between.
+
+**Why it might NOT work:** The encoder doesn't know about RUL during
+pretraining. It encodes "sensor predictability" which correlates with
+degradation but isn't identical. The circular structure depends on
+degradation being the ONLY slow variable — if operating conditions
+or engine-specific offsets also vary slowly, the circle breaks.
+
+**Compare:** V2 (EMA, anisotropic — PC1=47.6%) vs SIGReg (isotropic).
+The V2 embeddings will be elongated along PC1. SIGReg embeddings should
+be more spherical. If the clock structure appears in SIGReg but not V2,
+that's a strong argument for SIGReg.
+
+**Visualization targets:**
+- PCA 2D scatter, colored by %RUL → does it look like a color gradient
+  along an arc?
+- Same for t-SNE
+- Polar plot: convert PCA coordinates to (angle, radius), plot angle vs
+  %RUL → if linear, the clock works
+- Per-engine trajectory plot: draw lines connecting consecutive timesteps
+  of individual engines → do they trace arcs?
+- If multiple "ages" are encoded: can we extract a %RUL clock AND a
+  separate threshold-exceedance clock from different PCA directions?
+  (This would show the encoder learns multiple event timescales
+  simultaneously, without any labels.)
+
+**Make the plots beautiful.** These could be hero figures for the paper.
+Use the Forgis color palette. Save as publication-quality PDF.
 
 ---
 
@@ -170,6 +250,7 @@ on frozen probe, move on.
 For SMAP (simplest): pretrain V2 encoder for 50 epochs.
 Evaluate anomaly detection using prediction error.
 Report non-PA F1. This is the first anomaly result for the paper.
+Find the most suitable financlail dataset as well (maybe gold price with covariates or sth that is well explored and interesting).
 
 ---
 
@@ -199,6 +280,8 @@ Based on 4a-4b, recommend the best multivariate treatment:
 - If correlations shift during events: sensor-as-token + cross-sensor attention
   (iTransformer-inspired, V14 Phase 3)
 - If no structure: channel-fusion default
+
+Also explore how iTransformer paper does it. We need to find a super elegant and powerful way to handle multivariate timeseries. Ideally, no random/arbitary choices but a provable optimal way, mathematically. Arriva at a conclusion, test it extensively.
 
 ---
 
