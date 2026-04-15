@@ -1,6 +1,6 @@
 # V15 Overnight Session
 
-**Date**: 2026-04-15
+**Date**: 2026-04-16
 **Goal**: Multi-domain grey swan benchmark — metrics, datasets, architectures.
 This session advances the paper from C-MAPSS-only to multi-domain. Also:
 SIGReg, improved multivariate treatment (iTransformer-style), and
@@ -341,7 +341,7 @@ on frozen probe, move on.
 For SMAP (simplest): pretrain V2 encoder for 50 epochs.
 Evaluate anomaly detection using prediction error.
 Report non-PA F1. This is the first anomaly result for the paper.
-Find the most suitable financlail dataset as well (maybe gold price with covariates or sth that is well explored and interesting).
+Find the most suitable financial dataset as well (maybe gold price with covariates or something well-explored and interesting).
 
 ---
 
@@ -372,7 +372,7 @@ Based on 4a-4b, recommend the best multivariate treatment:
   (iTransformer-inspired, V14 Phase 3)
 - If no structure: channel-fusion default
 
-Also explore how iTransformer paper does it. We need to find a super elegant and powerful way to handle multivariate timeseries. Ideally, no random/arbitary choices but a provable optimal way, mathematically. Arriva at a conclusion, test it extensively.
+Also explore how the iTransformer paper does it. We need a principled way to handle multivariate time series — ideally no arbitrary choices but a mathematically grounded approach. Arrive at a conclusion, test it extensively.
 
 ---
 
