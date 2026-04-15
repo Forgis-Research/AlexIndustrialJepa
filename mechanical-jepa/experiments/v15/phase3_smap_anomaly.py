@@ -55,8 +55,8 @@ N_LAYERS = 2
 BATCH_SIZE = 64
 LR = 3e-4
 LAMBDA_SIG = 0.05
-N_EPOCHS_SMAP = 50
-N_EPOCHS_MSL = 30  # fewer for speed
+N_EPOCHS_SMAP = 20  # reduced for speed (was 50); enough to assess feasibility
+N_EPOCHS_MSL = 10  # fewer for speed
 
 
 def pretrain_on_anomaly_dataset(data: dict, n_epochs: int = 50,
@@ -85,8 +85,8 @@ def pretrain_on_anomaly_dataset(data: dict, n_epochs: int = 50,
         lr=LR, weight_decay=0.01)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(optim, n_epochs)
 
-    # Dataset: ~100K samples from training time series
-    n_samples = min(100000, len(data['train']) * 5)
+    # Dataset: ~20K samples from training time series (reduced for speed)
+    n_samples = min(20000, len(data['train']) * 2)
     ds = AnomalyPretrainDataset(
         data['train'], n_samples=n_samples, seed=seed,
         min_context=50, max_context=100, min_horizon=5, max_horizon=20)

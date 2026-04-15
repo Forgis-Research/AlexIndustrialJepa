@@ -1,0 +1,31 @@
+{
+  "task": "TTE (s14 3-sigma exceedance on C-MAPSS FD001)",
+  "s14_idx": 10,
+  "sigma": 3.0,
+  "baseline_cycles": 50,
+  "trivial_mean_baseline": {
+    "rmse": 39.53672863965379,
+    "nrmse": 0.23256899199796346
+  },
+  "hand_feature_ridge_baseline": {
+    "rmse": 32.98,
+    "nrmse": 0.118,
+    "note": "Ridge on hand-crafted features (Phase 0b)"
+  },
+  "v14_frozen_encoder_probe": {
+    "rmse": 37.01852131025803,
+    "nrmse": 0.21775600770740017,
+    "alpha": 100.0,
+    "beats_trivial_mean": true,
+    "beats_hand_feature_ridge": false,
+    "delta_rmse_vs_hand": 4.038521310258034,
+    "delta_nrmse_vs_hand": 0.09975600770740017
+  },
+  "n_train_samples": 1696,
+  "n_val_samples": 321,
+  "runtime_s": 12.3744375705719,
+  "sanity_check": {
+    "v14_rul_probe_reference": 14.1,
+    "note": "V14 frozen RUL probe 14.10 confirms encoder learned useful representations"
+  }
+}
