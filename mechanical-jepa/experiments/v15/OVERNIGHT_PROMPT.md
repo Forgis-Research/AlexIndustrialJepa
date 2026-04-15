@@ -85,6 +85,16 @@ Paper Figure 1 shows λ ∈ {0.04, 0.08, 0.12, 0.16, 0.20} all work
 (Spearman ρ = 94.5% across all). Stable range: **1% to 20%**.
 Start with λ = 0.05 (5%), sweep {0.02, 0.05, 0.10} if time allows.
 
+**Do we need multiple "views" like LeJEPA's 2 global + 6 local crops?**
+No. LeJEPA's prediction loss is `||embedding - center||²` — degenerate
+with one view (center = embedding → loss = 0). It NEEDS multiple views.
+Our loss is `||predictor(h_t, k) - h_{t+k}||₁` — non-trivial even with
+one target because the predictor must bridge the temporal gap using k.
+The learning signal comes from the time delta, not from view multiplicity.
+**One context + one target per sample is sufficient.** k varies across the
+batch, so the full horizon range is covered. Multiple horizons per sample
+is a V16 efficiency optimization, not a requirement.
+
 **First**: Verify our implementation against official `pip install lejepa`.
 Run Experiment B from REPLICATION_SPEC.md. If our `sigreg.py` uses
 moments-based approximation instead of EP, switch to official EP test.
