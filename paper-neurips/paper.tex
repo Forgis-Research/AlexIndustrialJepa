@@ -311,20 +311,20 @@ Best SSL result per column in \textbf{bold}. $\dagger$ = single-seed or best-of-
 \midrule
 \multicolumn{9}{@{}l}{\textit{Supervised specialists}} \\
 & STAR~\citep{fan2024star}$^\dagger$ & 10.61 & 10.71 & 15.87 & --- & --- & --- & --- \\
-& TTSNet~\citep{ttsnet2025} & 11.02 & 11.06 & 18.26 & --- & --- & --- & --- \\
-& Anom.\ Transf.~\citep{xu2022anomalytransformer} & --- & --- & --- & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & --- \\
-& DCdetector~\citep{yang2023dcdetector} & --- & --- & --- & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & --- \\
+& DCNN~\citep{li2018dcnn}$^\dagger$ & 12.61 & 22.36 & 23.31 & --- & --- & --- & --- \\
+& LSTM~\citep{zheng2017lstm}$^\dagger$ & 16.14 & 16.18 & 28.17 & --- & --- & --- & --- \\
 \midrule
 \multicolumn{9}{@{}l}{\textit{SSL methods}} \\
-& TS2Vec~\citep{yue2022ts2vec} & --- & --- & --- & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & --- \\
-& PatchTST~\citep{nie2023patchtst} & --- & --- & --- & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & --- \\
-& MTS-JEPA~\citep{mtsjepa2026} & --- & --- & --- & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & --- \\
+& TS2Vec~\citep{yue2022ts2vec} & --- & --- & --- & 32.8 & 23.5 & 67.0 & --- \\
+& PatchTST~\citep{nie2023patchtst} & --- & --- & --- & 30.1 & 27.0 & 70.6 & --- \\
+& TS-JEPA~\citep{tsjepa2024} & --- & --- & --- & 26.6 & 25.5 & 72.0 & --- \\
+& MTS-JEPA~\citep{mtsjepa2026} & --- & --- & --- & 33.6 & 33.6 & 72.9 & --- \\
 & AE-LSTM~\citep{lecam2025aelstm}$^\dagger$ & 13.99 & --- & --- & --- & --- & --- & --- \\
 \midrule
 \rowcolor{blue!5}
-& \textbf{Traj JEPA E2E} & \textbf{14.23}$_{\pm0.4}$ & \textbf{15.37}$_{\pm0.9}$ & \textbf{25.62}$_{\pm0.3}$ & \textcolor{blue}{\textbf{0.XX}} & \textcolor{blue}{\textbf{0.XX}} & \textcolor{blue}{\textbf{0.XX}} & \textcolor{blue}{\textbf{X.XX}} \\
+& \textbf{Traj JEPA E2E} & \textbf{14.23}$_{\pm0.4}$ & \textbf{15.37}$_{\pm0.9}$ & \textbf{25.62}$_{\pm0.3}$ & \plannedc{\textbf{XX.X}} & \plannedc{\textbf{XX.X}} & \plannedc{\textbf{XX.X}} & \plannedc{\textbf{XX.X}} \\
 \rowcolor{blue!5}
-& \textbf{Traj JEPA Frozen} & 17.81$_{\pm1.7}$ & 19.25$_{\pm3.2}$ & 29.35$_{\pm0.6}$ & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & \textcolor{blue}{0.XX} & \textcolor{blue}{X.XX} \\
+& \textbf{Traj JEPA Frozen} & 17.81$_{\pm1.7}$ & 19.25$_{\pm3.2}$ & 29.35$_{\pm0.6}$ & \plannedc{XX.X} & \plannedc{XX.X} & \plannedc{XX.X} & \plannedc{XX.X} \\
 \bottomrule
 \end{tabular}}% end resizebox
 \end{table}
