@@ -89,84 +89,132 @@ Start with λ = 0.05 (5%), sweep {0.02, 0.05, 0.10} if time allows.
 Run Experiment B from REPLICATION_SPEC.md. If our `sigreg.py` uses
 moments-based approximation instead of EP, switch to official EP test.
 
-### 1b. SIGReg pretraining — training procedure (BE PRECISE)
+### 1b. SIGReg pretraining — REVISED ARCHITECTURE
 
-**View construction (important):**
-- **Global view (context):** from timestep 1 to cut-off t, where t is
-  sampled to give a reasonably large window (e.g., t ≥ 50 cycles).
-  This is what the context encoder sees: the full history up to t.
-- **Local views (targets):** smaller snippets x_{t+1:t+k} with
-  k ~ U[5,30]. These are what the predictor must predict in latent space.
+**Key architectural decisions from discussion (2026-04-15/16):**
 
-**Loss computation (be crystal clear):**
+We discussed the current architecture in depth and identified several
+changes. Implement these carefully.
+
+#### Current architecture (V2, for reference)
 ```
-# Forward pass
-h_past = encoder(x_{1:t})              # context encoder output
-h_fut  = encoder(x_{t+1:t+k}).detach() # SAME encoder, no_grad (SIGReg-only)
-                                        # OR: ema_encoder(x_{t+1:t+k}) (EMA variant)
-h_hat  = predictor(h_past, k)          # predictor output
+Context encoder (CAUSAL transformer):
+  x_{1:t}  →  [e_1, ..., e_t]  →  causal attention  →  take LAST token  →  h_past ∈ R^256
 
-# Losses
-L_pred = ||h_hat - h_fut||_1           # prediction loss (predictor vs target)
-L_sig  = SIGReg(h_past)                # regularizer on ENCODER output (NOT predictor)
+Target encoder (BIDIRECTIONAL transformer + attention pool, EMA of context):
+  x_{t+1:t+k}  →  [e_{t+1}, ..., e_{t+k}]  →  bidi attention  →  attn pool  →  h_fut ∈ R^256
 
-# Total
-L = (1 - λ) * L_pred + λ * L_sig       # λ = 0.05 default
+Predictor (MLP):
+  concat(h_past, sinusoidal_PE(k))  →  MLP  →  ĥ_fut ∈ R^256
+
+Loss:  L1(ĥ_fut, sg[h_fut]) + λ_var * relu(1 - std(h_fut))
 ```
 
-**Key:** SIGReg is computed on **encoder output h_past**, NOT on predictor
-output. The encoder representations are what downstream probes consume, so
-those are what must be isotropic. The predictor is a throwaway component.
+Problems identified:
+1. Context encoder is causal — but at inference we have the FULL past.
+   Causal mask wastes representational capacity. No reason to restrict.
+2. Target encoder only sees future snippet x_{t+1:t+k} — if grey swan
+   event occurs at t+3, it's captured, but the target lacks context of
+   where the system was BEFORE the event. V14 full-sequence variant
+   (target sees x_{1:t+k}) improved frozen by -2.1 RMSE.
+3. Single-vector output (last token / attn pool) throws away per-token info.
+   But: we WANT trajectory-level representations, not token-level. Each h
+   encodes a whole episode (type + length). This is a FEATURE, not a bug.
+
+#### Revised architecture (V15)
+```
+Encoder (BIDIRECTIONAL transformer, SHARED weights):
+  x_{0:t}      →  bidi attention  →  attention pool  →  h_t ∈ R^256
+  x_{0:t+k}    →  bidi attention  →  attention pool  →  h_{t+k} ∈ R^256  (sg, no_grad)
+
+Predictor (MLP, horizon-aware):
+  concat(h_t, sinusoidal_PE(k))  →  MLP  →  ĥ_{t+k} ∈ R^256
+
+Losses:
+  L_pred = ||ĥ_{t+k} - sg[h_{t+k}]||_1
+  L_sig  = SIGReg(h_t)              ← on ENCODER output, NOT predictor
+  L_total = (1-λ) * L_pred + λ * L_sig
+```
+
+**Why bidirectional for context:** At time t, we know the full past.
+A causal mask would hide timestep 5 from timestep 3, which is information
+we actually have. Bidirectional gives a strictly better encoding.
+(Note: this means we can't do autoregressive generation, but we don't
+need to — we only need one summary vector for probes.)
+
+**Why full-trajectory targets:** The target h_{t+k} encodes x_{0:t+k},
+the whole trajectory up to t+k. The predictor learns: "given where the
+system is at time t, what will the full trajectory summary look like
+k steps later?" This captures grey swan events whenever they occur.
+V14 already validated this: full-sequence target = -2.1 RMSE improvement.
+
+**Why attention pooling for both:** With bidirectional attention, all
+token positions are equivalent (no "last token is special" property).
+Use a learned pooling query for both context and target encodings.
+Currently the target encoder already does this; now the context encoder
+should too.
+
+**Why single-vector (trajectory-level) output:** We want h to encode
+the CHARACTER of a trajectory (its type, length, degradation state),
+not individual timestep details. Different episodes produce different h
+vectors. This is the right abstraction for grey swan prediction —
+the probe maps trajectory character → event prediction.
+
+#### SIGReg specifics
+
+**SIGReg is computed on h_t (encoder output), NOT ĥ_{t+k} (predictor output).**
+The encoder representations are what downstream probes consume.
+
+**Single encoder, no EMA.** With SIGReg preventing collapse, we don't
+need a separate target encoder. The target branch uses the SAME encoder
+with `torch.no_grad()` to produce h_{t+k}. This halves model parameters.
 
 **Three configs to compare:**
 
-| Config | EMA | Collapse prevention | λ |
-|--------|-----|--------------------|----|
-| V2 baseline | τ=0.99 | variance regularizer | — |
-| SIGReg-only | none (same encoder, target uses no_grad) | SIGReg EP | 0.05 |
-| EMA + SIGReg | τ=0.99 | SIGReg EP | 0.05 |
+| Config | Target branch | Collapse prevention | λ |
+|--------|--------------|--------------------|----|
+| V2 baseline (causal ctx) | EMA τ=0.99 | variance regularizer | — |
+| V15-EMA (bidi ctx, full-seq tgt) | EMA τ=0.99 | — | — |
+| V15-SIGReg (bidi ctx, full-seq tgt) | same encoder, no_grad | SIGReg EP | 0.05 |
 
 M=512 slices. 200 epochs. 3 seeds each. Log all to wandb.
 If SIGReg-only works: try λ sweep {0.02, 0.05, 0.10} on best config.
-Be critical. Iterate. If something looks wrong (loss diverges, collapse),
-diagnose before moving on.
+Be critical. Iterate. If something looks wrong, diagnose before moving on.
 
-**CRITICAL: Batch size for SIGReg.**
-Current pretraining uses BATCH_SIZE=4 (variable-length sequences).
-SIGReg needs a batch of h_past vectors to compute the EP test —
-batch=4 is far too small (O(1/N) bias, need N ≥ 64-128).
-**Solution:** Use gradient accumulation to effective batch ≥ 128.
-Accumulate h_past vectors across accumulation steps, compute SIGReg
-once on the full accumulated batch before optimizer.step().
+#### Batch size for SIGReg
+
+C-MAPSS FD001: 100 engines, mean ~206 cycles. With 30 cuts/engine = 3000
+training pairs per epoch. Current BATCH_SIZE=4 is too small for SIGReg
+(EP test needs N ≥ 64).
+
+**Solution:** Increase batch size to 32 or 64. The model is only 1.26M
+params and sequences are max ~200 tokens × 256d — memory is NOT the
+bottleneck (batch=4 was for variable-length padding convenience).
+Use `torch.nn.utils.rnn.pad_sequence` and larger batches.
+
+If batch=64 is still insufficient for SIGReg quality, use gradient
+accumulation (2 steps of 64 = 128 effective):
 
 ```python
-# Pseudocode for SIGReg with gradient accumulation:
-accum_steps = 32  # 32 * 4 = 128 effective batch
-h_past_buffer = []
-for i, batch in enumerate(loader):
-    h_past = model.context_encoder(past, past_mask)
-    h_hat = model.predictor(h_past, k)
-    L_pred = F.l1_loss(h_hat, h_future.detach())
-    (L_pred / accum_steps).backward()  # accumulate pred loss gradients
-    h_past_buffer.append(h_past.detach())
+optimizer.zero_grad()
+h_buffer = []
+for accum_step in range(accum_steps):
+    batch = next(loader_iter)
+    h_t = encoder(x_past, mask)          # (B, 256)
+    h_tk = encoder(x_full, mask).detach()  # (B, 256), no_grad
+    h_hat = predictor(h_t, k)
+    L_pred = F.l1_loss(h_hat, h_tk)
+    (L_pred / accum_steps).backward()
+    h_buffer.append(h_t)  # keep in graph for SIGReg
 
-    if (i + 1) % accum_steps == 0:
-        # Compute SIGReg on accumulated batch
-        h_all = torch.cat(h_past_buffer)  # (128, 256)
-        L_sig = sigreg_loss(h_all)
-        # Add SIGReg gradient (on encoder params only)
-        (λ * L_sig).backward()
-        optimizer.step()
-        optimizer.zero_grad()
-        h_past_buffer = []
+# SIGReg on full accumulated batch
+h_all = torch.cat(h_buffer)  # (accum_steps * B, 256)
+L_sig = sigreg_loss(h_all)
+(λ * L_sig / accum_steps).backward()
+
+optimizer.step()
+optimizer.zero_grad()
 ```
-
-**Architecture note:** The current model produces ONE vector per sample:
-- h_past = context_encoder(x_{1:t}) → (B, 256) — last hidden state of causal transformer
-- h_future = target_encoder(x_{t+1:t+k}) → (B, 256) — attention-pooled bidirectional
-- predictor(h_past, k) → (B, 256) — single-vector prediction
-This is vector-to-vector, NOT multi-token prediction. SIGReg operates
-on the (B, 256) h_past batch directly.
 
 ### 1c. Validate loss-performance correlation
 Run Experiment C from REPLICATION_SPEC.md: save checkpoints every 5 epochs,
