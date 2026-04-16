@@ -191,7 +191,7 @@ Script: `phase2_cross_sensor_fixed.py`
 V15 cross-sensor aborted due to sensor_id_embed shortcut.
 V16 fix: use fixed sinusoidal sensor PE (no learnable sensor identity).
 
-Status: RUNNING (PID 94008, seed 42 started)
+Status: RUNNING (PID 94008, seed 42 at ep7)
 
 V14 baseline: 14.98 +/- 0.22
 
@@ -204,18 +204,46 @@ Script: `phase3_smap_100epochs.py`
 V15 result: non-PA F1=0.069 (barely beats random=0.071, only 20 epochs).
 V16 goal: > 0.10 non-PA F1 with 100 epochs on full 135K train set.
 
-Status: RUNNING (PID 94044)
+Status: RUNNING (PID 94044, ep1 started, 5.4 min/epoch, ETA ~9 hours)
 
 ---
 
-## Phase 4: Cross-Machine Transfer (RUNNING)
+## Phase 4: Cross-Machine Transfer (COMPLETE)
 
 Script: `phase4_cross_machine.py`
+Results: `phase4_cross_machine_results.json`
 
-Tests zero-shot transfer: FD001 pretrained -> FD002/FD003/FD004 frozen probe.
-Uses V16a seed42 checkpoint (best_v16a_seed42.pt).
+Tests zero-shot transfer: FD001 pretrained encoder + new frozen probe on target domain.
+Using V16a seed42 checkpoint (best_v16a_seed42.pt, probe=4.75).
 
-Status: RUNNING (PID 93969, V2 baseline FD002 evaluation in progress)
+### Cross-Machine Results (3 probe seeds per domain)
+
+| Model | FD002 RMSE | FD003 RMSE | FD004 RMSE |
+|-------|-----------|-----------|-----------|
+| V2 (causal) | 27.68 +/- 1.00 | 31.45 +/- 3.26 | 38.32 +/- 1.00 |
+| V16a (bidi) | 32.62 +/- 1.54 | 40.02 +/- 1.22 | 43.60 +/- 1.46 |
+
+**CRITICAL FINDING**: V16a is consistently WORSE than V2 on cross-machine transfer.
+
+| Domain | Delta | Relative loss |
+|--------|-------|--------------|
+| FD002  | +4.94 | +18% |
+| FD003  | +8.57 | +27% |
+| FD004  | +5.28 | +14% |
+
+**Interpretation**: The bidirectional context encoder achieves exceptional within-domain RUL
+prediction (4.75 vs 17.81) but transfers WORSE to other operating conditions. This suggests:
+
+1. Bidi encoder "memorizes" FD001-specific degradation patterns (better within-domain)
+2. Causal encoder learns more general temporal order/trends (better cross-domain)
+3. The bidi architecture may overfit to the specific operating condition distribution
+
+This is an important finding for the paper: bidirectionality helps within-domain but hurts transfer.
+The architecture is domain-specific, not domain-general.
+
+**V15-SIGReg**: SKIPPED - no checkpoint saved. Need to add checkpoint saving to phase1_sigreg.py.
+
+---
 
 ---
 
@@ -247,4 +275,24 @@ For RUL prediction (which depends on full degradation trajectory), bidi is stric
 
 ---
 
-*Last updated: 2026-04-16 (V16a seed 42 running, ep146)*
+---
+
+## V16b: Stable Training Fix (PENDING LAUNCH)
+
+Script: `phase1_v16b.py`
+
+Addresses V16a init instability: 2/3 seeds fail due to premature convergence.
+
+Changes:
+- Stronger variance regularization: lambda_var=0.1 (was 0.04)
+- LR warmup: 20 epochs linear warmup before cosine annealing
+- VICReg covariance regularization: lambda_cov=0.01 (NEW)
+- EMA momentum: 0.996 (was 0.99)
+
+Status: READY TO LAUNCH (waiting for V16a PID 86473 to complete seed 456)
+
+Target: 3-seed frozen probe mean < 12 cycles with genuine learning in all seeds.
+
+---
+
+*Last updated: 2026-04-16 (Phase 4 complete, V16a seed 456 finishing, V16b ready to launch)*
