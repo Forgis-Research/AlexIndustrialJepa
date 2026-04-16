@@ -527,16 +527,24 @@ V16 fix: use fixed sinusoidal sensor PE (no learnable sensor identity).
 | 90    | 0.0085 | 18.07     | 14.82 |
 | 100   | 0.0081 | 15.35     | 14.82 |
 | 110   | 0.0082 | **14.22** | **14.22** |
-| 120+  | (running) |       |         |
+| 120   | 0.0094 | 23.56     | 14.22 |
+| 130   | 0.0095 | 17.83     | 14.22 |
+| 140   | 0.0112 | 23.27     | 14.22 |
+| 150   | 0.0111 | 30.59     | 14.22 |
+| 160   | 0.0120 | 24.22     | 14.22 |
+| 170+  | (running) |       |         |
 
 Target baseline: V14 cross-sensor = 14.98 +/- 0.22
 
-**FINDING (seed42 partial)**: Best probe = 14.22 at ep110 (NEW BEST after ep110 probe eval).
+**FINDING (seed42 partial)**: Best probe = 14.22 at ep110.
 Beats V14 baseline (14.22 vs 14.98). But this is only 1 seed.
-Loss still decreasing (0.0082 at ep110 down from 0.009 at ep10) - may improve further.
-Loss peak-then-decay pattern: 0.0089->0.0103->0.0089->0.0085->0.0082 over epochs 10-110.
+EMA DIVERGENCE PATTERN: Loss INCREASED from 0.0082 (ep110) to 0.0112 (ep140) - +36%.
+Corresponding probe degraded: 14.22 (ep110) -> 23.56 (ep120) -> 23.27 (ep140).
+EMA target encoder drifting from context encoder after ep110 -> representations degrade.
+Best checkpoint = ep110 model state (but script doesn't save checkpoints).
+The final best_probe=14.22 is still valid (tracked in-memory).
 Seeds 123/456 will start after seed42 completes 200 epochs.
-ETA: ~90 more minutes for seed42 to complete, then 200 min each for seeds 123/456.
+ETA: ~60 more minutes for seed42 ep200, then ~200 min each for seeds 123/456.
 
 ---
 
