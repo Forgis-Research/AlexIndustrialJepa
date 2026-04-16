@@ -412,9 +412,10 @@ This experiment is implemented in the framework but numerical results require a 
 Architecture Variant & Frozen & E2E \\
 \midrule
 \textbf{V2 (causal + EMA, 5 seeds)} & \textbf{17.81}$_{\pm1.7}$ & \textbf{14.23}$_{\pm0.4}$ \\
-Full-seq target variant & 15.70$_{\pm0.2}$ & 14.32$_{\pm0.6}$ \\
-Bidirectional context (V16b) & 25.72$_{\pm1.6}$ & 15.06$_{\pm1.2}$ \\
-SIGReg (no EMA)$^*$ & --- & --- \\
+Full-seq target variant (5 seeds) & 15.70$_{\pm0.2}$ & 14.32$_{\pm0.6}$ \\
+Cross-sensor (sensor-as-token, 3 seeds) & 14.98$_{\pm0.2}$ & 14.35$_{\pm0.9}$ \\
+Bidirectional context (V16b, 3 seeds) & 25.72$_{\pm1.6}$ & 15.06$_{\pm1.2}$ \\
+SIGReg (no EMA, 3 seeds)$^*$ & --- & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
