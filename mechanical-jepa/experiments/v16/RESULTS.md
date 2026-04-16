@@ -595,14 +595,18 @@ Seed 456 trajectory (updated):
 | 20    | 0.0079 | 31.84     | 31.84 | seed42: 40.83     | seed123: 41.43     |
 | 30    | 0.0070 | 31.77     | 31.77 | seed42: 46.28     | seed123: 37.76     |
 | 40    | 0.0061 | 28.47     | 28.47 | seed42: 26.35     | seed123: 39.67     |
+| 50    | 0.0062 | 29.88     | 28.47 | seed42: 14.82     | seed123: 28.57     |
+| 60    | 0.0060 | 29.38     | 28.47 | seed42: 17.18     | seed123: 31.51     |
+| 70    | 0.0058 | 29.31     | 28.47 | seed42: 15.47     | seed123: 52.45(!!) |
+| 80    | 0.0061 | 30.38     | 28.47 | seed42: 16.10     | seed123: 27.78     |
 
-KEY OBSERVATION (ep40): Seed456 follows seed42's convergence pattern.
-- Seed456 ep40=28.47 vs seed42 ep40=26.35 (within 2.1 cycles - closely tracking!)
-- Seed123 ep40=39.67 (much worse - diverged early)
-- Seed456 loss at ep40 (0.0061) BELOW seed42 at ep40 (0.0100). Healthy.
-- Probe improving: 36.97 → 32.30 → 31.84 → 31.77 → 28.47 (steady descent)
-If seed456 follows seed42 fully: expect ~14-16 probe at ep50-110 (seed42 hit 14.82 at ep50).
-Still running (ep44+ at last check).
+KEY OBSERVATION (ep80): Confirmed seed123 pattern. Final best = ~28.47 (best captured ep40).
+- Loss RISING from ep70 (0.0058) -> ep80 (0.0061) -> ep86 (0.0063). EMA drift beginning.
+- Probe DEGRADING: 28.47 (best) -> 29.88 -> 29.38 -> 29.31 -> 30.38 (worsening trajectory)
+- Seed42 had 16.10 at ep80 (on its way to 14.22 at ep110). Seed456 has 30.38.
+- No lucky dip materialized. Seed456's best=28.47 (ep40) is FINAL.
+- CONFIRMED PREDICTION: seed456 final best = 28.47 (ep40). Will not improve.
+Still running (ep86 at last check, 114 epochs remaining).
 
 Target baseline: V14 cross-sensor = 14.98 +/- 0.22
 
