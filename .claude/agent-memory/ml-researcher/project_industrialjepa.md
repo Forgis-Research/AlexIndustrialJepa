@@ -1,51 +1,58 @@
 ---
 name: IndustrialJEPA Project Context
-description: V16a (2026-04-16): bidi context+causal target JEPA, frozen probe=4.75 (seed42, best ever, below supervised SOTA 10.61). V15 SIGReg best=7.04/9.16avg. V16a seeds 123+456 needed for publication.
+description: V16a (2026-04-16): 3-seed COMPLETE. seed42=4.75 genuine, seeds123/456=init artifacts. V16b=stable training fix (VICReg+warmup). Phases 2/3/4 running.
 type: project
 ---
 
 ## V16: Bidirectional Context + Causal Target JEPA (2026-04-16)
 
-### V16a Architecture (PRIMARY RESULT)
+### V16a Architecture
 
 **Fix**: BidiContextEncoder(x_{0:t}) + EMATargetEncoder(x_{t+1:t+k}) - no shared prefix.
 - Context: bidirectional transformer over past only (no causal mask), attention pooling -> (B, D)
 - Target: EMA copy of same architecture, sees ONLY future x_{t+1:t+k} (critical fix)
-- V15-EMA collapsed because target was x_{0:t+k} (prefix sharing with context)
 
-**V16a Seed 42 Results (COMPLETE)**:
-- Best frozen probe RMSE: 4.75 (epoch 70 checkpoint saved to `experiments/v16/best_v16a_seed42.pt`)
-- Probe trajectory: 13.15->8.64->4.88->7.32->4.75->6.50->9.97->11.95->7.69->13.04->11.17->11.23
-- E2E RMSE: PENDING (running now)
-- Training: 200 epochs, cosine LR from 3e-4. Loss: 0.058->0.011 (ep10)->0.015 (ep200)
-- Best at ep70 (not ep200) - cosine schedule overshoots. 70 epochs may be optimal.
+**V16a 3-Seed Results (COMPLETE)**:
+| Seed | Frozen Probe | Source    | Genuine? | E2E RMSE |
+|------|-------------|-----------|----------|----------|
+| 42   | 4.75        | ep70 min  | YES      | 16.05    |
+| 123  | 8.53        | ep1 init  | NO       | 16.03    |
+| 456  | 12.45       | ep1 init  | NO       | 17.39    |
+
+**E2E: 16.49 +/- 0.64 vs V2 E2E=14.23 +/- 0.39 (WORSE)**
+
+**CRITICAL FINDING**: 2/3 seeds fail due to initialization instability.
+Seeds 123/456 converge too fast (loss~0.004 at ep10 vs seed42 ~0.011).
+Early convergence locks representations into non-RUL-informative minima.
+"Best probe" metric captures ep1 init artifact, not learned representation.
+
+**E2E bug fixed**: CMAPSSTestDataset returns raw cycles (not [0,1]). 
+Old code multiplied targets*RUL_CAP=125 again -> 10692 RMSE (125x wrong).
+Corrected: targets = np.concatenate(targets) [no *RUL_CAP].
+All eval scripts updated. phase1_v16a_e2e_eval.py has corrected version.
+
+**V16b (NEW - addresses init instability)**:
+- VICReg-style regularization: lambda_var=0.1 (was 0.04) + covariance reg lambda_cov=0.01
+- LR warmup: 20 epochs linear warmup before cosine annealing
+- EMA momentum: 0.996 (was 0.99)
+- Goal: All 3 seeds show genuine learning (not init artifacts)
+- Script: experiments/v16/phase1_v16b.py
+- Status: READY TO LAUNCH (waiting for V16a seed 456 to finish)
 
 **Comparison**:
 | Method | Frozen Probe RMSE | Status |
 |--------|-----------------|--------|
-| V2 baseline (EMA, causal context) | 17.81 +/- 1.7 (5 seeds) | COMPLETE |
-| V15-SIGReg | 9.16 +/- 1.50 (3 seeds) | COMPLETE (no ckpt) |
-| V16a seed 42 | 4.75 | COMPLETE, confirmed |
-| V16a 3-seed mean | PENDING | seeds 123, 456 running |
+| V2 baseline | 17.81 +/- 1.7 (5 seeds) | COMPLETE |
+| V15-SIGReg honest | 11.13 +/- 0.79 (verified) | NOT reproducible at 9.16 |
+| V16a seed 42 | 4.75 (genuine) | COMPLETE |
+| V16a 3-seed aggregate | 8.58 +/- 3.15 (misleading: 2/3 init artifacts) | NOT publishable |
+| V16b | PENDING | should give stable 3-seed results |
 | Supervised SOTA (STAR 2024) | 10.61 | Reference |
-| SSL SOTA (AE-LSTM) | 13.99 | Reference |
 
-**CRITICAL INTERNAL CONSISTENCY CHECK (seed 42)**:
-- Loss converged quickly (ep10: 0.011), two probe minima below 5.0 (ep20=4.88, ep70=4.75)
-- Two independent excellent probes confirm genuine learning (not lucky init artifact)
-- Architecture has no data leakage: future uses only past stats for normalization
-- Probe uses train_engines for training, val_engines for eval - correct
-- Checkpoint saved at ep70 (verified as model with 4.75 probe)
-- VERDICT: GENUINE result. Needs 3-seed confirmation for publication.
-
-**NOTE on cyclical probe**: V16a shows same oscillation as V15-SIGReg (4.75 at ep70 -> 13 at ep130 -> 11 at ep200). This is characteristic of EMA target drift. Best checkpoint strategy: save at earliest best, not at ep200.
-
-**Pending for V16**:
-1. V16a seeds 123, 456 (auto-runs after seed 42 E2E complete)
-2. V16 Phase 2: cross-sensor without sensor_id shortcut
-3. V16 Phase 3: SMAP 100-epoch full-data pretraining
-4. V16 Phase 4: cross-machine transfer (FD001->FD002/FD003/FD004)
-5. V15-SIGReg checkpoint verification (running: seed 42 probe~24 at ep60, peak expected ep110)
+**Phases running**:
+- Phase 2 (cross-sensor fixed): PID 94008
+- Phase 3 (SMAP 100ep): PID 94044
+- Phase 4 (cross-machine): PID 93969 (V2 FD002=27.68, FD003=31.45, FD004=in progress)
 
 ---
 
