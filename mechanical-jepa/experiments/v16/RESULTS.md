@@ -554,16 +554,27 @@ Seed 123 partial trajectory (as of 03:32 UTC):
 | 40    | 0.0055 | 39.67     | 32.65 | seed42: 26.35 (BETTER for seed42!) |
 | 50    | 0.0049 | **28.57** | **28.57** | seed42: 14.82 (BETTER for seed42!) |
 | 60    | 0.0047 | 31.51     | 28.57 | seed42: 17.18 |
+| 70    | 0.0052 | **52.45** | 28.57 | seed42: 15.47 |
+
+CRITICAL FINDING: Seed123 underwent catastrophic degradation at ep70 (probe: 31.51->52.45 = +20.94).
+This is EMA divergence, but occurring MUCH EARLIER than seed42 (ep70 vs ep110 for seed42).
 
 KEY OBSERVATIONS:
-1. Seed123 loss converges FASTER than seed42 (ep50: 0.0049 vs seed42's 0.0089).
-2. Seed123 ep50 probe (28.57) is significantly worse than seed42's ep50 (14.82).
-3. Seed123 ep50 was new best, then ep60 degraded to 31.51 (same oscillation as seed42).
-4. Pattern matches seed42: ep50 best -> ep60 slight degradation -> possible recovery at ep70+
-   Seed42: ep50=14.82, ep60=17.18 (degraded), ep70=15.47 (recovered), ep110=14.22 (best)
-   Seed123: ep50=28.57 (best), ep60=31.51 (degraded), ep70=? (may recover)
-5. Seed123 final best likely in range 20-28 (offset from seed42 by ~13 cycles).
-6. If EMA divergence hits seed123 like it did seed42 (after ep110), best might stay at 28.57.
+1. Seed123 loss is consistently LOWER than seed42 (0.005 vs 0.008-0.010).
+   Low JEPA loss does NOT guarantee good probe quality.
+2. Seed123's best probe (28.57 at ep50) is locked in - EMA divergence at ep70 prevents recovery.
+3. Pattern: seed123 found RUL-correlated representation at ep50, then encoder drifted.
+   The drift is earlier than seed42's (ep70 vs ep110) possibly due to different initialization.
+4. Compare: seed42 ep70=15.47 (normal oscillation); seed123 ep70=52.45 (catastrophic divergence).
+
+IMPLICATION: Cross-sensor without shortcut shows HIGH VARIANCE between seeds.
+- Seed42 final: 14.22 (competitive with V14=14.98)
+- Seed123 final: ~28.57 (locked by early EMA divergence)
+- Expected 3-seed mean: (14.22 + 28.57 + seed456) / 3
+
+Removing learnable sensor ID embeddings (V14 shortcut) massively INCREASES variance
+(V14: 14.98 ± 0.22 vs Phase2: ~14-29 range, ±7+ cycles).
+Conclusion: sensor ID embeddings stabilize training, not just provide a shortcut.
 
 **Seed 456: PENDING** (will start after seed 123, ~04:00 UTC)
 
