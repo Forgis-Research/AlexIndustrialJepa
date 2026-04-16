@@ -211,7 +211,7 @@ Sensor ordering is handled by the learnable ID embeddings, making the architectu
 \end{equation}
 where $\text{sg}[\cdot]$ is stop-gradient. The EMA and L1 loss together prevent representation collapse~\citep{grill2020byol}. Pretraining: 200 epochs, cosine LR decay from $3 \times 10^{-4}$.
 
-\paragraph{SIGReg variant.} We also explore replacing EMA with SIGReg spectral regularization~\citep{balestriero2025lejepa}: a single shared encoder (no target copy) with a regularization term $\loss_\text{SIG}$ that prevents collapse by maintaining spectral diversity of the representation covariance. \plannedc{Preliminary results suggest SIGReg matches EMA quality with 40\% fewer parameters. Full comparison in \cref{sec:ablations}.}
+\paragraph{SIGReg variant.} We also explore replacing EMA with SIGReg spectral regularization~\citep{balestriero2025lejepa}: a single shared encoder (no target copy) with a regularization term $\loss_\text{SIG}$ that prevents collapse by maintaining spectral diversity of the representation covariance. \plannedc{Preliminary results suggest SIGReg matches EMA quality with $\sim$20\% fewer parameters (no predictor head). Full comparison in \cref{sec:ablations}.}
 
 \subsection{Downstream Probes}
 \label{sec:probes}
