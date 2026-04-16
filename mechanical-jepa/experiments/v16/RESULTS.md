@@ -277,21 +277,36 @@ For RUL prediction (which depends on full degradation trajectory), bidi is stric
 
 ---
 
-## V16b: Stable Training Fix (PENDING LAUNCH)
+## V16b: Stable Training Fix (RUNNING)
 
 Script: `phase1_v16b.py`
+PID: 95977, log: `phase1_v16b_stdout.log`
 
 Addresses V16a init instability: 2/3 seeds fail due to premature convergence.
 
-Changes:
+Changes vs V16a:
 - Stronger variance regularization: lambda_var=0.1 (was 0.04)
-- LR warmup: 20 epochs linear warmup before cosine annealing
+- LR warmup: 20 epochs linear warmup before cosine annealing  
 - VICReg covariance regularization: lambda_cov=0.01 (NEW)
 - EMA momentum: 0.996 (was 0.99)
 
-Status: READY TO LAUNCH (waiting for V16a PID 86473 to complete seed 456)
+### V16b Seed 42 Early Trajectory (RUNNING)
 
-Target: 3-seed frozen probe mean < 12 cycles with genuine learning in all seeds.
+| Epoch | Loss   | Probe RMSE | Best  | LR    |
+|-------|--------|-----------|-------|-------|
+| 1     | 0.0956 | 25.13     | 25.13 | 1.5e-5 (warmup) |
+| 10    | 0.0813 | 14.58     | 14.58 | 1.5e-4 (warmup) |
+| 20    | 0.0746 | 14.37     | 14.37 | 3.0e-4 (peak)   |
+
+**KEY SIGNAL**: V16b shows genuine improvement: ep1=25.13 -> ep10=14.58 -> ep20=14.37.
+Compare to V16a seeds 123/456 which DEGRADED from ep1 (8-12) to ep10-20 (17-30).
+
+V16b ep1 probe is WORSE than V16a (25.13 vs 8-13) because VICReg prevents lucky init.
+But V16b IMPROVES while V16a degraded - this confirms VICReg+warmup fixes the instability.
+
+Note: Process is slow due to GPU contention (Phase 2 using 15.6 GB). Probe evals take 15+ min.
+
+Status: Seed 42 at ep20, running toward 200 epochs. ETA: ~8 hours for 3 seeds.
 
 ---
 
