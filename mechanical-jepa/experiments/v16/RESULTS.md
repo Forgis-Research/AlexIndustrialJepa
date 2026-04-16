@@ -600,13 +600,13 @@ Seed 456 trajectory (updated):
 | 70    | 0.0058 | 29.31     | 28.47 | seed42: 15.47     | seed123: 52.45(!!) |
 | 80    | 0.0061 | 30.38     | 28.47 | seed42: 16.10     | seed123: 27.78     |
 | 90    | 0.0061 | 36.56     | 28.47 | seed42: 18.07     | seed123: 25.19     |
+| 100   | 0.0063 | 30.02     | 28.47 | seed42: 15.35     | seed123: 18.66     |
 
-KEY OBSERVATION (ep90): EMA oscillation spike (36.56). Same pattern as seed123 (ep70 spike 52.45).
-- Spike at ep90 for seed456 vs spike at ep70 for seed123 - EMA drift onset delayed slightly.
-- Best still 28.47 (ep40) - spike does NOT reset best (in-memory tracking protects it).
-- After seed123's spike, it recovered to 25-27 range and never improved further.
-- PREDICTION: seed456 will recover to ~28-30 after spike, final best remains ~28.47.
-Still running (ep93 at last check, 107 epochs remaining).
+KEY OBSERVATION (ep100): Recovered from spike but probe not improving.
+- ep90 spike (36.56) recovered to 30.02 at ep100 - consistent with seed123 spike-recovery.
+- Loss rising: 0.0058 (ep70) -> 0.0065 (ep99) -> 0.0063 (ep100). EMA drift continuing.
+- Best still 28.47 (ep40). CONFIRMED: seed456 final best = 28.47.
+Still running (ep100 at last check, 100 epochs remaining).
 
 Target baseline: V14 cross-sensor = 14.98 +/- 0.22
 

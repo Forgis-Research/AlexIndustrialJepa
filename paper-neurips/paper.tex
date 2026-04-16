@@ -460,7 +460,7 @@ Five diagnostics confirm genuine within-engine tracking on C-MAPSS:
 \label{sec:limitations}
 
 \begin{enumerate}[nosep]
-  \item \textbf{Run-to-failure structural supervision.} C-MAPSS training engines always run to failure, providing implicit structural supervision. The length-vs-content ablation (\cref{sec:verification}) and from-scratch comparison confirm the encoder reads content, not length, but this qualifier applies to the ``no labels'' claim.
+  \item \textbf{Run-to-failure structural supervision.} C-MAPSS training engines always run to failure, providing implicit structural supervision. The hand-engineered baseline margin (diagnostic 4, \cref{sec:verification}) and from-scratch comparison confirm the encoder reads degradation content rather than episode length---sequence length alone is one of 57 features in the ridge regressor (RMSE 19.1), well below JEPA (14.2). This qualifier nonetheless applies to the ``no labels'' claim.
   \item \textbf{Simulation-dominated evaluation.} C-MAPSS and N-CMAPSS are simulations. Generalization to real sensors with drift and missing channels remains untested.
   \item \textbf{Gap to supervised SOTA.} JEPA E2E (14.23) vs.\ STAR (replic.\ 12.19; paper 10.61) on FD001 at 100\% labels. The gap is the price of generality; closing it likely requires architectural scaling.
   \item \textbf{Multi-condition generalization.} FD002/FD004 show distribution shift from per-condition normalization mismatch (\cref{app:fd002}).
