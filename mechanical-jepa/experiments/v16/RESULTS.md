@@ -559,11 +559,14 @@ Seed 123 partial trajectory (as of 03:32 UTC):
 | 90    | 0.0052 | 31.29     | 27.78 | |
 | 100   | 0.0053 | 42.20     | 27.78 | |
 | 110   | 0.0064 | **27.54** | **27.54** | |
+| 120   | 0.0055 | 27.77     | 27.54 | |
+| 130   | 0.0057 | **27.01** | **27.01** | |
 
 FINDING at ep70: Seed123 underwent catastrophic spike at ep70 (probe: 31.51->52.45 = +20.94).
-REVISED at ep80: Probe RECOVERED to 27.78 (new best, better than 28.57) - spike was transient.
-ep90=31.29, ep100=42.20, ep110=27.54 (new best) - probe oscillating widely in 27-52 range.
-Best continually improving slowly: 28.57 -> 27.78 -> 27.54 despite wild oscillation.
+REVISED at ep80+: Probe RECOVERED and is SLOWLY CONVERGING. Best: 28.57 -> 27.78 -> 27.54 -> 27.01.
+ep130=27.01 - new best, continuing gradual improvement despite oscillation.
+REVISED interpretation: Not permanently stuck. Slowly converging (ep50-ep130: 28.57->27.01, -1.56 RMSE).
+Final best for seed123 will likely be in the 25-27 range (30 epochs more to run).
 
 KEY OBSERVATIONS:
 1. Seed123 loss is consistently LOWER than seed42 (0.005 vs 0.008-0.010).
