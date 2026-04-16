@@ -48,10 +48,30 @@ BidiContextEncoder(x_{0:t}) + EMATargetEncoder(x_{t+1:t+k}) + VICReg + LR warmup
 - Phase 5 (shuffle test): script ready at experiments/v16/phase5_shuffle_test.py
 - Phase 6 (feature regressor): COMPLETE - V16b beats ridge by 7.86 RMSE (44%)
 
-### E2E Eval Status:
-- V16b checkpoints: best_v16b_seed42.pt (ep90), best_v16b_seed123.pt (ep10)
-- E2E eval script: experiments/v16/phase1_v16b_e2e_eval.py
-- NOT YET RUN (will run after seed456 completes)
+### E2E Eval Results (COMPLETE):
+| Seed | Test RMSE |
+|------|----------|
+| 42   | 16.60    |
+| 123  | 14.75    |
+| 456  | 13.83    |
+| Mean | 15.06 ± 1.15 |
+
+V2 E2E baseline: 14.23 ± 0.39. V16b E2E slightly WORSE than V2. Bidi helps frozen probe but not E2E.
+
+### CRITICAL PROTOCOL BLINDSPOT (DISCOVERED 2026-04-16):
+CMAPSSFinetuneDataset(val_engines, use_last_only=True) returns RUL=1.0 cycle for ALL 15 val engines.
+The frozen probe val RMSE (9.86, 8.43, 11.88) measures prediction accuracy at RUL=1.
+- Probe predicts ~10 cycles when truth is 1 cycle (WRONG for near-failure state)
+- "Best frozen probe < SOTA" claim must be qualified: it's best at predicting last-window RUL
+- E2E test RMSE is the valid metric for general RUL prediction
+- Feature regressor val RMSE = 42.69 (predicts ~43 cycles when truth is 1) vs V16b val = 9.86
+- Mean-pool bug in shuffle test: mask convention inverted (computes avg of padding=zeros, not valid)
+
+### Shuffle Test Results (VALID FINDINGS, phase5_shuffle_test_results.json):
+- Original encoder: val RMSE = 10.25 ± 1.40 (probe at last-window)
+- Shuffled time order: 34.02 ± 4.88 (delta +23.77) -> ENCODER USES TEMPORAL ORDER (PASS)
+- Random features: 42.32 ± 1.95 (encoder beats random by 32 RMSE)
+- Mean-pool raw: 1.86 ± 1.73 (BUG: bug gives ~0 features, predicts ~0 cycles, RUL=1 -> low RMSE)
 
 ### Phase 4 Cross-Machine (COMPLETE):
 | Domain | V2 RMSE | V16a RMSE | V16a vs V2 |

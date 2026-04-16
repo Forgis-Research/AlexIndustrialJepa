@@ -1,0 +1,54 @@
+{
+  "description": "Shuffle test for V16b encoder - Rule 4 validity check",
+  "checkpoint_seed_used": 42,
+  "probe_seeds": [
+    42,
+    123,
+    456
+  ],
+  "ablations": {
+    "original": {
+      "val_rmse_mean": 10.24823029836019,
+      "val_rmse_std": 1.4048928207226161,
+      "val_rmse_per_seed": [
+        9.883199691772461,
+        12.122091293334961,
+        8.739399909973145
+      ]
+    },
+    "shuffled_time": {
+      "val_rmse_mean": 34.017269134521484,
+      "val_rmse_std": 4.884723482978896,
+      "val_rmse_per_seed": [
+        33.06841278076172,
+        28.565860748291016,
+        40.41753387451172
+      ]
+    },
+    "random_features": {
+      "val_rmse_mean": 42.317620595296226,
+      "val_rmse_std": 1.9468045664932514,
+      "val_rmse_per_seed": [
+        40.1472282409668,
+        41.93580627441406,
+        44.86982727050781
+      ]
+    },
+    "mean_pool_raw": {
+      "val_rmse_mean": 1.8618671894073486,
+      "val_rmse_std": 1.733434239946626,
+      "val_rmse_per_seed": [
+        4.241090297698975,
+        1.1837871074676514,
+        0.16072416305541992
+      ]
+    }
+  },
+  "summary": {
+    "temporal_delta": 23.769038836161293,
+    "vs_random_delta": 32.069390296936035,
+    "vs_mean_pool_delta": -8.38636310895284,
+    "encoder_uses_temporal_order": true,
+    "encoder_beats_mean_pool": false
+  }
+}
