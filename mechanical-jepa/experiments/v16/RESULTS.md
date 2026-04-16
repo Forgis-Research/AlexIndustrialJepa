@@ -504,7 +504,7 @@ Once disrupted by high LR, representations don't fully recover (EMA target drift
 
 ---
 
-## Phase 2: Cross-Sensor Without Shortcut (RUNNING - seed 42 at ep80+)
+## Phase 2: Cross-Sensor Without Shortcut (RUNNING - seed 123 at ep1+)
 
 Script: `phase2_cross_sensor_fixed.py`
 PID: 94008
@@ -512,7 +512,7 @@ PID: 94008
 V15 cross-sensor aborted due to sensor_id_embed shortcut.
 V16 fix: use fixed sinusoidal sensor PE (no learnable sensor identity).
 
-**Seed 42 probe trajectory**:
+**Seed 42 trajectory - COMPLETE (done in 94.2 min)**:
 | Epoch | Loss   | Probe RMSE | Best  |
 |-------|--------|-----------|-------|
 | 1     | 0.0615 | 46.49     | 46.49 |
@@ -532,19 +532,20 @@ V16 fix: use fixed sinusoidal sensor PE (no learnable sensor identity).
 | 140   | 0.0112 | 23.27     | 14.22 |
 | 150   | 0.0111 | 30.59     | 14.22 |
 | 160   | 0.0120 | 24.22     | 14.22 |
-| 170+  | (running) |       |         |
+| 170   | 0.0136 | 21.28     | 14.22 |
+| 180   | 0.0128 | 22.89     | 14.22 |
+| 190   | 0.0119 | 22.07     | 14.22 |
+| 200   | (ep200 probe not logged) | | 14.22 |
+
+**Seed 42 FINAL: best_probe = 14.22** (achieved ep110, confirmed by script output)
+EMA DIVERGENCE PATTERN: Loss 0.0082 (ep110) -> 0.0144 (ep172) -> 0.0118 (ep199).
+Loss spiked after ep110 due to EMA target drift. Probe degraded to 20-25 range.
+Best probe protected by in-memory tracking. Script confirmed: "done in 94.2 min, best_probe=14.22".
+
+**Seed 123: RUNNING** (started ~02:09 UTC, expected completion ~04:00 UTC)
+**Seed 456: PENDING** (will start after seed 123)
 
 Target baseline: V14 cross-sensor = 14.98 +/- 0.22
-
-**FINDING (seed42 partial)**: Best probe = 14.22 at ep110.
-Beats V14 baseline (14.22 vs 14.98). But this is only 1 seed.
-EMA DIVERGENCE PATTERN: Loss INCREASED from 0.0082 (ep110) to 0.0112 (ep140) - +36%.
-Corresponding probe degraded: 14.22 (ep110) -> 23.56 (ep120) -> 23.27 (ep140).
-EMA target encoder drifting from context encoder after ep110 -> representations degrade.
-Best checkpoint = ep110 model state (but script doesn't save checkpoints).
-The final best_probe=14.22 is still valid (tracked in-memory).
-Seeds 123/456 will start after seed42 completes 200 epochs.
-ETA: ~60 more minutes for seed42 ep200, then ~200 min each for seeds 123/456.
 
 ---
 
