@@ -186,8 +186,9 @@ if __name__ == '__main__':
                     feat = torch.randn(past.shape[0], D_MODEL, device=DEVICE)
                 elif use_mean_pool:
                     # Mean pool raw sensor data (ignoring padding via mask)
-                    # past: (B, T, S), mask: (B, T)
-                    m = mask.unsqueeze(-1).float()
+                    # past: (B, T, S), mask: (B, T) where True=PADDING, False=valid
+                    # Invert mask to get valid positions (1=valid, 0=padding)
+                    m = (~mask).unsqueeze(-1).float()
                     feat_raw = (past * m).sum(1) / m.sum(1).clamp(min=1)  # (B, S)
                     # Pad to D_MODEL dim with zeros for fair probe comparison
                     feat = torch.zeros(past.shape[0], D_MODEL, device=DEVICE)

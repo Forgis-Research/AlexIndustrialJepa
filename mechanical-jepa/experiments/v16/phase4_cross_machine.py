@@ -235,6 +235,24 @@ if __name__ == '__main__':
         print("Run phase1_v16a.py first, then re-run this script.")
         results['V16a'] = 'PENDING - run phase1_v16a.py first'
 
+    # --- V16b best (VICReg + LR warmup, all 3 seeds available) ---
+    # V16b uses same V16aJEPA architecture, just different training regime
+    v16b_ckpt = V16_DIR / 'best_v16b_seed42.pt'
+    if v16b_ckpt.exists():
+        from phase1_v16a import V16aJEPA
+
+        v16b_model = V16aJEPA(n_sensors=N_SENSORS).to(DEVICE)
+        v16b_model.load_state_dict(torch.load(v16b_ckpt, map_location=DEVICE))
+        v16b_model.eval()
+
+        def v16b_encode(past, mask):
+            return v16b_model.encode_context(past, mask)
+
+        evaluate_model_cross_machine('V16b', v16b_encode, results)
+    else:
+        print(f"\nV16b checkpoint not found at {v16b_ckpt}")
+        results['V16b'] = 'SKIPPED - no checkpoint'
+
     # Save results
     out_path = V16_DIR / 'phase4_cross_machine_results.json'
     with open(out_path, 'w') as f:

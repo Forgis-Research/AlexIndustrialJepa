@@ -1,0 +1,40 @@
+{
+  "description": "Valid frozen probe test RMSE - protocol blindspot fix",
+  "test_rul_stats": {
+    "min": 7.0,
+    "max": 145.0,
+    "mean": 75.5199966430664,
+    "std": 41.55561828613281
+  },
+  "seeds": {
+    "42": {
+      "test_rmse_per_probe_seed": [
+        24.189252853393555,
+        23.226072311401367,
+        23.83635139465332
+      ],
+      "test_rmse_mean": 23.750558853149414,
+      "test_rmse_std": 0.39786887224424883
+    },
+    "123": {
+      "test_rmse_per_probe_seed": [
+        25.67032814025879,
+        25.10230255126953,
+        26.59541130065918
+      ],
+      "test_rmse_mean": 25.789347330729168,
+      "test_rmse_std": 0.6153414283421024
+    },
+    "456": {
+      "test_rmse_per_probe_seed": [
+        26.549419403076172,
+        28.077245712280273,
+        28.27233123779297
+      ],
+      "test_rmse_mean": 27.632998784383137,
+      "test_rmse_std": 0.7703344716252942
+    }
+  },
+  "overall_test_rmse_mean": 25.72430165608724,
+  "overall_test_rmse_std": 1.585666665213036
+}

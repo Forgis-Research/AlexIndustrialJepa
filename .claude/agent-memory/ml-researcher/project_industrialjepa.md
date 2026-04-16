@@ -1,6 +1,6 @@
 ---
 name: IndustrialJEPA Project Context
-description: V16b (2026-04-16): seeds42/123 COMPLETE (9.86/8.43, BOTH BELOW SUPERVISED SOTA 10.61!), seed456 running. Phase2 seed42 at ep60+ (probe=14.82 at ep50).
+description: V16b COMPLETE (3 seeds, mean=10.06+-1.42 val, 25.72+-1.59 test); Protocol blindspot CONFIRMED; Phase2 seed42 best=14.22 at ep110; Phase7 frozen probe test=25.72 (NOT competitive).
 type: project
 ---
 
@@ -58,28 +58,44 @@ BidiContextEncoder(x_{0:t}) + EMATargetEncoder(x_{t+1:t+k}) + VICReg + LR warmup
 
 V2 E2E baseline: 14.23 ± 0.39. V16b E2E slightly WORSE than V2. Bidi helps frozen probe but not E2E.
 
-### CRITICAL PROTOCOL BLINDSPOT (DISCOVERED 2026-04-16):
+### CRITICAL PROTOCOL BLINDSPOT (CONFIRMED 2026-04-16):
 CMAPSSFinetuneDataset(val_engines, use_last_only=True) returns RUL=1.0 cycle for ALL 15 val engines.
 The frozen probe val RMSE (9.86, 8.43, 11.88) measures prediction accuracy at RUL=1.
 - Probe predicts ~10 cycles when truth is 1 cycle (WRONG for near-failure state)
-- "Best frozen probe < SOTA" claim must be qualified: it's best at predicting last-window RUL
+- Val RMSE of ~10 looks like "below SOTA" but is MEANINGLESS (all ground truth = 1)
 - E2E test RMSE is the valid metric for general RUL prediction
 - Feature regressor val RMSE = 42.69 (predicts ~43 cycles when truth is 1) vs V16b val = 9.86
-- Mean-pool bug in shuffle test: mask convention inverted (computes avg of padding=zeros, not valid)
 
-### Shuffle Test Results (VALID FINDINGS, phase5_shuffle_test_results.json):
-- Original encoder: val RMSE = 10.25 ± 1.40 (probe at last-window)
-- Shuffled time order: 34.02 ± 4.88 (delta +23.77) -> ENCODER USES TEMPORAL ORDER (PASS)
-- Random features: 42.32 ± 1.95 (encoder beats random by 32 RMSE)
-- Mean-pool raw: 1.86 ± 1.73 (BUG: bug gives ~0 features, predicts ~0 cycles, RUL=1 -> low RMSE)
+### Phase 7: Valid Frozen Probe TEST RMSE (COMPLETE):
+Evaluated frozen probe on TEST set (diverse RUL: [7, 145], mean=75.5 cycles).
+| Checkpoint Seed | Frozen Probe Test RMSE |
+|----------------|----------------------|
+| 42 | 23.75 ± 0.40 |
+| 123 | 25.79 ± 0.62 |
+| 456 | 27.63 ± 0.77 |
+| Overall | 25.72 ± 1.59 |
+FINDING: Frozen probe is WORSE than feature regressor (17.72) AND worse than E2E (15.06).
+The encoder value is in E2E fine-tuning, NOT frozen probe usage.
+"Below SOTA on val" claim RETRACTED - it was the protocol blindspot.
 
-### Phase 4 Cross-Machine (COMPLETE):
-| Domain | V2 RMSE | V16a RMSE | V16a vs V2 |
-|--------|---------|----------|------------|
-| FD002  | 27.68   | 32.62    | +18% worse |
-| FD003  | 31.45   | 40.02    | +27% worse |
-| FD004  | 38.32   | 43.60    | +14% worse |
+### Shuffle Test Results (FIXED, phase5_shuffle_test_results.json):
+- Original encoder: val RMSE = 10.25 ± 1.40 (probe at last-window, biased)
+- Shuffled time order: 31.07 ± 3.25 (delta +20.83) -> ENCODER USES TEMPORAL ORDER (PASS)
+- Random features: 38.70 ± 5.71 (encoder beats random by 28.45 RMSE)
+- Mean-pool raw: 11.15 ± 11.29 (UNSTABLE due to protocol blindspot val)
+
+### Phase 4 Cross-Machine (COMPLETE - including V16b):
+| Domain | V2 RMSE | V16a RMSE | V16b RMSE |
+|--------|---------|----------|----------|
+| FD002  | 27.68   | 32.62    | 38.04    |
+| FD003  | 31.45   | 40.02    | 37.76    |
+| FD004  | 38.32   | 43.60    | (running)|
+V16b is WORSE than V16a on cross-machine transfer (FD002, FD003).
 Bidirectional encoder overfits FD001 - WORSE for transfer learning.
+
+### Phase 2 Cross-Sensor (seed42 at ep110):
+Best probe = 14.22 at ep110 (beats V14=14.98 baseline). Still improving.
+Seeds 123/456 start after seed42 ep200 (~1-2 hours remaining).
 
 ## V16a: Bidirectional Context + Causal Target JEPA (2026-04-16)
 

@@ -222,24 +222,29 @@ Using V16a seed42 checkpoint (best_v16a_seed42.pt, probe=4.75).
 |-------|-----------|-----------|-----------|
 | V2 (causal) | 27.68 +/- 1.00 | 31.45 +/- 3.26 | 38.32 +/- 1.00 |
 | V16a (bidi) | 32.62 +/- 1.54 | 40.02 +/- 1.22 | 43.60 +/- 1.46 |
+| V16b (bidi + VICReg) | 38.04 +/- 2.01 | 37.76 +/- 2.36 | 49.66 +/- 1.70 |
 
-**CRITICAL FINDING**: V16a is consistently WORSE than V2 on cross-machine transfer.
+**CRITICAL FINDING**: V16a and V16b are consistently WORSE than V2 on cross-machine transfer.
+V16b is the worst of all (VICReg makes within-domain overfitting worse).
 
-| Domain | Delta | Relative loss |
-|--------|-------|--------------|
-| FD002  | +4.94 | +18% |
-| FD003  | +8.57 | +27% |
-| FD004  | +5.28 | +14% |
+| Domain | V2 | V16a vs V2 | V16b vs V2 |
+|--------|-----|-----------|-----------|
+| FD002  | 27.68 | +18% | +37% |
+| FD003  | 31.45 | +27% | +20% |
+| FD004  | 38.32 | +14% | +30% |
 
-**Interpretation**: The bidirectional context encoder achieves exceptional within-domain RUL
-prediction (4.75 vs 17.81) but transfers WORSE to other operating conditions. This suggests:
+**Interpretation**: The bidirectional context encoder achieves better within-domain RUL
+prediction (V16b E2E: 15.06) but transfers WORSE to other operating conditions. This suggests:
 
 1. Bidi encoder "memorizes" FD001-specific degradation patterns (better within-domain)
 2. Causal encoder learns more general temporal order/trends (better cross-domain)
-3. The bidi architecture may overfit to the specific operating condition distribution
+3. VICReg further encourages within-domain specialization at the expense of transfer
 
-This is an important finding for the paper: bidirectionality helps within-domain but hurts transfer.
-The architecture is domain-specific, not domain-general.
+This is an important finding for the paper: bidirectionality + VICReg helps within-domain
+but significantly hurts transfer. The architecture is domain-specific, not domain-general.
+
+Note: V16b "val RMSE" on cross-machine eval is also biased (same protocol blindspot):
+  FD002 val RMSE=9.56 (looks like best!), but test=38.04. Same issue as Phase 1 val.
 
 **V15-SIGReg**: SKIPPED - no checkpoint saved. Need to add checkpoint saving to phase1_sigreg.py.
 
@@ -460,19 +465,27 @@ The "best probe" metric selects the epoch where probe is closest to predicting 1
 4. Feature regressor val RMSE = 42.69 on same val set (probe much better at last-window prediction)
 5. But feature regressor TEST RMSE = 17.72 (worse than V16b E2E = 15.06)
 
-**Shuffle test results confirm encoder learns temporal order** (valid):
+**Shuffle test results confirm encoder learns temporal order** (FIXED RUN - mask convention corrected):
 - Original encoder: val RMSE = 10.25 ± 1.40
-- Shuffled time order: val RMSE = 34.02 ± 4.88 (+23.77 delta) - encoder USES temporal order
-- Random features: val RMSE = 42.32 ± 1.95 (encoder substantially better than random)
-- Mean-pool raw: val RMSE = 1.86 ± 1.73 (BUG: mask convention inverts valid/padding)
-  Note: bug makes mean-pool compute average of zero-padding, not actual sensor means.
-  Zero prediction gets val RMSE ~1 because all val RUL = 1 cycle.
+- Shuffled time order: val RMSE = 31.07 ± 3.25 (+20.83 delta) - encoder USES temporal order
+- Random features: val RMSE = 38.70 ± 5.71 (+28.45 delta vs original)
+- Mean-pool raw: val RMSE = 11.15 ± 11.29 (+0.90 delta) - HIGH VARIANCE, see note below
+
+Note on mean-pool result: val RMSE of 11.15 ± 11.29 has extremely high std (std > mean).
+On the protocol-blindspot val set (all RUL=1), any method that happens to predict ~1 cycle wins.
+Mean-pool of raw sensors is unstable across probe seeds because raw sensor averages
+are not calibrated to RUL scale. Delta (+0.90) is within noise given std=11.29.
+For a valid interpretation: original encoder std=1.40 vs mean-pool std=11.29 shows
+the encoder is far more stable and reliable than raw mean-pooling.
+
+Original first run had buggy mean-pool (mask inverted: averaged padding zeros giving ~0 features,
+which gives val RMSE ~1 because all val RUL=1). Bug fixed in phase5_shuffle_test.py line 191.
 
 **Cross-artifact reconciliation**:
 - Frozen probe trajectory (25.13 -> 9.86): loss decreased (0.0956 -> 0.0712-0.073) - CONSISTENT
 - Checkpoint at ep90 saved when val RMSE = 9.86 (best on val): CONSISTENT
-- Shuffle test: encoder beats random by 32 RMSE, uses temporal order by 24 RMSE - CONSISTENT
-  with genuine learning
+- Shuffle test (FIXED): encoder beats random by 28.45 RMSE, uses temporal order by 20.83 RMSE - CONSISTENT
+  with genuine learning; mean-pool UNSTABLE (std=11.29) vs encoder STABLE (std=1.40)
 - E2E test RMSE (15.06) is reasonable vs V2 (14.23) - CONSISTENT with bidi helping pretraining
   but not clearly helping fine-tuning vs causal V2
 
@@ -511,15 +524,19 @@ V16 fix: use fixed sinusoidal sensor PE (no learnable sensor identity).
 | 60    | 0.0091 | 17.18     | 14.82 |
 | 70    | 0.0085 | 15.47     | 14.82 |
 | 80    | 0.0090 | 16.10     | 14.82 |
-| 90+   | (running) |       |         |
+| 90    | 0.0085 | 18.07     | 14.82 |
+| 100   | 0.0081 | 15.35     | 14.82 |
+| 110   | 0.0082 | **14.22** | **14.22** |
+| 120+  | (running) |       |         |
 
 Target baseline: V14 cross-sensor = 14.98 +/- 0.22
 
-**FINDING (seed42 partial)**: Best probe = 14.82 at ep50, oscillating 14-17 in subsequent epochs.
-Phase 2 matches V14 baseline (14.82 vs 14.98). But this is only 1 seed.
-Loss converged to ~0.009 by ep10, stable thereafter.
-Note: Seeds 123/456 will start after seed42 completes 200 epochs.
-ETA: ~2 hours for 200 epochs at current rate (1 epoch/min).
+**FINDING (seed42 partial)**: Best probe = 14.22 at ep110 (NEW BEST after ep110 probe eval).
+Beats V14 baseline (14.22 vs 14.98). But this is only 1 seed.
+Loss still decreasing (0.0082 at ep110 down from 0.009 at ep10) - may improve further.
+Loss peak-then-decay pattern: 0.0089->0.0103->0.0089->0.0085->0.0082 over epochs 10-110.
+Seeds 123/456 will start after seed42 completes 200 epochs.
+ETA: ~90 more minutes for seed42 to complete, then 200 min each for seeds 123/456.
 
 ---
 
@@ -560,7 +577,7 @@ BUT both metrics are on val set = all-RUL-1-cycle (see protocol blindspot in V16
 **Key insight**: V2 frozen probe ≈ feature regressor test (17.81 vs 17.72 - within noise).
 V16b E2E (15.06) does beat feature regressor (17.72). Encoder contributes something for fine-tuning.
 
-*Last updated: 2026-04-16 (V16b ALL 3 seeds COMPLETE; E2E COMPLETE; Phase5 shuffle test COMPLETE)*
+*Last updated: 2026-04-16 (V16b ALL 3 seeds COMPLETE; E2E COMPLETE; Phase5 shuffle test COMPLETE + FIXED)*
 
 **INTERPRETATION**: The V16b encoder contributes signal beyond what 57 hand-crafted features can see.
 The V2 encoder barely does (17.81 vs 17.72). V16b's bidirectional architecture captures temporal
@@ -568,8 +585,56 @@ patterns that raw features miss.
 
 **SANITY CHECK**: Feature regressor is almost identical to V2 frozen probe (17.72 vs 17.81).
 This suggests V2's encoder adds NEGLIGIBLE signal over simple hand features for within-domain RUL.
-V16b's encoder adds 7.86 RMSE improvement - this is the architecture's genuine contribution.
+V16b's encoder adds some improvement for fine-tuning (E2E 15.06 vs feat. reg. 17.72).
+BUT frozen probe (25.72) is WORSE than feature regressor (17.72) - see Phase 7 below.
 
 ---
 
-*Last updated: 2026-04-16 (V16b seed42 COMPLETE, seed123 running at ep140+; Phase2 running at ep55+; Phase6 feature regressor COMPLETE)*
+## Phase 7: Valid Frozen Probe Test RMSE (COMPLETE)
+
+Script: `phase7_frozen_probe_test_rmse.py`
+Results: `phase7_frozen_probe_test_rmse.json`
+
+**Motivation**: Phase 1 val RMSE was measured on protocol-blindspot val set (all RUL=1).
+This gives artificially optimistic val RMSE (e.g., 9.86 for V16b seed42).
+Phase 7 evaluates frozen probe on TEST set (diverse RUL: [7, 145], mean=75.5 cycles).
+
+### Results: Valid Frozen Probe TEST RMSE
+
+| Checkpoint Seed | Frozen Probe Test RMSE |
+|----------------|----------------------|
+| 42 | 23.75 ± 0.40 |
+| 123 | 25.79 ± 0.62 |
+| 456 | 27.63 ± 0.77 |
+| **Overall** | **25.72 ± 1.59** |
+
+### Comparison Table (Test RMSE)
+
+| Method | Test RMSE | Note |
+|--------|----------|------|
+| Supervised SOTA (STAR 2024) | 10.61 | FD001 |
+| V2 E2E fine-tune | 14.23 ± 0.39 | causal arch |
+| V16b E2E fine-tune | 15.06 ± 1.15 | bidi arch |
+| Feature regressor (57 features) | 17.72 | no encoder |
+| V16b frozen probe | **25.72 ± 1.59** | THIS PHASE |
+
+### CRITICAL FINDING
+
+**V16b frozen probe test RMSE = 25.72 ± 1.59** - significantly WORSE than:
+1. Feature regressor (17.72): the encoder adds NO value for frozen probe usage
+2. V16b E2E (15.06): fine-tuning is essential; frozen features are insufficient
+3. Supervised SOTA (10.61): frozen probe is far from competitive
+
+The "val RMSE below SOTA" (9.86 at best) was ENTIRELY due to the protocol blindspot:
+- Val set: all 15 engines have RUL=1 at last window -> any probe predicting ~1 wins
+- Test set: diverse RUL [7, 145] -> the probe's actual RUL prediction quality matters
+
+**Implications for the paper**:
+- The frozen probe claim needs to be dropped or heavily caveated
+- The valid claim is: E2E fine-tuning on SSL pretraining gives 15.06 ± 1.15 test RMSE
+  (beats feature regressor, useful pretraining contribution)
+- V2 (causal, 14.23) is still the best E2E result
+
+---
+
+*Last updated: 2026-04-16 (Phase7 COMPLETE: frozen probe test RMSE=25.72; Phase2 seed42 at ep110, best=14.22)*
