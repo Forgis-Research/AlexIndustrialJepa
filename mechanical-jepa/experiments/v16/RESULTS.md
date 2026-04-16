@@ -780,4 +780,82 @@ is 19.07 (consistent with V12 engine_summary_regressor.json 5-seed mean = 19.21)
 
 ---
 
-*Last updated: 2026-04-16 04:15 UTC (Phase 2 ALL SEEDS COMPLETE: [14.22, 27.01, 21.81] = 21.0 +/- 6.4; Phase 8 label efficiency STARTED)*
+## Phase 8: V16b Label Efficiency (COMPLETE)
+
+Script: `phase8_label_efficiency.py`
+Results: `phase8_label_efficiency.json`
+
+**Purpose**: Test whether V16b's bidi architecture improves over V2 at low label budgets.
+V2 paper values: 14.23 / 14.93 / 16.54 / 18.66 / 25.33 (100% to 5%).
+
+### Results Table
+
+| Budget | Training Engines | V16b E2E | V2 E2E | Delta |
+|--------|-----------------|----------|--------|-------|
+| 100%   | 85              | 15.36 +/- 1.07 | 14.23 +/- 0.4 | +1.13 (V16b WORSE) |
+| 50%    | 42              | 22.43 +/- 6.28 | 14.93 +/- 0.4 | +7.50 (V16b MUCH WORSE) |
+| 20%    | 17              | 27.01 +/- 5.28 | 16.54 +/- 0.8 | +10.47 (V16b MUCH WORSE) |
+| 10%    | 8               | 29.27 +/- 1.06 | 18.66 +/- 0.8 | +10.61 (V16b MUCH WORSE) |
+| 5%     | 4               | 40.65 +/- 10.18 | 25.33 +/- 5.1 | +15.32 (V16b MUCH WORSE) |
+
+Seed breakdown (revealing seed123 instability):
+
+| Budget | ckpt42 | ckpt123 | ckpt456 | Mean |
+|--------|--------|---------|---------|------|
+| 100%   | 14.91  | 16.84   | 14.33   | 15.36 |
+| 50%    | 19.67  | 31.11   | 16.50   | 22.43 |
+| 20%    | 19.88  | 32.53   | 28.60   | 27.01 |
+| 10%    | 28.43  | 30.77   | 28.62   | 29.27 |
+| 5%     | 30.50  | 54.57   | 36.88   | 40.65 |
+
+### CRITICAL FINDING: V16b Label Efficiency WORSE Than V2 at Every Budget
+
+V16b is consistently WORSE than V2 across ALL 5 label budgets:
+1. **100%**: V16b 15.36 vs V2 14.23 (+1.13). Consistent with Phase 1 findings.
+2. **50%**: V16b 22.43 vs V2 14.93 (+7.50). Dramatic degradation with smaller training sets.
+3. **20%**: V16b 27.01 vs V2 16.54 (+10.47). V16b at 20% is worse than V2 at 10%.
+4. **5%**: V16b 40.65 vs V2 25.33 (+15.32). At minimum labels, V16b fails catastrophically.
+
+Seed123 at 5% (54.57) is particularly concerning - highest RMSE of any result in this experiment.
+V16b seed123 checkpoint was always suspicious (best probe at ep10, suspicious early convergence).
+
+### ROOT CAUSE ANALYSIS
+
+**Why V16b fails at low labels when V2 succeeds**:
+
+1. **Bidirectional encoder overfits to FD001 training distribution**.
+   - V2 causal encoder learns temporal order as an inductive bias.
+   - V16b bidi encoder attends to the full past, which enables memorization of degradation patterns.
+   - With fewer training engines, bidi memorization is more severe (less diversity).
+
+2. **VICReg covariance regularization pushes variance into training set artifacts**.
+   - With 4-8 training engines at 5-10% budget, VICReg maximizes variance WITHIN that small set.
+   - This encourages overfitting to that small engine set.
+
+3. **EMA target drift during fine-tuning**.
+   - V16b checkpoints were saved at oscillation minima (ep10, ep20, ep90).
+   - Fine-tuning may restart oscillations, leading to instability with small datasets.
+
+4. **Seed123 pathological behavior** at low budgets suggests the ep10 checkpoint
+   had a fundamentally different representation quality (lucky random init).
+   At small label budgets, this luck disappears.
+
+### CONCLUSION
+
+V16b does NOT replace V2 in the main results table. V2 (causal) remains the better E2E model.
+
+**Paper implications**:
+- Main results table stays as V2 Traj JEPA (not V16b).
+- V16b is an experimental variant that validates the value of the causal inductive bias.
+- The finding "bidi helps frozen probe, hurts E2E label efficiency" is itself a publication-worthy architectural insight.
+- Appendix: Add V16b label efficiency table as "bidi architecture variant" showing the tradeoff.
+
+**Sanity check passed**:
+- Direction check: V16b degrades monotonically as budget shrinks (expected).
+- Magnitude check: At 100%, V16b=15.36 is close to Phase 1 E2E result (15.06 with 5 seeds) - CONSISTENT.
+- Seed variance: seed123 pathological at low budgets - consistent with suspicious ep10 checkpoint.
+- Internal consistency: Phase 4 (cross-machine) also showed V16b worse. THREE phases agree: V16b E2E < V2.
+
+---
+
+*Last updated: 2026-04-16 04:20 UTC (Phase 8 COMPLETE: V16b worse than V2 at ALL budgets; Phase 2 ALL SEEDS COMPLETE: [14.22, 27.01, 21.81] = 21.0 +/- 6.4)*
