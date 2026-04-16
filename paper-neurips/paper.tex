@@ -462,7 +462,7 @@ Five diagnostics confirm genuine within-engine tracking on C-MAPSS:
 \begin{enumerate}[nosep]
   \item \textbf{Run-to-failure structural supervision.} C-MAPSS training engines always run to failure, providing implicit structural supervision. The length-vs-content ablation (\cref{sec:verification}) and from-scratch comparison confirm the encoder reads content, not length, but this qualifier applies to the ``no labels'' claim.
   \item \textbf{Simulation-dominated evaluation.} C-MAPSS and N-CMAPSS are simulations. Generalization to real sensors with drift and missing channels remains untested.
-  \item \textbf{Gap to supervised SOTA.} JEPA E2E (14.23) vs.\ STAR (12.19) on FD001 at 100\% labels. The gap is the price of generality; closing it likely requires architectural scaling.
+  \item \textbf{Gap to supervised SOTA.} JEPA E2E (14.23) vs.\ STAR (replic.\ 12.19; paper 10.61) on FD001 at 100\% labels. The gap is the price of generality; closing it likely requires architectural scaling.
   \item \textbf{Multi-condition generalization.} FD002/FD004 show distribution shift from per-condition normalization mismatch (\cref{app:fd002}).
   \item \textbf{Data-scale requirements.} On single-channel bearing vibration (23 episodes), JEPA alone shows weak tracking ($\rho = 0.071$). The framework requires multivariate richness and sufficient episodes (\cref{app:bearings}).
 \end{enumerate}
@@ -519,7 +519,7 @@ Subset & RMSE (E2E) & RMSE (Frozen) & $\rho_\text{median}$ & pred\_std & vs.\ Re
 \midrule
 FD001 & 14.23$_{\pm0.4}$ & 17.81$_{\pm1.7}$ & 0.830 & 12.1 & +3.5 & 10.61 \\
 FD003 & 15.37$_{\pm0.9}$ & 19.25$_{\pm3.2}$ & 0.665 & 12.9 & +2.9 & 10.71 \\
-FD004 & 25.62$_{\pm0.3}$ & 29.35$_{\pm0.6}$ & 0.654 & 7.1 & +5.9 & 14.25 \\
+FD004 & 25.62$_{\pm0.3}$ & 29.35$_{\pm0.6}$ & 0.654 & 7.1 & +5.9 & 15.87 \\
 \bottomrule
 \end{tabular}
 \end{table}
