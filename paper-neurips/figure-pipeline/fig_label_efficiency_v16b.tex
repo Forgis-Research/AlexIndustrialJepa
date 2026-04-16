@@ -1,0 +1,183 @@
+% V16b vs V2 label-efficiency figure
+% Shows that V16b (bidi + VICReg) fails catastrophically at low labels
+% vs V2 (causal), strengthening the causal inductive bias story.
+%
+% Data source: experiments/v16/phase8_label_efficiency.json (V16b)
+%                + v14 phase results for V2 (from RESULTS.md / paper table)
+% V2 E2E: 14.23 / 14.93 / 16.54 / 18.66 / 25.33 at 100/50/20/10/5%
+% V16b E2E: 15.36 / 22.43 / 27.01 / 29.27 / 40.65 (with std 1.07 / 6.28 / 5.28 / 1.06 / 10.18)
+
+\documentclass[border=8pt]{standalone}
+\usepackage{tikz}
+\usepackage{amsmath,amssymb}
+\usetikzlibrary{
+  arrows.meta, positioning, shapes.geometric,
+  fit, calc, decorations.pathreplacing, backgrounds
+}
+\input{colors.tex}
+
+\begin{document}
+\begin{tikzpicture}[
+  font=\sffamily\small,
+  every node/.style={inner sep=0pt, outer sep=0pt},
+]
+
+% ========================================================
+% Layout: x = label budget (100/50/20/10/5 as categorical),
+%          y = test RMSE 0 to 55
+% Two lines: V2 (blue, dashed) and V16b (orange, solid) with markers.
+% ========================================================
+
+\def\plotw{9.0}   % plot width
+\def\ploth{5.4}   % plot height
+\def\ymax{55}
+\pgfmathsetmacro{\yscale}{\ploth / \ymax}
+
+% x-axis categorical positions (5 budgets, linearly spaced left->right)
+\def\xa{0.3}     % 100%
+\def\xb{2.4}
+\def\xc{4.4}
+\def\xd{6.4}
+\def\xe{8.5}     % 5%
+
+% Data (mean, std) pairs
+% V2 E2E
+\def\vtwomeans{{14.23, 14.93, 16.54, 18.66, 25.33}}
+\def\vtwostds{{0.4, 0.4, 0.8, 0.8, 5.1}}
+% V16b E2E
+\def\vsixbmeans{{15.36, 22.43, 27.01, 29.27, 40.65}}
+\def\vsixbstds{{1.07, 6.28, 5.28, 1.06, 10.18}}
+
+% Axes
+\coordinate (O) at (0,0);
+\draw[ctextdark, line width=0.6pt] (O) -- ++(0,\ploth);
+\draw[ctextdark, line width=0.6pt] (O) -- ++(\plotw,0);
+
+% y ticks
+\foreach \y in {10,20,30,40,50} {
+  \pgfmathsetmacro{\ypos}{\y * \yscale}
+  \draw[ctextdark, line width=0.4pt] (0, \ypos) -- ++(-0.10,0);
+  \node[left=2pt, ctextdark] at (0, \ypos) {\scriptsize \y};
+  \draw[ctextlight, line width=0.2pt, dashed] (0.02, \ypos) -- (\plotw, \ypos);
+}
+
+% y axis label
+\node[rotate=90, ctextdark, anchor=center] at (-0.95, \ploth/2)
+  {Test RMSE (cycles) $\downarrow$};
+
+% x ticks
+\foreach \xv/\lbl in {\xa/100\%, \xb/50\%, \xc/20\%, \xd/10\%, \xe/5\%} {
+  \draw[ctextdark, line width=0.4pt] (\xv, 0) -- ++(0,-0.10);
+  \node[below=4pt, ctextdark] at (\xv, 0) {\lbl};
+}
+\node[below=18pt, ctextdark] at (\plotw/2, 0) {Label budget (fraction of 85 FD001 training engines)};
+
+% ========================================================
+% V2 line (causal - blue, circle markers, dashed)
+% ========================================================
+\pgfmathsetmacro{\ya}{14.23*\yscale}
+\pgfmathsetmacro{\yb}{14.93*\yscale}
+\pgfmathsetmacro{\yc}{16.54*\yscale}
+\pgfmathsetmacro{\yd}{18.66*\yscale}
+\pgfmathsetmacro{\ye}{25.33*\yscale}
+
+% error ribbon (V2) - lighter fill between +/-std envelope
+% We draw shaded ribbon as a filled polygon
+\fill[csecondarybg, opacity=0.6]
+  (\xa, {(14.23-0.4)*\yscale}) --
+  (\xb, {(14.93-0.4)*\yscale}) --
+  (\xc, {(16.54-0.8)*\yscale}) --
+  (\xd, {(18.66-0.8)*\yscale}) --
+  (\xe, {(25.33-5.1)*\yscale}) --
+  (\xe, {(25.33+5.1)*\yscale}) --
+  (\xd, {(18.66+0.8)*\yscale}) --
+  (\xc, {(16.54+0.8)*\yscale}) --
+  (\xb, {(14.93+0.4)*\yscale}) --
+  (\xa, {(14.23+0.4)*\yscale}) -- cycle;
+
+% V2 line
+\draw[csecondary, line width=1.0pt, dashed]
+  (\xa, \ya) -- (\xb, \yb) -- (\xc, \yc) -- (\xd, \yd) -- (\xe, \ye);
+
+% V2 markers (circles)
+\foreach \xv/\yv in {\xa/\ya, \xb/\yb, \xc/\yc, \xd/\yd, \xe/\ye} {
+  \fill[csecondary] (\xv, \yv) circle (2pt);
+  \draw[csecondary, line width=0.5pt] (\xv, \yv) circle (2pt);
+}
+
+% ========================================================
+% V16b line (bidi+VICReg - orange, square markers, solid)
+% ========================================================
+\pgfmathsetmacro{\yaa}{15.36*\yscale}
+\pgfmathsetmacro{\ybb}{22.43*\yscale}
+\pgfmathsetmacro{\ycc}{27.01*\yscale}
+\pgfmathsetmacro{\ydd}{29.27*\yscale}
+\pgfmathsetmacro{\yee}{40.65*\yscale}
+
+% error ribbon V16b
+\fill[cprimarybg, opacity=0.6]
+  (\xa, {(15.36-1.07)*\yscale}) --
+  (\xb, {(22.43-6.28)*\yscale}) --
+  (\xc, {(27.01-5.28)*\yscale}) --
+  (\xd, {(29.27-1.06)*\yscale}) --
+  (\xe, {(40.65-10.18)*\yscale}) --
+  (\xe, {(40.65+10.18)*\yscale}) --
+  (\xd, {(29.27+1.06)*\yscale}) --
+  (\xc, {(27.01+5.28)*\yscale}) --
+  (\xb, {(22.43+6.28)*\yscale}) --
+  (\xa, {(15.36+1.07)*\yscale}) -- cycle;
+
+\draw[cprimary, line width=1.0pt]
+  (\xa, \yaa) -- (\xb, \ybb) -- (\xc, \ycc) -- (\xd, \ydd) -- (\xe, \yee);
+
+\foreach \xv/\yv in {\xa/\yaa, \xb/\ybb, \xc/\ycc, \xd/\ydd, \xe/\yee} {
+  \fill[cprimary] (\xv-0.10, \yv-0.10) rectangle (\xv+0.10, \yv+0.10);
+}
+
+% ========================================================
+% Value labels next to markers (show mean)
+% V2 labels (right-above)
+% ========================================================
+\node[above right=1pt and 2pt, ctextdark, font=\sffamily\scriptsize] at (\xa, \ya) {14.23};
+\node[below=3pt, ctextdark, font=\sffamily\scriptsize] at (\xb, \yb) {14.93};
+\node[below=3pt, ctextdark, font=\sffamily\scriptsize] at (\xc, \yc) {16.54};
+\node[below=3pt, ctextdark, font=\sffamily\scriptsize] at (\xd, \yd) {18.66};
+\node[below left=2pt and 2pt, ctextdark, font=\sffamily\scriptsize] at (\xe, \ye) {25.33};
+
+% V16b labels (above markers)
+\node[above=3pt, ctextdark, font=\sffamily\scriptsize] at (\xa, \yaa) {15.36};
+\node[above=3pt, ctextdark, font=\sffamily\scriptsize] at (\xb, \ybb) {22.43};
+\node[above=3pt, ctextdark, font=\sffamily\scriptsize] at (\xc, \ycc) {27.01};
+\node[above=3pt, ctextdark, font=\sffamily\scriptsize] at (\xd, \ydd) {29.27};
+\node[above=3pt, ctextdark, font=\sffamily\scriptsize] at (\xe, \yee) {40.65};
+
+% ========================================================
+% Legend (top-left inside plot area)
+% ========================================================
+\def\legx{0.5}
+\def\legy{4.90}
+\draw[cborder, line width=0.3pt, fill=white, rounded corners=2pt]
+  (\legx-0.15, \legy-0.55) rectangle (\legx + 3.3, \legy+0.30);
+
+% V2 entry: dashed blue line + circle
+\draw[csecondary, line width=1.0pt, dashed] (\legx, \legy+0.10) -- ++(0.5, 0);
+\fill[csecondary] (\legx+0.25, \legy+0.10) circle (2pt);
+\node[right=3pt, ctextdark, font=\sffamily\scriptsize, anchor=west]
+  at (\legx+0.55, \legy+0.10) {V2 (causal) - ours default};
+
+% V16b entry: solid orange line + square
+\draw[cprimary, line width=1.0pt] (\legx, \legy-0.30) -- ++(0.5, 0);
+\fill[cprimary] (\legx+0.15, \legy-0.40) rectangle (\legx+0.35, \legy-0.20);
+\node[right=3pt, ctextdark, font=\sffamily\scriptsize, anchor=west]
+  at (\legx+0.55, \legy-0.30) {V16b (bidi + VICReg)};
+
+% ========================================================
+% Annotation: arrow highlighting the diverging gap
+% ========================================================
+\draw[ctextmid, line width=0.5pt, -{Latex[length=1.5mm]}]
+  (\xd + 0.3, {(18.66 + 29.27)/2 * \yscale}) -- ++(0.8, 0.5);
+\node[right=2pt, ctextmid, font=\sffamily\scriptsize, align=left]
+  at ({\xd + 1.1}, {(18.66 + 29.27)/2 * \yscale + 0.5}) {+10 RMSE gap\\at 10\% labels};
+
+\end{tikzpicture}
+\end{document}
