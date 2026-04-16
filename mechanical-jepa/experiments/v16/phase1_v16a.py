@@ -593,7 +593,7 @@ def eval_e2e(model, data, seed=42, lr=3e-4, n_epochs=100):
             preds.append(probe(model_ft.encode_context(past, mask)).squeeze(-1).cpu().numpy())
             targets.append(rul.numpy())
     preds = np.concatenate(preds) * RUL_CAP
-    targets = np.concatenate(targets) * RUL_CAP
+    targets = np.concatenate(targets)  # CMAPSSTestDataset returns raw cycles (not normalized)
     return float(np.sqrt(np.mean((preds - targets) ** 2)))
 
 
