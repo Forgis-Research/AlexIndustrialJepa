@@ -190,7 +190,7 @@ Sensor ordering is handled by the learnable ID embeddings, making the architectu
 \label{fig:architecture}
 \end{figure}
 
-\paragraph{Context encoder.} $\encoder$ is a causal Transformer ($d = 256$, 2 layers, 4 heads, 1.26M parameters) that processes $\x_{1:t}$ autoregressively:
+\paragraph{Context encoder.} $\encoder$ is a causal Transformer ($d = 256$, 2 layers, 4 heads, 0.80M parameters) that processes $\x_{1:t}$ autoregressively:
 \begin{equation}
   \h_\text{past} = \encoder(\x_{1:t}) \in \R^d.
   \label{eq:context}
@@ -590,7 +590,7 @@ On FEMTO/XJTU-SY (23 bearing episodes, single-channel vibration), JEPA alone ach
 Component & Parameter & Value \\
 \midrule
 Encoder & $d_\text{model}$ / layers / heads & 256 / 2 / 4 \\
-& Parameters & 1.26M \\
+& Parameters & 0.99M \\
 & EMA momentum $\tau$ & 0.99 \\
 Pretraining & Horizon $k$ & $\mathcal{U}[5, 30]$ \\
 & LR & $3 \times 10^{-4}$ (cosine) \\
