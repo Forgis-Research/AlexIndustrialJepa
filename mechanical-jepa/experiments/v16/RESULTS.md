@@ -81,12 +81,42 @@ Two artifacts (loss curve, probe curve) are mutually consistent: initial rapid c
 
 **Seeds 123 and 456**: NOT YET RUN (waiting for seed 42 to complete + E2E eval)
 
-### Phase 1b: V15-SIGReg Checkpoint Verification (RUNNING)
+### Phase 1b: V15-SIGReg Checkpoint Verification (COMPLETE)
 
 **Script**: phase1_v15sigreg_with_checkpoints.py  
 **Goal**: Reproduce V15 seed 42 best_probe=10.21, save checkpoint
 
-Status: epoch 9/200 - results pending
+**Result**: best_probe=11.61 at epoch 70 (claimed 10.21 at epoch 110 NOT reproduced)
+
+Complete probe trajectory (verification run):
+ep1=16.43, ep10=20.60, ep20=24.82, ep30=33.48, ep40=28.36, ep50=24.28,
+ep60=17.33, ep70=**11.61** (best), ep80=17.81, ep90=25.71, ep100=23.26,
+ep110=**27.66** (original claimed 10.21 here!), ep120=16.98, ep130=13.95,
+ep140=15.76, ep150=18.94, ep160=22.45, ep170=15.21
+
+**CRITICAL FINDING: V15-SIGReg probe is NOT reproducible**
+- Same seed (42), same architecture, same hyperparameters
+- Original run: best=10.21 at epoch 110
+- Verification run: best=11.61 at epoch 70, probe=27.66 at epoch 110
+- The oscillatory probe dynamics produce DIFFERENT trajectories between runs
+- The "best probe" metric captures a RANDOM oscillation minimum, not a stable learning state
+- This means V15-SIGReg results cannot be reliably reproduced or reported
+
+**Implication**: V15-SIGReg's "9.16 +/- 1.50" result is an artifact of random oscillation alignment.
+The true stable probe range for V15-SIGReg seed 42 is approximately 11-15 cycles.
+
+**Checkpoint saved**: `experiments/v16/v15sigreg_best_seed42.pt` (probe=11.61, ep70)
+
+**Checkpoint verification (5 probe seeds: 42, 123, 456, 789, 1234)**:
+- Verified probe mean: 11.13 ± 0.79 (range: 9.58-11.71)
+- CONSISTENT: |11.61 - 11.13| = 0.48 < 3.0 threshold
+- The best single verification was 9.58 (probe seed 1234)
+
+**V15-SIGReg vs V16a**:
+- V15-SIGReg claimed best (unstable): 9.16 +/- 1.50 (oscillation artifact)
+- V15-SIGReg honest verified: 11.13 ± 0.79 (single seed re-run, checkpoint)
+- V15-SIGReg honest stable state: ~13-15 cycles (where probe oscillates most)
+- V16a seed 42: 4.75 (stable checkpoint, two independent dips at ep20 and ep70)
 
 ---
 
@@ -104,38 +134,88 @@ This is below supervised SOTA (10.61) for a frozen linear probe, which would be 
 
 ---
 
-## Phase 2: Cross-Sensor Without Shortcut (PENDING)
+## Phase 1: V16a 3-Seed Complete Analysis
 
-Script ready: `phase2_cross_sensor_fixed.py`
+### Seed 456 Final Trajectory (running, ep85+)
+
+| Epoch | Loss   | Probe RMSE | Best  |
+|-------|--------|-----------|-------|
+| 1     | 0.0588 | 12.45     | 12.45 |
+| 10    | 0.0054 | 24.48     | 12.45 |
+| 20    | 0.0040 | 30.16     | 12.45 |
+| 30    | 0.0049 | 25.36     | 12.45 |
+| 40    | 0.0071 | 17.25     | 12.45 |
+| 50    | 0.0102 | 17.31     | 12.45 |
+| 60    | 0.0132 | 17.02     | 12.45 |
+| 70    | 0.0155 | 14.68     | 12.45 |
+| 80    | 0.0169 | 13.39     | 12.45 |
+| 100   | 0.0171 | 18.33     | 12.45 |
+
+Pattern: Init artifact identical to seed 123. Checkpoint saved at ep1 (probe=12.45 from random init).
+
+### 3-Seed Summary (CRITICAL FINDING)
+
+| Seed | Best Frozen Probe | Source    | Genuine? | E2E RMSE |
+|------|-----------------|-----------|----------|----------|
+| 42   | 4.75            | ep70 min  | YES      | 16.05    |
+| 123  | 8.53            | ep1 init  | NO       | 16.03    |
+| 456  | 12.45           | ep1 init  | NO       | 17.39    |
+
+**E2E summary**: mean=16.49 +/- 0.64 vs V2 E2E=14.23 +/- 0.39
+
+**INTERNAL INCONSISTENCY FLAG**: 2 of 3 seeds show init artifact behavior.
+
+The "best probe" metric captures random initialization luck, not learned representation quality.
+The same problem that plagued V15-SIGReg (see Phase 1b) affects V16a seeds 123 and 456.
+
+**Honest 3-seed frozen probe mean**: 8.58 +/- 3.15. But this is not a valid aggregate - it mixes genuine learning (seed 42) with init artifacts (123, 456).
+
+**What seed 42 actually shows**: A single run where random initialization happened to produce a useful representation, which was then refined by training (ep1=13.15 -> ep70=4.75). This is genuine learning, but only 1/3 seeds demonstrates it.
+
+**Root cause hypothesis**: V16a bidirectional context encoder with attention pooling has high variance in initialization quality. Some inits produce useful RUL-correlated representations; some produce uncorrelated ones that immediately degrade when the JEPA loss optimizes something other than RUL structure.
+
+**Why E2E is worse than V2 despite better frozen probe**: V16a seed 42 checkpoint (ep70) was saved mid-training with an oscillating encoder. Fine-tuning from this checkpoint faces instability. V2 had stable training throughout. The ep70 checkpoint may not be at a stable point for fine-tuning.
+
+**Implication for paper**: Cannot claim "V16a achieves 4.75 frozen probe RMSE" as a 3-seed validated result. The correct honest claim is:
+- Seed 42 shows V16a can learn useful representations (4.75 RMSE below SOTA)
+- 2/3 seeds fail to learn (init artifacts)
+- Training instability is the bottleneck, not architecture expressiveness
+- E2E performance is worse than V2 (16.49 vs 14.23)
+
+---
+
+## Phase 2: Cross-Sensor Without Shortcut (RUNNING)
+
+Script: `phase2_cross_sensor_fixed.py`
 
 V15 cross-sensor aborted due to sensor_id_embed shortcut.
 V16 fix: use fixed sinusoidal sensor PE (no learnable sensor identity).
 
-Status: NOT YET LAUNCHED (waiting for V16a to finish)
+Status: RUNNING (PID 94008, seed 42 started)
 
 V14 baseline: 14.98 +/- 0.22
 
 ---
 
-## Phase 3: SMAP Anomaly - 100 Epochs (PENDING)
+## Phase 3: SMAP Anomaly - 100 Epochs (RUNNING)
 
-Script ready: `phase3_smap_100epochs.py`
+Script: `phase3_smap_100epochs.py`
 
 V15 result: non-PA F1=0.069 (barely beats random=0.071, only 20 epochs).
 V16 goal: > 0.10 non-PA F1 with 100 epochs on full 135K train set.
 
-Status: NOT YET LAUNCHED
+Status: RUNNING (PID 94044)
 
 ---
 
-## Phase 4: Cross-Machine Transfer (PENDING)
+## Phase 4: Cross-Machine Transfer (RUNNING)
 
-Script ready: `phase4_cross_machine.py`
+Script: `phase4_cross_machine.py`
 
-Requires V16a checkpoint (seed 42 done, seeds 123/456 pending).
 Tests zero-shot transfer: FD001 pretrained -> FD002/FD003/FD004 frozen probe.
+Uses V16a seed42 checkpoint (best_v16a_seed42.pt).
 
-Status: NOT YET LAUNCHED
+Status: RUNNING (PID 93969, V2 baseline FD002 evaluation in progress)
 
 ---
 

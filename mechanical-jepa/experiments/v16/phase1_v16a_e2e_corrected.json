@@ -1,0 +1,21 @@
+{
+  "description": "V16a E2E evaluation with corrected test RMSE computation",
+  "bug_fix": "targets = np.concatenate(targets) not * RUL_CAP",
+  "seeds": [
+    42,
+    123,
+    456
+  ],
+  "e2e_rmse_per_seed": [
+    16.046031951904297,
+    16.026248931884766,
+    17.38686180114746
+  ],
+  "val_rmse_per_seed": [
+    1.8458921909332275,
+    2.5784049034118652,
+    3.0211410522460938
+  ],
+  "e2e_mean": 16.48638089497884,
+  "e2e_std": 0.6367873735928747
+}
