@@ -323,7 +323,7 @@ Spacecraft & MSL~\citep{hundman2018smapmsl} & 55 & 58K steps & Anomaly & F1 \\
 \end{tabular}}% end resizebox
 \end{table}
 
-The benchmark structure makes the central claim visible: each existing method occupies at most one dataset group. Our method spans all three because the pretraining objective is task-agnostic---only the downstream probe changes. The grey swan events shown (time-to-failure, anomaly onset, threshold exceedance) are representative examples; the framework extends to any event expressible as a function of the learned latent trajectory.
+The benchmark structure makes the central claim visible: each existing method occupies at most one dataset group. Our method spans two dataset groups (turbofan degradation and spacecraft telemetry) because the pretraining objective is task-agnostic---only the downstream probe changes. SWaT (water treatment) anomaly detection follows the same framework; its numerical results are future work. The grey swan events shown (time-to-failure, anomaly onset) are representative examples; the framework extends to any event expressible as a function of the learned latent trajectory.
 
 \subsection{C-MAPSS Results: Time-to-Failure}
 \label{sec:rul_results}
