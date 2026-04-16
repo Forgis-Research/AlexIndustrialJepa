@@ -602,32 +602,40 @@ Seed 456 trajectory (updated):
 | 90    | 0.0061 | 36.56     | 28.47 | seed42: 18.07     | seed123: 25.19     |
 | 100   | 0.0063 | 30.02     | 28.47 | seed42: 15.35     | seed123: 18.66     |
 | 110   | 0.0063 | 35.20     | 28.47 | seed42: **14.22** | seed123: 27.54     |
+| 120   | 0.0074 | 31.17     | 28.47 | seed42: 23.56     | seed123: 27.77     |
+| 130   | 0.0074 | 34.78     | 28.47 | seed42: 17.83     | seed123: **27.01** |
+| 140   | 0.0076 | 30.33     | 28.47 | seed42: 23.27     | seed123: 15.97     |
+| 150   | 0.0068 | **26.71** | **26.71** | seed42: 30.59  | seed123: 16.68     |
 
-KEY OBSERVATION (ep110): Second spike at ep110. No improvement. ep110 is seed42's BEST epoch.
-- Seed42 at ep110: 14.22 (FINAL BEST). Seed456 at ep110: 35.20 (spiking again).
-- This is definitive: seed456 will NOT follow seed42's convergence.
-- Final 3-seed Phase 2 summary: CONFIRMED (seed456 still running but result known).
+KEY OBSERVATION (ep150): Seed456 improved to 26.71 at ep150 (loss had decreased from 0.0078 to 0.0068).
+This is a genuine improvement from the 28.47 plateau. Loss still decreasing at ep153 (0.0066).
+50 epochs remaining - possible further improvement. Watching ep160, ep170 probes.
 
-### Phase 2 3-Seed FINAL SUMMARY (CONFIRMED)
+NOTE: The ep130 spike recovered. The second "divergence" (ep118-130, loss 0.0078) ended with
+genuine recovery. Seed456 may achieve ~25-26 by ep200. Still will not approach seed42's 14.22.
+
+### Phase 2 3-Seed FINAL SUMMARY (UPDATED - seed456 still running)
 
 | Seed | Best Probe | At Epoch | Duration | Pattern |
 |------|-----------|---------|---------|---------|
 | 42   | 14.22     | ep110   | 94.2 min | SEED42: converged well, beats V14 |
 | 123  | 27.01     | ep130   | 62.2 min | SEED123: EMA oscillation, never converged |
-| 456  | 28.47     | ep40    | TBD      | SEED456: follows seed123 pattern |
-| **MEAN** | **23.2 ± 7.8** | - | - | HIGH VARIANCE |
+| 456  | 26.71     | ep150   | RUNNING  | SEED456: improved at ep150, watching for more |
+| **MEAN** | **22.6 ± 7.3** | - | - | HIGH VARIANCE (will update when done) |
+
+If seed456 final best stays at ~26.7: mean = 22.6 ± 7.3 (essentially same finding as 23.2 ± 7.8)
 
 V14 baseline (with sensor_id_embed): 14.98 ± 0.22
 
 **KEY FINDING: Sensor ID embeddings are TRAINING STABILIZERS, not RUL shortcuts.**
 - With embeddings (V14): 14.98 ± 0.22 (tight, all seeds converge)
-- Without embeddings (Phase 2): 23.2 ± 7.8 (high variance, 1/3 seeds converge)
+- Without embeddings (Phase 2): ~22.6 ± 7.3 (high variance, 1/3 seeds converge)
 - 1/3 seeds achieves 14.22 WITHOUT embeddings: architecture CAN learn sensor-discriminative repr.
 - 2/3 seeds fail to converge: embeddings are essential for RELIABLE training.
 - Conclusion: V14's gain (14.98) is REAL, not a shortcut. Embeddings accelerate convergence.
 
 **Paper impact**: Cross-sensor paragraph updated to include this ablation finding.
-Still running (ep110 at last check, 90 epochs remaining).
+Still running (ep150 at last check, probe=26.71 NEW BEST).
 
 Target baseline: V14 cross-sensor = 14.98 +/- 0.22
 
@@ -762,4 +770,4 @@ is 19.07 (consistent with V12 engine_summary_regressor.json 5-seed mean = 19.21)
 
 ---
 
-*Last updated: 2026-04-16 (Phase 6b COMPLETE; seed123 FINAL best=27.01; seed456 at ep44 best=28.47 converging like seed42)*
+*Last updated: 2026-04-16 04:00 UTC (Phase 6b COMPLETE; seed123 FINAL best=27.01; seed456 at ep150 best=26.71 NEW BEST, still running; STAR std corrected 6.5->6.4)*

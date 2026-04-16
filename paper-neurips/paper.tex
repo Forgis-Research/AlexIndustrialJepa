@@ -73,7 +73,7 @@ Multivariate time series from industrial, infrastructure, and scientific systems
 We present a self-supervised method that learns to predict future sensor trajectories in latent space using a Joint Embedding Predictive Architecture (JEPA), producing representations that support diverse grey swan tasks---from remaining useful life estimation to anomaly detection---through trivial linear probes.
 Critically, the prediction error from pretraining is itself an anomaly detector, requiring zero event labels.
 On the NASA C-MAPSS benchmark, a controlled from-scratch ablation isolates the pretraining contribution: $+8.8$ RMSE at full labels, growing to $+15.6$ at 10\%.
-At 5\% labels, the frozen encoder ($21.53 \pm 2.0$) surpasses the supervised state of the art ($24.55 \pm 6.5$)---the label-efficiency crossover that makes self-supervised pretraining the rational default in the scarce-label regime.
+At 5\% labels, the frozen encoder ($21.53 \pm 2.0$) surpasses the supervised state of the art ($24.55 \pm 6.4$)---the label-efficiency crossover that makes self-supervised pretraining the rational default in the scarce-label regime.
 \plannedc{We demonstrate the approach across multiple domains (turbofan degradation, spacecraft telemetry, industrial process monitoring) and grey swan types (time-to-failure, anomaly onset, threshold exceedance), establishing a first unified SSL benchmark for event prediction from multivariate time series.}
 \end{abstract}
 
@@ -99,7 +99,7 @@ We take this insight literally. Rather than forecasting raw sensor values or cla
 
   \item \textbf{Quantified pretraining contribution.} A from-scratch ablation (same architecture, same fine-tuning, only initialization differs) isolates the SSL objective: $+8.8$ RMSE at full labels, growing to $+15.6$ at 10\% (\cref{sec:from_scratch}).
 
-  \item \textbf{Label-efficiency crossover.} At 5\% labels, the frozen SSL encoder ($21.53 \pm 2.0$) surpasses supervised STAR ($24.55 \pm 6.5$), demonstrating the practical payoff in the grey swan regime (\cref{sec:label_efficiency}).
+  \item \textbf{Label-efficiency crossover.} At 5\% labels, the frozen SSL encoder ($21.53 \pm 2.0$) surpasses supervised STAR ($24.55 \pm 6.4$), demonstrating the practical payoff in the grey swan regime (\cref{sec:label_efficiency}).
 
   \item \plannedc{\textbf{Multi-domain benchmark.} Evaluation across industrial, spacecraft, and process-monitoring domains on multiple grey swan types, establishing the first unified SSL benchmark for event prediction from multivariate time series (\cref{sec:benchmark}).}
 
@@ -339,7 +339,7 @@ The benchmark structure makes the central claim visible: each existing method oc
 \toprule
 Type & Method & 100\% & 50\% & 20\% & 10\% & 5\% \\
 \midrule
-Supervised & STAR (replic.) & \textbf{12.19}$_{\pm0.6}$ & 13.26$_{\pm0.7}$ & 17.74$_{\pm3.6}$ & 18.72$_{\pm2.8}$ & 24.55$_{\pm6.5}$ \\
+Supervised & STAR (replic.) & \textbf{12.19}$_{\pm0.6}$ & 13.26$_{\pm0.7}$ & 17.74$_{\pm3.6}$ & 18.72$_{\pm2.8}$ & 24.55$_{\pm6.4}$ \\
 SSL & AE-LSTM (replic.) & 16.07$_{\pm2.8}$ & --- & --- & --- & --- \\
 \midrule
 Scratch & Traj enc.\ E2E (random) & 22.99$_{\pm2.3}$ & --- & 32.50$_{\pm1.5}$ & 35.59$_{\pm2.7}$ & 37.59$_{\pm2.0}$ \\
@@ -360,7 +360,7 @@ SSL & Traj JEPA E2E & 14.23$_{\pm0.4}$ & \textbf{14.93}$_{\pm0.4}$ & \textbf{16.
 
 \paragraph{Label efficiency crossover.}
 \label{sec:label_efficiency}
-At 100\% labels, supervised STAR leads by $\sim$2 RMSE. At 20\%, JEPA E2E closes to within 1 RMSE. At 5\% (4 training engines), JEPA frozen ($21.53 \pm 2.0$) beats STAR ($24.55 \pm 6.5$) with $3\times$ lower variance. This crossover is the practical payoff of SSL in the grey swan regime.
+At 100\% labels, supervised STAR leads by $\sim$2 RMSE. At 20\%, JEPA E2E closes to within 1 RMSE. At 5\% (4 training engines), JEPA frozen ($21.53 \pm 2.0$) beats STAR ($24.55 \pm 6.4$) with $3\times$ lower variance. This crossover is the practical payoff of SSL in the grey swan regime.
 
 \paragraph{From-scratch ablation.}
 \label{sec:from_scratch}
@@ -565,7 +565,7 @@ Budget & V2 frozen & Full-seq frozen & STAR & $\Delta$ \\
 100\% & 17.81$_{\pm1.7}$ & \textbf{15.70}$_{\pm0.21}$ & 12.19$_{\pm0.6}$ & $-2.11$ \\
 20\%  & 19.83$_{\pm0.3}$ & \textbf{17.20}$_{\pm1.91}$ & 17.74$_{\pm3.6}$ & $-2.63$ \\
 10\%  & 19.93$_{\pm0.9}$ & \textbf{18.79}$_{\pm1.96}$ & 18.72$_{\pm2.8}$ & $-1.14$ \\
-5\%   & \textbf{21.53}$_{\pm2.0}$ & 26.57$_{\pm4.70}$ & 24.55$_{\pm6.5}$ & $+5.04$ \\
+5\%   & \textbf{21.53}$_{\pm2.0}$ & 26.57$_{\pm4.70}$ & 24.55$_{\pm6.4}$ & $+5.04$ \\
 \bottomrule
 \end{tabular}
 \end{table}
