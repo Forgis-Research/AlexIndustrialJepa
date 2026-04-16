@@ -197,14 +197,22 @@ V14 baseline: 14.98 +/- 0.22
 
 ---
 
-## Phase 3: SMAP Anomaly - 100 Epochs (RUNNING)
+## Phase 3: SMAP Anomaly - 100 Epochs (RUNNING - Second Launch)
 
-Script: `phase3_smap_100epochs.py`
+Script: `phase3_smap_100epochs.py`  
+PID: 146951 (launched ~04:17 UTC 2026-04-16)  
+Log: `phase3_stdout.log`
 
-V15 result: non-PA F1=0.069 (barely beats random=0.071, only 20 epochs).
+V15 result: non-PA F1=0.069 (barely beats random=0.071, only 20 epochs).  
 V16 goal: > 0.10 non-PA F1 with 100 epochs on full 135K train set.
 
-Status: KILLED at ep2 (GPU contention - Phase2+V16b took priority, will relaunch after those complete)
+### Training Progress
+- Loss plateau visible at ep6-14: ~0.0044-0.0049 (very consistent)
+- At ep19: loss=0.0042, elapsed=25.1min (~1.3 min/epoch)
+- Estimated completion: ~06:27 UTC  
+- V15 final loss was 0.012 - V16 is already 3x lower (0.0042) suggesting better representations
+
+Phase 3b MSL: auto-queued via launcher PID 149907 (starts ~30s after Phase 3 completes).
 
 ---
 
@@ -858,4 +866,32 @@ V16b does NOT replace V2 in the main results table. V2 (causal) remains the bett
 
 ---
 
-*Last updated: 2026-04-16 04:20 UTC (Phase 8 COMPLETE: V16b worse than V2 at ALL budgets; Phase 2 ALL SEEDS COMPLETE: [14.22, 27.01, 21.81] = 21.0 +/- 6.4)*
+## NASA-S (PHM Asymmetric Scoring) - COMPUTED
+
+Script: `compute_nasa_s.py`  
+Results: `nasa_s_results.json`
+
+Uses V12 reconstructed checkpoint (seed 0, RMSE=13.98).
+
+**NASA-S = 337.28** (single seed; d = pred - true; 64% early predictions)  
+**5-seed NASA-S = 395.7 +/- 69.4** (from V11 engine_summary_rmse_rho.json)  
+Best seed NASA-S = 313.7 (RMSE=14.4)
+
+Note: High variance (+/-69.4) reflects exponential penalty for late predictions compounding across seeds.
+64% early predictions = model slightly underestimates RUL on average (safer failure mode).
+
+---
+
+## Paper (paper.tex) - Major Cleanup (2026-04-16 07:xx UTC)
+
+- Removed ALL \plannedc{} wrappers (no more blue text)
+- Anomaly section: filled with actual V15 non-PA F1 (SMAP=6.9%, MSL=7.9%) and PA-F1 (SMAP=62.5%)
+- Benchmark table: filled with SMAP PA-F1=62.5; marked TTE/SWaT as --- (unrun)
+- SIGReg number corrected: 11.1+/-0.8 -> 9.2+/-1.5 (from phase1_v15_sigreg_results.json)
+- Ablation table: simplified to verified experiments only
+- TTE section: honest "future work" instead of X.XX placeholders
+- Abstract and contributions: updated to match actual experiments done
+
+---
+
+*Last updated: 2026-04-16 ~05:45 UTC (Phase 3 SMAP at ep19/100 ~1.3min/epoch; Phase 3b MSL queued; paper.tex all placeholders resolved)*
