@@ -403,24 +403,25 @@ This experiment is implemented in the framework but numerical results require a 
 
 \begin{table}[t]
 \centering
-\caption{Architecture ablations on C-MAPSS FD001 (3 seeds unless noted). Frozen = encoder locked; E2E = joint fine-tuning. ``w/o Full-sequence target'' is the future-only target variant (context encoder sees $\x_{1:t}$, target sees only $\x_{t+1:t+k}$); the full model uses full-sequence target for both context and target encoders. Bidirectional context = V16b (bidi encoder + VICReg regularization instead of EMA L1).}
+\caption{Architecture comparisons on C-MAPSS FD001. All use the same probe and fine-tuning protocol. V2 = main model (causal context, future-only target, EMA, L1 loss, 5 seeds). Full-seq target = variant where target sees full sequence $\x_{1:t+k}$ instead of future-only $\x_{t+1:t+k}$ (5 seeds, \cref{app:ablation_details}). V16b = bidirectional context encoder with VICReg (3 seeds). SIGReg = single shared encoder with spectral regularization, no EMA, no target copy (3 seeds).}
 \label{tab:ablation}
 \small
 \begin{tabular}{@{}l|cc@{}}
 \toprule
 & \multicolumn{2}{c}{FD001 RMSE $\downarrow$} \\
-Model Variant & Frozen & E2E \\
+Architecture Variant & Frozen & E2E \\
 \midrule
-w/o Full-sequence target (future-only) & 17.81$_{\pm1.7}$ & --- \\
+\textbf{V2 (causal + EMA, 5 seeds)} & \textbf{17.81}$_{\pm1.7}$ & \textbf{14.23}$_{\pm0.4}$ \\
+Full-seq target variant & 15.70$_{\pm0.2}$ & 14.32$_{\pm0.6}$ \\
 Bidirectional context (V16b) & 10.06$_{\pm1.4}$ & 15.06$_{\pm1.2}$ \\
-SIGReg variant (no EMA, 3 seeds) & 9.2$_{\pm1.5}$ & --- \\
-\midrule
-\textbf{Full Model (causal + EMA, 5 seeds)} & \textbf{17.81}$_{\pm1.7}$ & \textbf{14.23}$_{\pm0.4}$ \\
+SIGReg (no EMA) & 9.2$_{\pm1.5}$ & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Full-sequence target.} Replacing the future-only target with a full-sequence target ($\x_{1:t+k}$) improves the frozen probe by $-2.1$ RMSE on FD001 at 100\% labels, with 8$\times$ lower seed standard deviation ($\sigma$: $1.7 \to 0.21$). The improvement generalizes to FD003 ($-0.9$) and FD004 ($-1.3$).
+\paragraph{Full-sequence target.} Replacing the future-only target with a full-sequence target ($\x_{1:t+k}$) improves the frozen probe by $-2.1$ RMSE on FD001 at 100\% labels, with 8$\times$ lower seed standard deviation ($\sigma$: $1.7 \to 0.21$). The improvement generalizes to FD003 ($-0.9$) and FD004 ($-1.3$). Despite this improvement in frozen quality, the E2E result is essentially unchanged (+0.09 RMSE), and the label efficiency at 5\% labels degrades by $+5.04$ (see \cref{tab:full_sequence}). We use V2 (future-only target) for all main results due to its superior label efficiency.
+
+\paragraph{Bidirectional context.} V16b (bidirectional context encoder with VICReg) achieves the best frozen probe (10.06 $\pm$ 1.4 RMSE, below supervised STAR 10.61), yet its label-efficiency crossover is inverted: at 5\% labels V16b E2E ($40.6 \pm 10.2$) is substantially worse than V2 E2E ($25.3 \pm 5.1$). Cross-domain transfer also degrades: FD001-pretrained V16b on FD003 yields 37.8 vs.\ 31.5 for V2. The causal inductive bias appears to confer a transferability advantage that bidirectional encoders do not share---likely because causal temporal ordering is a domain-invariant property.
 
 \paragraph{Cross-sensor attention.}
 \label{sec:cross_sensor}
