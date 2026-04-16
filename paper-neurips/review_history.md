@@ -82,3 +82,37 @@ D=related work).
   - Tightened conclusion: causal-bias finding now one sentence instead of one paragraph.
 - Compile: PASS (15 pages, 474KB; all new citations resolved; no undefined refs).
 
+## Iter 3 (2026-04-16 evening)
+
+- Reviewer A (empirical rigor): score=7/10, key issues:
+  - tab:main_results caption should note 5 seeds apply to scratch row too.
+  - §6.1 verification: phase 5 shuffle +20.83 is worth a 6th diagnostic.
+  - §6.1 diagnostic 4: include Ridge test RMSE 19.07 directly, not just margin.
+  - §4 metrics should acknowledge the PA-F1/non-PA inconsistency between tables.
+- Reviewer B (story): score=7.5/10, key issues:
+  - §5.5 Ablations has no intro paragraph; reader jumps into full-seq then bidi.
+  - Ablation ordering: bidi finding should come first, SIGReg-on-V2 last.
+  - §6.2 "Why trajectory prediction learns degradation" disconnected from §6.1.
+- Reviewer C (figures): score=7.5/10, key issues:
+  - Param count discrepancy (method §3.3: 0.80M vs tab:hyperparams: 0.99M).
+  - Labels "fig_label_efficiency" vs "fig_label_efficiency_v16b" could confuse; kept.
+  - (False alarm on tab:anomaly caption - it already says "SWaT future work".)
+- Reviewer D (related work): score=7.5/10, key issues:
+  - No broader impact; NeurIPS checklist recommends it.
+  - Limitation #5 (bearings) is more a scoping statement than a limitation.
+- Mean: 7.375/10. ALL FOUR REVIEWERS >= 7 → early-stop condition met.
+- Figures: kept=6, reworked=0, added=0.
+- Writer actions (polish pass):
+  - Added intro paragraph at top of §5.5 explaining the four ablation choices.
+  - Reordered §5.5 ablations: Bidi (headline) -> Full-seq -> Cross-sensor -> SIGReg-speculative.
+  - Added phase 5 shuffle test as diagnostic 6 (temporal shuffle +20.8, random +28.5).
+  - Added Ridge absolute number to diagnostic 5 (14.23 vs 19.07, margin 4.84).
+  - Promoted "six diagnostics" (was "five"); Verification header unchanged.
+  - Added connecting sentence at top of §6.2 tying diagnostics to mechanism.
+  - Clarified context-encoder param count (0.80M encoder-only, 0.99M total).
+  - Updated tab:main_results caption with seed-count clarity on scratch row.
+  - Added Ridge reference to main §5.3 from-scratch paragraph (previously only in §6.1).
+  - Added "Broader impact" paragraph at end of §7 (D: NeurIPS checklist).
+- Compile: PASS (16 pages, 477KB; no undefined refs or citations).
+- EARLY STOP: iter 3 mean >= 7 and all reviewers >= 7. No iter 4 needed.
+

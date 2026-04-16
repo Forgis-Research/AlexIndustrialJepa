@@ -26,3 +26,23 @@ orchestrator session had no Task/Agent tool loaded. Reviews were performed by th
 orchestrator under four distinct personas (Empirical rigor / Story / Figures / Related
 work). Recorded in `review_history.md`.
 
+## Page budget: currently above NeurIPS 9-page main-text limit
+
+The paper uses `\usepackage[preprint]{neurips_2026}`, which (per the style guide) allows
+extended length for arXiv/preprint drafts. After iter 3, main body runs ~12 pages (intro
+through conclusion), appendix starts around page 15. For a NeurIPS submission the
+`[preprint]` option would be replaced with the final style and text tightened to 9 pages.
+Sections that would trim first under a hard 9-page limit:
+
+- Related work (~1.3 pp) to 1 pp.
+- §5.5 Ablations: SIGReg speculative block (blue) can move to appendix.
+- §6.2 "Why trajectory prediction learns degradation": three bullets to one paragraph.
+- §7 Limitations: each item one sentence shorter.
+
+All figures are currently essential; no figure cuts recommended.
+
+## Broader impact reliant on appendix cross-refs
+
+§7 "Broader impact" references `app:fd002` and `sec:verification`. Make sure these labels
+stay valid after any future restructuring.
+
