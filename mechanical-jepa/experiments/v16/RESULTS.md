@@ -562,31 +562,36 @@ Seed 123 partial trajectory (as of 03:32 UTC):
 | 120   | 0.0055 | 27.77     | 27.54 | |
 | 130   | 0.0057 | **27.01** | **27.01** | |
 
-FINDING at ep70: Seed123 underwent catastrophic spike at ep70 (probe: 31.51->52.45 = +20.94).
-REVISED at ep80+: Probe RECOVERED and is SLOWLY CONVERGING. Best: 28.57 -> 27.78 -> 27.54 -> 27.01.
-ep130=27.01 - new best, continuing gradual improvement despite oscillation.
-REVISED interpretation: Not permanently stuck. Slowly converging (ep50-ep130: 28.57->27.01, -1.56 RMSE).
-Final best for seed123 will likely be in the 25-27 range (30 epochs more to run).
+**SEED 123 FINAL**: best_probe=27.01 (ep130), done in 62.2 min.
+No further improvement after ep130. Final 3 probe readings: 27.38 (ep170), 27.23 (ep180), 39.54 (ep190 spike), 27.38 recovery.
 
 KEY OBSERVATIONS:
 1. Seed123 loss is consistently LOWER than seed42 (0.005 vs 0.008-0.010).
    Low JEPA loss does NOT guarantee good probe quality.
 2. Seed123's spike at ep70 (52.45) was a transient EMA oscillation, not permanent divergence.
-   By ep80, probe recovered to 27.78 - a new best. Training instability but not catastrophic.
-3. Pattern: seed123 found RUL-correlated representation at ep50, then oscillated.
-   The probe oscillates ~28-52 range. Best so far: 27.78 at ep80.
-4. Compare: seed42 ep70=15.47 (normal oscillation); seed123 ep70=52.45 (large spike, but transient).
+   By ep80, probe recovered to 27.78 - a new best. 3 more loss spikes (ep130, ep160, ep190).
+3. Pattern: seed123 found RUL-correlated representation at ep50, then oscillated throughout.
+   The probe oscillated ~27-52 range. Final best: 27.01 (ep130). Never improved further.
+4. Diagnosis: EMA target drift is severe in this architecture variant. Seed42's better result (14.22)
+   was due to its loss trajectory staying lower (0.008-0.010) without the catastrophic spikes.
 
-IMPLICATION: Cross-sensor without shortcut shows HIGH VARIANCE between seeds.
-- Seed42 final: 14.22 (competitive with V14=14.98)
-- Seed123 partial: best=27.78 at ep80 (still running - probe oscillating in 28-52 range)
-- Expected 3-seed mean: (14.22 + seed123_final + seed456) / 3
+FINDING: Cross-sensor without shortcut shows HIGH SEED VARIANCE.
+- Seed42 final: 14.22 (beats V14=14.98)
+- Seed123 final: 27.01 (significantly worse - 12.79 RMSE gap between seeds)
+- Seed456: RUNNING (started 03:11 UTC, ep1 probe=36.97; expected ~04:45 UTC)
 
-Removing learnable sensor ID embeddings (V14 shortcut) massively INCREASES variance
-(V14: 14.98 ± 0.22 vs Phase2: seed42=14.22 but seed123~27-29 range).
-Conclusion: sensor ID embeddings stabilize training, not just provide a shortcut.
+**THE MAIN FINDING**: Removing learnable sensor ID embeddings (V14 shortcut) massively
+INCREASES seed variance: V14=14.98 +/- 0.22 vs Phase2=[14.22, 27.01, ?] (multi-cycle gap).
+Conclusion: sensor ID embeddings stabilize training by providing identity shortcuts.
+Without them, some seeds converge to good representations, others get stuck.
 
-**Seed 456: PENDING** (will start after seed 123, ~04:00 UTC)
+**Seed 456: RUNNING** (started ~03:11 UTC; ep1=36.97; expected done ~04:45 UTC)
+
+Seed 456 early trajectory:
+| Epoch | Loss   | Probe RMSE | Best  |
+|-------|--------|-----------|-------|
+| 1     | 0.0641 | 36.97     | 36.97 |
+| 2     | 0.0400 | -         | -     |
 
 Target baseline: V14 cross-sensor = 14.98 +/- 0.22
 

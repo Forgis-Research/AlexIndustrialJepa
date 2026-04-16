@@ -1,8 +1,35 @@
 ---
 name: IndustrialJEPA Project Context
-description: V16b COMPLETE (3 seeds, mean=10.06+-1.42 val, 25.72+-1.59 test); Protocol blindspot CONFIRMED; Phase2 seed42 best=14.22 at ep110; Phase7 frozen probe test=25.72 (NOT competitive).
+description: Phase6b VERIFIED (FD001=19.07, FD003=19.74, FD004=32.09); paper corrected (params 0.80M/0.99M; margins +4.8/+4.4/+6.5); Phase2 seed123 best=27.01 final; Phase8 pending after Phase2 completes.
 type: project
 ---
+
+## Paper Accuracy Updates (2026-04-16 overnight session)
+
+### Verified Regressor Margins (Phase 6b - FINAL):
+- FD001: regressor test RMSE = 19.07 (Phase6 had 17.72 - artifact of 32-cycle windowed training)
+- FD003: regressor test RMSE = 19.74, JEPA E2E beats by +4.37 (paper: +4.4)
+- FD004: regressor test RMSE = 32.09, JEPA E2E beats by +6.47 (paper: +6.5)
+- Consistent with V12 5-seed engine_summary_regressor.json FD001 = 19.21
+
+### Paper Corrections Applied (paper.tex commits 67663ec, 7087b83, 91df2b6):
+- Context encoder param count: 1.26M -> 0.80M (encoder), 0.99M (full unique)
+- FD001 bullet: +3.5/17.72 -> +4.8/19.1
+- Appendix table: FD003 todo{verify} -> +4.4, FD004 todo{verify} -> +6.5
+- Limitations: bearing rho=0.071 (misleading) -> RMSE 0.189 vs 0.177 (p=0.40)
+
+### Phase 2 Cross-Sensor (seed123 FINAL):
+- Seed123 final best = 27.01 (at ep130). Oscillation pattern throughout.
+- Loss spiked 3x (ep70/ep130/ep160), probe never significantly improved after ep130.
+- 3-seed summary will be: seed42=14.22, seed123=27.01, seed456=TBD
+- VARIANCE FINDING: Removing sensor_id_embed (V14 shortcut) massively increases seed variance.
+  V14: 14.98 +/- 0.22 vs Phase2: [14.22, 27.01, ?] - orders-of-magnitude wider range.
+
+### Pending:
+- Phase 2 seed456: starts after seed123 (~94 min, expected ~06:30 UTC)
+- Phase 8 label efficiency: auto-launcher (PID 111442) starts after ALL Phase 2 seeds done
+- Phase 3 SMAP 100 epochs: pending GPU free after Phase 8
+
 
 ## V16b: Stable Training Fix - CRITICAL RESULTS (2026-04-16)
 
