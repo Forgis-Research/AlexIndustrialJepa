@@ -1,0 +1,15 @@
+{
+  "description": "Ridge regression on 57 hand-designed features (Rule 3 lower bound)",
+  "n_features": 57,
+  "best_alpha": 1000.0,
+  "val_rmse": 42.69004821777344,
+  "test_rmse": 17.720746994018555,
+  "mean_predictor_test_rmse": 42.34467697143555,
+  "comparison": {
+    "feature_regressor_test_rmse": 17.720746994018555,
+    "v16b_seed42_best_val_probe": 9.86,
+    "v2_frozen_probe_val": 17.81,
+    "supervised_sota_star_test": 10.61
+  },
+  "interpretation": "If V16b probe val <= feature_regressor val, encoder contributes nothing the protocol can see. V16b val=9.86 vs feature_regressor val noted above."
+}

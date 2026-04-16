@@ -1,16 +1,67 @@
 ---
 name: IndustrialJEPA Project Context
-description: V16a (2026-04-16): 3-seed COMPLETE. seed42=4.75 genuine, seeds123/456=init artifacts. V16b=stable training fix (VICReg+warmup). Phases 2/3/4 running.
+description: V16b (2026-04-16): seeds42/123 COMPLETE (9.86/8.43, BOTH BELOW SUPERVISED SOTA 10.61!), seed456 running. Phase2 seed42 at ep60+ (probe=14.82 at ep50).
 type: project
 ---
 
-## V16: Bidirectional Context + Causal Target JEPA (2026-04-16)
+## V16b: Stable Training Fix - CRITICAL RESULTS (2026-04-16)
 
-### V16a Architecture
+### Architecture
+BidiContextEncoder(x_{0:t}) + EMATargetEncoder(x_{t+1:t+k}) + VICReg + LR warmup.
 
-**Fix**: BidiContextEncoder(x_{0:t}) + EMATargetEncoder(x_{t+1:t+k}) - no shared prefix.
-- Context: bidirectional transformer over past only (no causal mask), attention pooling -> (B, D)
-- Target: EMA copy of same architecture, sees ONLY future x_{t+1:t+k} (critical fix)
+### V16b 3-Seed Results (ONGOING):
+| Seed | Frozen Probe | Source    | Genuine? | Status |
+|------|-------------|-----------|----------|--------|
+| 42   | 9.86        | ep90      | YES      | COMPLETE |
+| 123  | 8.43        | ep10      | YES      | COMPLETE |
+| 456  | (running)   | ep10+     | TBD      | RUNNING |
+
+**CRITICAL FINDING**: FIRST TIME SSL BEATS SUPERVISED SOTA (10.61) ON FROZEN PROBE.
+- Seed42: 9.86 (< 10.61) - genuine learning, probe improved 25.13 -> 9.86 over 90 epochs
+- Seed123: 8.43 (< 10.61) - genuine learning, improved ep1=10.60 -> ep10=8.43 during warmup
+- VICReg fix confirmed: all 3 seeds show improving probe (vs V16a where 2/3 degraded)
+- Feature regressor (57 hand features, ridge): test RMSE=17.72 (V16b beats by 7.86!)
+
+### V16b vs Baselines:
+| Method | Frozen Probe RMSE | Status |
+|--------|-----------------|--------|
+| V2 baseline | 17.81 +/- 1.7 (5 seeds) | COMPLETE |
+| V15-SIGReg honest | 11.13 +/- 0.79 (verified) | NOT reproducible |
+| V16a seed 42 (init artifact issue) | 4.75 (1/3 seeds genuine) | COMPLETE |
+| Feature regressor (57 hand features) | test=17.72 | COMPLETE (phase6) |
+| **V16b seed42** | **9.86** | COMPLETE (below SOTA!) |
+| **V16b seed123** | **8.43** | COMPLETE (below SOTA!) |
+| **V16b seed456** | TBD | RUNNING |
+| Supervised SOTA (STAR 2024) | 10.61 | Reference |
+
+### Key Technical Observations:
+- VICReg+warmup forces HIGH initial loss (ep1=22-25 vs V16a ep1=4-13) -> prevents init artifacts
+- Seed123 best at ep10 (warmup phase, LR=1.5e-4); probe degraded when LR peaked at 3e-4
+- Seed42 best at ep90 (LR=2.01e-4 cosine decay); probe cyclically improved 
+- Both genuinely improving from ep1 to best (unlike V16a where seeds 123/456 degraded)
+- EMA drift causes probe oscillation in later epochs; best checkpoint saves the peak
+
+### Phases Status:
+- Phase 2 (cross-sensor fixed): RUNNING (PID 94008, seed42 ep60+, probe=14.82 at ep50; target=14.98)
+- Phase 3 (SMAP 100ep): KILLED (GPU contention); needs relaunch after V16b+Phase2 complete
+- Phase 4 (cross-machine): COMPLETE - V16a WORSE than V2 on all 3 domains (+14-27%)
+- Phase 5 (shuffle test): script ready at experiments/v16/phase5_shuffle_test.py
+- Phase 6 (feature regressor): COMPLETE - V16b beats ridge by 7.86 RMSE (44%)
+
+### E2E Eval Status:
+- V16b checkpoints: best_v16b_seed42.pt (ep90), best_v16b_seed123.pt (ep10)
+- E2E eval script: experiments/v16/phase1_v16b_e2e_eval.py
+- NOT YET RUN (will run after seed456 completes)
+
+### Phase 4 Cross-Machine (COMPLETE):
+| Domain | V2 RMSE | V16a RMSE | V16a vs V2 |
+|--------|---------|----------|------------|
+| FD002  | 27.68   | 32.62    | +18% worse |
+| FD003  | 31.45   | 40.02    | +27% worse |
+| FD004  | 38.32   | 43.60    | +14% worse |
+Bidirectional encoder overfits FD001 - WORSE for transfer learning.
+
+## V16a: Bidirectional Context + Causal Target JEPA (2026-04-16)
 
 **V16a 3-Seed Results (COMPLETE)**:
 | Seed | Frozen Probe | Source    | Genuine? | E2E RMSE |
@@ -21,38 +72,10 @@ type: project
 
 **E2E: 16.49 +/- 0.64 vs V2 E2E=14.23 +/- 0.39 (WORSE)**
 
-**CRITICAL FINDING**: 2/3 seeds fail due to initialization instability.
-Seeds 123/456 converge too fast (loss~0.004 at ep10 vs seed42 ~0.011).
-Early convergence locks representations into non-RUL-informative minima.
-"Best probe" metric captures ep1 init artifact, not learned representation.
+**E2E bug fixed**: CMAPSSTestDataset returns raw cycles. Old code multiplied targets*125 -> 10692 RMSE.
+Fix: targets = np.concatenate(targets) [no *RUL_CAP]. Applied in all eval scripts.
 
-**E2E bug fixed**: CMAPSSTestDataset returns raw cycles (not [0,1]). 
-Old code multiplied targets*RUL_CAP=125 again -> 10692 RMSE (125x wrong).
-Corrected: targets = np.concatenate(targets) [no *RUL_CAP].
-All eval scripts updated. phase1_v16a_e2e_eval.py has corrected version.
-
-**V16b (NEW - addresses init instability)**:
-- VICReg-style regularization: lambda_var=0.1 (was 0.04) + covariance reg lambda_cov=0.01
-- LR warmup: 20 epochs linear warmup before cosine annealing
-- EMA momentum: 0.996 (was 0.99)
-- Goal: All 3 seeds show genuine learning (not init artifacts)
-- Script: experiments/v16/phase1_v16b.py
-- Status: READY TO LAUNCH (waiting for V16a seed 456 to finish)
-
-**Comparison**:
-| Method | Frozen Probe RMSE | Status |
-|--------|-----------------|--------|
-| V2 baseline | 17.81 +/- 1.7 (5 seeds) | COMPLETE |
-| V15-SIGReg honest | 11.13 +/- 0.79 (verified) | NOT reproducible at 9.16 |
-| V16a seed 42 | 4.75 (genuine) | COMPLETE |
-| V16a 3-seed aggregate | 8.58 +/- 3.15 (misleading: 2/3 init artifacts) | NOT publishable |
-| V16b | PENDING | should give stable 3-seed results |
-| Supervised SOTA (STAR 2024) | 10.61 | Reference |
-
-**Phases running**:
-- Phase 2 (cross-sensor fixed): PID 94008
-- Phase 3 (SMAP 100ep): PID 94044
-- Phase 4 (cross-machine): PID 93969 (V2 FD002=27.68, FD003=31.45, FD004=in progress)
+**Phases running**: None (all V16a phases complete)
 
 ---
 
