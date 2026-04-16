@@ -610,7 +610,7 @@ Data & Train/val split & 85\% / 15\% \\
 
 During healthy operation, attention is diffuse across sensors. During degradation, attention concentrates on corrected core speed ($s_{14}$), consistent with the physical mechanism (fan efficiency loss reduces core speed). The top-5 healthy$\to$degradation attention shifts all point toward $s_{14}$: $s_3 \to s_{14}$ ($+0.103$), $s_{15} \to s_{14}$ ($+0.099$), $s_{11} \to s_{14}$ ($+0.096$).
 
-This pattern is FD001-specific; on FD003 (fan + HPC faults), attention focuses on fan speed sensors ($s_8$, $s_{13}$) instead, and the direction reverses (defocusing). Both findings are consistent with the underlying fault physics. Cross-sensor attention maps for both subsets are provided as figures.
+This pattern is FD001-specific. On FD003 (fan + HPC faults), attention shifts in the opposite direction: the top degradation changes are defocusing from physical fan speed ($s_8$) and corrected core speed ($s_{13}$), while LPC outlet temperature ($s_3$) receives increased cross-sensor attention. Both findings are consistent with the underlying fault physics. Cross-sensor attention maps for both subsets are provided as figures.
 
 \textbf{Key insight:} the sensor-as-token architecture discovers physically meaningful sensor interactions \emph{without domain knowledge}---the sensor ID embeddings are learned, and the ordering is arbitrary. This supports the iTransformer-inspired design choice.
 }
