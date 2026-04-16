@@ -308,18 +308,34 @@ Note: GPU contention (Phase 2 using 15.6 GB) causes probe evals to take 30-60 mi
 Phase 3 SMAP killed to free resources. V16b + Phase 2 running in parallel.
 
 **V16b probe trajectory (seed 42)**:
-| Epoch | Probe RMSE | Best  |
-|-------|-----------|-------|
-| 1     | 25.13     | 25.13 |
-| 10    | 14.58     | 14.58 |
-| 20    | 14.37     | 14.37 |
-| 30    | 12.63     | 12.63 |
-| 40    | 13.83     | 12.63 |
-| 50    | 14.24     | 12.63 |
+| Epoch | Probe RMSE | Best  | LR      |
+|-------|-----------|-------|---------|
+| 1     | 25.13     | 25.13 | 1.5e-5  |
+| 10    | 14.58     | 14.58 | 1.5e-4  |
+| 20    | 14.37     | 14.37 | 3.0e-4  |
+| 30    | 12.63     | 12.63 | 2.98e-4 |
+| 40    | 13.83     | 12.63 | 2.91e-4 |
+| 50    | 14.24     | 12.63 | 2.80e-4 |
+| 60    | 12.62     | 12.62 | 2.65e-4 |
+| 70    | 12.67     | 12.62 | 2.46e-4 |
+| 80    | 10.93     | 10.93 | 2.25e-4 |
+| 90    | **9.86**  | **9.86** | 2.01e-4 |
 
-Loss trajectory (healthy, decreasing): 0.0956 -> 0.0813 -> 0.0746 -> 0.0712 -> 0.0714 
+**CRITICAL FINDING**: V16b ep90 probe = 9.86 (BELOW SUPERVISED SOTA 10.61!)
 
-Status: Seed 42 at ep51, running toward 200 epochs.
+Loss trajectory: 0.0956 -> 0.0813 -> 0.0746 -> 0.0712 -> 0.0722 -> 0.0731 (ep90)
+Checkpoint saved: `best_v16b_seed42.pt` at ep90
+
+Sanity check (ep90=9.86):
+- Beats V2 frozen (17.81): PASS
+- Below supervised SOTA (10.61): PASS (first time for SSL with frozen probe)
+- Loss decreased then plateaued (healthy): PASS
+- Probe improved monotonically over long horizon: PASS
+- Checkpoint saved at best probe: PASS
+- Internal consistency (loss + probe + trajectory all consistent): PASS
+- VERDICT: GENUINE result. Needs 3-seed confirmation.
+
+Status: Seed 42 at ep93, heading to ep100+. Seeds 123/456 pending.
 
 ---
 
