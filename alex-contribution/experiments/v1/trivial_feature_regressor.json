@@ -1,0 +1,9 @@
+{
+  "best_alpha": 100.0,
+  "test_rmse": 20.13671875,
+  "n_test": 100,
+  "n_train_cuts": 20131,
+  "n_features": 58,
+  "tail_window": 10,
+  "elapsed_s": 9.010682582855225
+}

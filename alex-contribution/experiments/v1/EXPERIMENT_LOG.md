@@ -64,3 +64,41 @@ Artifacts produced (in `mechanical-jepa/experiments/v11/data_analysis/`):
 **Red flag about the end-of-run summary** — when Part A finishes, the script's `main()` falls through to the "V11 SESSION COMPLETE" summary and prints final results (e.g. "Traj JEPA E2E @ 100%: 14.79 +/- 0.92"). Those numbers are NOT from my run; they are loaded from the pre-existing `finetune_results.json` in the v11 directory, which dates from the team's 2026-04-10 session. They are stale artifacts, not a reproduction yet. I am explicitly flagging this so I do not accidentally report them as mine in Phase 4.
 
 No errors. Proceeding to Phase 2.
+
+## Phase 2 — Pretraining (Part D)
+
+Start: 2026-04-19 19:15 UTC. End: 2026-04-19 19:23 UTC. Wall: 7.22 min (under 3-4h budget).
+
+Config (V1, matching team): d_model=128, n_layers=2, n_heads=4, d_ff=256, patch_length=1, ema=0.996, params=366,336 — identical to the `Total trainable parameters: 366,336` line in the team's original v11 log.
+
+Command: `python alex-contribution/experiments/v1/run_phase2_pretrain.py` (thin W&B wrapper around `run_experiments.py --parts D`).
+
+W&B run: https://wandb.ai/g-a-lombardi01-forgis/industrialjepa/runs/giasq4s1
+
+Pretraining curve (epochs at probe checkpoints):
+
+| Ep | loss | pred | var | probe RMSE |
+|---:|---:|---:|---:|---:|
+| 1 | 0.0655 | 0.0572 | 0.8314 | 27.00 |
+| 10 | 0.0262 | 0.0215 | 0.4711 | **15.91** (best) |
+| 50 | 0.0267 | 0.0234 | 0.3354 | 20.23 |
+| 100 | 0.0237 | 0.0204 | 0.3239 | 22.38 |
+| 150 | 0.0210 | 0.0177 | 0.3216 | 26.76 |
+| 200 | 0.0198 | 0.0166 | 0.3230 | 22.30 |
+
+Key numbers:
+- Final loss 0.0198 / initial 0.0655 = ratio 0.302 — 70% reduction (**PASS >50%**)
+- Best probe RMSE: **15.91 at ep 10** vs team V1 @ ep 10 = 15.65 — delta +0.26, within seed noise
+- Shuffle RMSE: 26.29 vs probe 15.91 — shuffle is worse, so the encoder has a temporal signal (**PASS**)
+- Early-converging probe (same pattern as team): best probe is at ep 10 then worsens. Pretraining objective decouples from downstream RUL. This is not a bug — it is the v11 phenomenon already logged in the team's RESULTS.md.
+
+**⚠️ PC1 rho = NaN** — same diagnostic bug the team hit in their first V1 pass. `compute_pretraining_diagnostics` in `train_utils.py` uses `use_last_only=True`, which collapses every embedding's RUL label to 1.0 (the normalized "full life"), making Spearman rho undefined. The team fixed this in a follow-up (`run_diagnostics_fixed.py`) by computing embeddings at multiple cut points. My Phase 2 run reproduces the bug faithfully; I am NOT treating PC1 rho = NaN as a training failure. Will compute corrected PC1 rho in Phase 3 alongside the prediction-trajectory audit.
+
+Sanity checks (ml-researcher 5-min):
+- Baseline: trivial ridge regressor (58 hand-built features, my `trivial_feature_regressor.py`) hits **20.14 RMSE** on FD001 canonical last-window. My V1 pretrain probe best = 15.91 beats it by 4.2 RMSE. JEPA contributes signal the ridge can't see. ✓
+- Direction: loss monotone-ish decreasing, probe best at early epoch. Matches v11. ✓
+- Magnitude: within 0.3 RMSE of team's V1. ✓
+- Leakage: using team's `load_cmapss_subset('FD001')` unchanged, normalizer fit on train only, seed=42. ✓
+- Implementation: checkpoint written at ep 10 as expected, wall time reasonable. ✓
+
+Proceeding to Phase 3 (fine-tune Parts E+F).
