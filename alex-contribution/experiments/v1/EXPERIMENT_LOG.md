@@ -227,3 +227,13 @@ Artifacts:
 - `plots/v1_prediction_trajectories_proper.png`, `plots/v1_prediction_scatter_proper.png` — fixed-mask version
 
 Proceeding to Phase 4 (write RESULTS.md).
+
+## Phase 4 — RESULTS.md
+
+Start: 2026-04-19 19:38 UTC. End: 2026-04-19 19:40 UTC.
+
+Wrote `alex-contribution/experiments/v1/RESULTS.md`. Headline verdict: V1 reproduces within seed variance; the v11 prediction-trajectory inconsistency is a plotting-script bug (not a model failure).
+
+## Phase 5 — Commit + push + stop
+
+v1 complete — I can reproduce v11's V1 on this VM, and the v11 "flat trajectory" inconsistency from ml-researcher.md is a one-character mask bug in run_prediction_trajectories.py (not a model collapse). Exiting.
