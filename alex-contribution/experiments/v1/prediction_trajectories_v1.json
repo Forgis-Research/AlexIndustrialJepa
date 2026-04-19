@@ -1,0 +1,11 @@
+{
+  "canonical_last_window_rmse": 52.56677533030598,
+  "within_sequence_spearman_rho_mean": -0.03471378256391587,
+  "within_sequence_spearman_rho_median": -0.10650543693350184,
+  "n_engines_with_usable_rho": 20,
+  "pred_trajectory_std_mean": 1.0362317809769765e-06,
+  "pred_trajectory_std_median": 0.0,
+  "cross_engine_last_pred_std": 5.993711093169664,
+  "best_val_rmse": 4.1447577476501465,
+  "elapsed_s": 32.8225634098053
+}

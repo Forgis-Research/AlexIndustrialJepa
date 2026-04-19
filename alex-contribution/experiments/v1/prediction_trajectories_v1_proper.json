@@ -1,0 +1,12 @@
+{
+  "finetune_protocol": "inline clone of train_utils.finetune(mode='e2e', seed=0)",
+  "canonical_last_window_rmse_via_test_loader": 14.484071731567383,
+  "canonical_rmse_recomputed_via_full_sequence": 13.537414067633698,
+  "within_sequence_spearman_rho_mean": 0.7611509434596853,
+  "within_sequence_spearman_rho_median": 0.8520569467795431,
+  "n_engines_with_usable_rho": 89,
+  "pred_trajectory_std_mean": 15.619565546043363,
+  "pred_trajectory_std_median": 12.281890199634146,
+  "cross_engine_last_pred_std": 42.09312542428736,
+  "elapsed_s": 32.94298315048218
+}

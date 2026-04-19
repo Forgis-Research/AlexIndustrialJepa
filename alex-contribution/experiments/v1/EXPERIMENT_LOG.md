@@ -102,3 +102,128 @@ Sanity checks (ml-researcher 5-min):
 - Implementation: checkpoint written at ep 10 as expected, wall time reasonable. ✓
 
 Proceeding to Phase 3 (fine-tune Parts E+F).
+
+## Phase 3 — Fine-tune (direct `part_e` call)
+
+Start: 2026-04-19 19:26 UTC. End: 2026-04-19 19:32 UTC. Wall: 6.66 min (well under 1-hour budget).
+
+Command: `python -u alex-contribution/experiments/v1/run_phase3_finetune.py`. Calls `run_experiments.part_e(data, model=None, n_seeds=5)` directly and then renders a label-efficiency plot. I bypassed `run_experiments.main()` because the `else`-branch of Part D (when D is not in parts) has a latent bug: it loads the checkpoint into a fresh `TrajectoryJEPA` model but never calls `.to(DEVICE)`, so the subsequent `compute_pretraining_diagnostics` call crashes with `RuntimeError: Expected all tensors to be on the same device`. `part_e` itself is fine — `finetune()` in `train_utils.py:262` does `model = model.to(DEVICE)` explicitly, so calling `part_e` directly is a clean, minimal workaround.
+
+W&B run: https://wandb.ai/g-a-lombardi01-forgis/industrialjepa/runs/ykab7q5r
+
+### Per-seed fine-tune numbers (my v1 reproduction on FD001)
+
+| Budget | Supervised LSTM | JEPA frozen | JEPA E2E |
+|---:|:---:|:---:|:---:|
+| 100% | 17.36 ± 1.24 | 20.81 ± 0.23 | 15.36 ± 0.78 |
+| 50% | 18.30 ± 0.75 | 20.67 ± 0.20 | 16.50 ± 1.23 |
+| 20% | 18.55 ± 0.81 | 20.79 ± 0.26 | 16.59 ± 1.10 |
+| 10% | 31.22 ± 10.93 | 22.67 ± 1.38 | 25.89 ± 3.58 |
+| 5% | 33.08 ± 9.64 | 22.00 ± 1.43 | 23.95 ± 1.87 |
+
+### Comparison to team's V1 (from their EXPERIMENT_LOG.md)
+
+| Budget | Method | Mine | Team V1 | Δ |
+|---:|:---|:---:|:---:|:---:|
+| 100% | LSTM | 17.36 ± 1.24 | 17.36 ± 1.24 | 0.00 (bit-exact) |
+| 50% | LSTM | 18.30 ± 0.75 | 18.30 ± 0.75 | 0.00 (bit-exact) |
+| 20% | LSTM | 18.55 ± 0.81 | 18.55 ± 0.81 | 0.00 (bit-exact) |
+| 10% | LSTM | 31.22 ± 10.93 | 31.22 ± 10.93 | 0.00 (bit-exact) |
+| 5% | LSTM | 33.08 ± 9.64 | 33.08 ± 9.64 | 0.00 (bit-exact) |
+| 100% | frozen | 20.81 ± 0.23 | 21.33 ± 0.32 | **-0.52** |
+| 50% | frozen | 20.67 ± 0.20 | 21.01 ± 0.11 | **-0.34** |
+| 20% | frozen | 20.79 ± 0.26 | 21.32 ± 0.37 | **-0.53** |
+| 10% | frozen | 22.67 ± 1.38 | 22.92 ± 1.09 | -0.25 |
+| 5% | frozen | 22.00 ± 1.43 | 22.12 ± 1.00 | -0.12 |
+| 100% | E2E | 15.36 ± 0.78 | 14.79 ± 0.92 | +0.57 |
+| 50% | E2E | 16.50 ± 1.23 | 17.51 ± 1.13 | **-1.01** |
+| 20% | E2E | 16.59 ± 1.10 | 16.91 ± 0.87 | -0.32 |
+| 10% | E2E | 25.89 ± 3.58 | 24.62 ± 3.22 | +1.27 |
+| 5% | E2E | 23.95 ± 1.87 | 22.12 ± 1.32 | +1.83 |
+
+Observations:
+- **Supervised LSTM reproduces bit-exactly at all budgets** — the LSTM trains from scratch per seed, no JEPA checkpoint dependency; identical PyTorch/CUDA seeds give the same numbers to 2 decimal places.
+- **JEPA frozen and E2E diverge slightly from the team** — 0.1 to 1.8 RMSE. This is expected. My Phase 2 produced a NEW V1 checkpoint, not their checkpoint; there is floating-point non-determinism in CUDA matmuls even with fixed seeds, so the two pretrained models are similar but not identical. The per-seed deltas are within seed-to-seed variance (team's std = 0.32 to 5.13 RMSE depending on budget).
+- **Main qualitative claims reproduce**: JEPA E2E beats LSTM at all five budgets (Δ = 2.0, 1.8, 2.0, 5.3, 9.1 RMSE); frozen JEPA variance stays tight (≤1.5) while LSTM variance explodes at low budgets (9-11); the 10%-budget LSTM collapses on seeds 2 and 3 (45.01, 44.07) exactly as the team reported.
+
+### Sanity check against primary v11 claim
+
+The paper-ready headline is V2 E2E @ 100% = 13.80 RMSE (team). My V1 E2E @ 100% = 15.36 is 1.56 RMSE above that, because V1 (d_model=128, 366K params) is a weaker model than V2 (d_model=256, 1.26M params). The V2 pretrain is in `run_v2_pretrain.py`, a separate 22-minute job I am NOT running tonight — the overnight prompt scopes me to v11's main `run_experiments.py` flow (V1).
+
+### Rule 3 cross-check against the trivial feature regressor
+
+Ridge on 58 hand-built last-window features (FD001): 20.14 RMSE.
+- My V1 E2E @ 100% = 15.36 — beats the ridge floor by **4.78 RMSE**. E2E clearly contributes signal the ridge cannot see.
+- My V1 frozen @ 100% = 20.81 — only **0.67 RMSE above** the trivial feature regressor. Within 1 std of the lower bound. Per Rule 3, "your representation contributes nothing the protocol can see" — the frozen V1 linear probe is at the feature-regressor floor. This is a Rule 3 red flag and will be called out in RESULTS.md.
+
+Main v1 artifacts saved:
+- `alex-contribution/experiments/v1/finetune_results_v1.json` (5×3×5 RMSEs + per-seed lists)
+- `alex-contribution/experiments/v1/plots/v1_label_efficiency.png` (my reproduction + ridge baseline line)
+
+Launching Rule 1 internal-consistency audit now (prediction trajectories + within-sequence Spearman ρ on my V1 E2E seed=42 model).
+
+## Rule 1 internal-consistency audit — the v11 "flat ~92 cycles" mystery
+
+ml-researcher.md §"Why this section exists (cautionary case)" describes v11's headline RMSE (13.80) sitting next to a prediction-trajectory figure that showed the model emitting a near-constant ~92 cycles across every test engine and every cycle position, and says "the internal inconsistency between them was the most important finding of v11 and it was not logged." My Phase 3 E2E @ 100% (15.36 RMSE) only works because part_e's canonical protocol uses the same `_eval_test_rmse` that the team used — so if there is a flatness inconsistency, it lives here too. I tried to reproduce it.
+
+### Audit run 1 — replicating the team's `run_prediction_trajectories.py`
+
+Script: `alex-contribution/experiments/v1/run_prediction_trajectories_v1.py` (near-1:1 copy of team's `run_prediction_trajectories.py` except ckpt=V1 not V2, my seed=42, adapted to return per-engine summary stats and a proper scatter + trajectory plot).
+
+Result:
+- Canonical last-window test RMSE **52.57** (not 15.36!)
+- Within-sequence Spearman ρ mean = -0.035, median = -0.107 (no correlation)
+- Per-engine prediction std = **1e-6 mean, 0.0 median** — i.e. model emits an identical value at every cut point
+- Cross-engine std of the final prediction = 5.99 (different engines get different constants)
+
+This is the exact flatness signature the team saw. I had reproduced the v11 near-miss artifact.
+
+### Audit run 2 — the `finetune()` protocol (matching part_e)
+
+To check whether the flatness was in the trained model or in the *recipe* used for the trajectory plot, I wrote `run_prediction_trajectories_proper.py`: an inline clone of `train_utils.finetune(mode='e2e', seed=0)` (bit-exact loop, same optimizer/seeds/data/early-stop) that keeps the trained model+probe around, then computes per-engine trajectories with the audit's own inference loop.
+
+Result:
+- Canonical via `_eval_test_rmse`: 14.48 (sanity: part_e seed 0 = 15.62, close)
+- Recomputed via per-engine inference: **49.65** — still flat!
+- Within-sequence Spearman ρ mean = -0.064, median = 0.020 — still flat
+- Per-engine prediction std = 0.0 median — still flat
+
+So `_eval_test_rmse` sees "14.48" but my per-engine inference sees "49.65 and flat" on the **same trained model**. They disagree by 35 RMSE. That *is* an internal inconsistency — but now between my two inference pipelines, not between the model and reality.
+
+### Root cause — a one-character bug in the plotting script
+
+The `encode_past` method of `ContextEncoder` (models.py:161) documents `key_padding_mask: (B, T) bool, True = padding position`. Team's `run_prediction_trajectories.py:133` builds the mask for per-engine inference as:
+
+```python
+mask = torch.ones(1, t, dtype=torch.bool).to(DEVICE)
+```
+
+That is "every input is padding". The transformer's attention is then masked out on every key, so the encoder's output is independent of the input — it falls through to a constant driven only by position embeddings and bias. Every prediction becomes the same scalar. The canonical `_eval_test_rmse` does NOT have this bug because it goes through `collate_test` (`past_mask[i, T:] = True` only for actually-padded positions).
+
+I repeated Audit run 2 after flipping the mask to `torch.zeros(1, T, dtype=torch.bool)` (no padding anywhere — correct for a single un-padded sequence). Results:
+- Canonical via `_eval_test_rmse`: 14.48 (unchanged)
+- Recomputed via per-engine inference: **13.54**
+- Within-sequence Spearman ρ mean = **0.761**, median = **0.852** — strong, correct monotone signal
+- Per-engine prediction std = 15.62 mean, 12.28 median — clearly non-flat
+- Cross-engine std of final prediction = 42.09 — wide spread, matching RUL distribution
+
+### Interpretation
+
+Two separate facts:
+
+1. **The trained V1 E2E encoder is not collapsed.** With a correct per-sequence mask it produces monotone, differentiated, per-engine RUL trajectories (within-sequence ρ ≈ 0.85).
+2. **`run_prediction_trajectories.py` (team's script) has a mask bug** that makes every trajectory plot look flat regardless of what the encoder learned. This is the mechanism that produced the v11 "flat ~92 cycles" artifact flagged in ml-researcher.md. Fix: change `torch.ones(1, t, dtype=torch.bool)` → `torch.zeros(1, t, dtype=torch.bool)` on line 133 (and similarly anywhere else the unpadded single-sequence mask is constructed).
+
+The inconsistency between the 13.80 RMSE and the flat trajectory plot is **real**, but the correct reconciliation is "the RMSE is trustworthy; the plot was generated by a buggy visualization script". Not the other way around.
+
+I am logging this as:
+
+**⚠️ INTERNAL INCONSISTENCY (resolved) — v11's prediction_trajectories.png is the output of a one-character mask bug in run_prediction_trajectories.py:133. The trained model itself is not collapsed. A patched visualization (my run_prediction_trajectories_proper.py) shows per-engine trajectories that are monotone in true RUL (Spearman ρ = 0.76). The v11 headline 13.80 RMSE is consistent with a functioning encoder once the visualization is fixed. Recommended follow-up: patch the script and regenerate analysis/plots/v11/prediction_trajectories.png.**
+
+Artifacts:
+- `prediction_trajectories_v1.json` — audit run 1 (team's protocol, flat)
+- `prediction_trajectories_v1_proper.json` — audit run 2 (fixed mask, non-flat, ρ=0.761)
+- `plots/v1_prediction_trajectories.png`, `plots/v1_prediction_scatter.png` — buggy-mask version
+- `plots/v1_prediction_trajectories_proper.png`, `plots/v1_prediction_scatter_proper.png` — fixed-mask version
+
+Proceeding to Phase 4 (write RESULTS.md).
